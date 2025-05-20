@@ -25,8 +25,14 @@ public:
 	void set_socket(int socket);
 	void set_connection(int connection);
 	void set_address(struct sockaddr_in address);
-	
+
 	virtual int bind_connection(int socket, struct sockaddr_in address) = 0;
+	//TODO:
+	//add listening
+	//add accepting connections
+	//add closing
+	//add error messages -> directly to socket or error class in general?
+	//look up -> blocking, non-blocking and asynchronous socket calls
 };
 
 #endif
