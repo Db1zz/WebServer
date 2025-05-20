@@ -1,0 +1,32 @@
+#ifndef SOCKET_HPP
+#define SOCKET_HPP
+#include <iostream>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include "colors.hpp"
+
+class ASocket {
+private:
+	int _socket;
+	int _connection;
+	struct sockaddr_in _address;
+
+	ASocket(const ASocket &other);
+	ASocket &operator= (const ASocket &other);
+public:
+	ASocket(int domain, int service, int protocol, int port, u_long interface);
+	~ASocket();
+	/*getters*/
+	int get_socket() const;
+	int get_connection() const;
+	struct sockaddr_in get_address();
+
+	/*setters*/
+	void set_socket(int socket);
+	void set_connection(int connection);
+	void set_address(struct sockaddr_in address);
+	
+	virtual int bind_connection(int socket, struct sockaddr_in address) = 0;
+};
+
+#endif
