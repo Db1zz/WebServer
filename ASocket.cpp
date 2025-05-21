@@ -7,7 +7,6 @@ ASocket::ASocket(int domain, int service, int protocol, int port, u_long interfa
 
 	_socket = socket(domain, service, protocol);
 	//test connection ?
-	_connection = bind_connection(_socket, _address);
 }
 
 ASocket::ASocket(const ASocket &other) {
@@ -49,3 +48,7 @@ void ASocket::set_address(sockaddr_in address) {
 	_address = address;
 }
 
+void ASocket::test_connection(int connection) {
+	if (connection < 0)
+		throw CannotConnectException();
+}

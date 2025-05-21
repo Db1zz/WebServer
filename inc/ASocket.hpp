@@ -1,5 +1,5 @@
-#ifndef SOCKET_HPP
-#define SOCKET_HPP
+#ifndef ASOCKET_HPP
+#define ASOCKET_HPP
 #include <iostream>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -26,13 +26,25 @@ public:
 	void set_connection(int connection);
 	void set_address(struct sockaddr_in address);
 
-	virtual int bind_connection(int socket, struct sockaddr_in address) = 0;
+	virtual int start_connection(int socket, struct sockaddr_in address) = 0;
+	void test_connection(int connection);
+
+	/*exceptions*/
+	class CannotConnectException: public std::exception {
+		public:
+			const char* what() const throw() { return "failed to connect."; }
+	};
+
 	//TODO:
 	//add listening
 	//add accepting connections
 	//add closing
 	//add error messages -> directly to socket or error class in general?
+	//exceptions are on different class? create a task to implement either an error class or exceptions class?
 	//look up -> blocking, non-blocking and asynchronous socket calls
+
+	//either remove connection or use it with setter in derived class???
+
 };
 
 #endif
