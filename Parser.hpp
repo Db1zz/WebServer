@@ -4,6 +4,9 @@
 #include <exception>
 #include <fstream>
 #include <iostream>
+#include <cstdlib>
+#include <unistd.h>
+#include <cstring>
 
 class Parser {
 	private:

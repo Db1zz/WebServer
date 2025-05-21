@@ -12,6 +12,5 @@ int main(int argc, char** argv) {
 	} else if (argc == 2) {
 		fileName = argv[argc - 1];
 	}
-	std::cout << fileName << '\n';
 	Parser(fileName.c_str());
 }
