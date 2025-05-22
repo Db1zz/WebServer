@@ -8,7 +8,6 @@
 class ASocket {
 private:
 	int _socket;
-	int _connection;
 	struct sockaddr_in _address;
 
 	ASocket(const ASocket &other);
@@ -18,12 +17,10 @@ public:
 	~ASocket();
 	/*getters*/
 	int get_socket() const;
-	int get_connection() const;
 	struct sockaddr_in get_address();
 
 	/*setters*/
 	void set_socket(int socket);
-	void set_connection(int connection);
 	void set_address(struct sockaddr_in address);
 
 	virtual int start_connection(int socket, struct sockaddr_in address) = 0;

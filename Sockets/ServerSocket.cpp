@@ -1,8 +1,8 @@
 #include "ServerSocket.hpp"
 
 ServerSocket::ServerSocket(int domain, int service, int protocol, int port, u_long interface): ASocket(domain, service, protocol, port, interface) {
-	if (start_connection(get_socket(), get_address()) < 0)
-		throw CannotConnectException();
+	int connection = start_connection(get_socket(), get_address());
+	test_connection(connection);
 }
 
 //TODO:
