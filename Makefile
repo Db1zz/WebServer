@@ -1,11 +1,11 @@
-NAME = ./sockets
+NAME = ./webserv
 CXX = c++ -std=c++98
 CXXFLAGS = -Wall -Werror -Wextra -g
 
 SRC = Sockets/ASocket.cpp \
 	Sockets/ClientSocket.cpp \
 	Sockets/ServerSocket.cpp \
-	Sockets/ListenerSocket.cpp \
+	Sockets/ListeningSocket.cpp \
 	main.cpp
 OBJ = $(SRC:.cpp=.o)
 
@@ -20,6 +20,6 @@ clean:
 fclean: clean
 	rm -rf $(NAME)
 
-re: clean all
+re: fclean all
 
 .PHONY: all clean fclean re

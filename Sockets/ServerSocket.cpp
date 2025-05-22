@@ -23,7 +23,6 @@ ServerSocket::ServerSocket(int domain, int service, int protocol, int port, u_lo
 // 	return (*this);
 // }
 
-ServerSocket::~ServerSocket() {}
 
 int ServerSocket::start_connection(int socket, sockaddr_in address) {
 	return bind(socket, (struct sockaddr*)&address, sizeof(address));

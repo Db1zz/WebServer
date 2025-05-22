@@ -23,8 +23,6 @@ ClientSocket::ClientSocket(int domain, int service, int protocol, int port, u_lo
 // 	return (*this);
 // }
 
-ClientSocket::~ClientSocket() {}
-
 int ClientSocket::start_connection(int socket, sockaddr_in address) {
 	return connect(socket, (struct sockaddr*)&address, sizeof(address));
 }
