@@ -6,12 +6,12 @@
 
 class IServer {
 private:
-	ListeningSocket *_listen_sock;
-	virtual void accept() = 0;
-	virtual void process_handle() = 0;
-	virtual void respond() = 0;
+	ListeningSocket *_listen_socket;
+	virtual void server_accept() = 0;
+	virtual void server_process_handle() = 0;
+	virtual void server_respond() = 0;
 public:
-	IServer(int domain, int service, int protocol, int port, u_long interface, int backlog) {}
+	IServer(int domain, int service, int protocol, int port, u_long interface, int backlog);
 	virtual ~IServer();
 	virtual void launch() = 0;
 	ListeningSocket *get_socket();

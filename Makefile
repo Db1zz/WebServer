@@ -6,6 +6,8 @@ SRC = Sockets/ASocket.cpp \
 	Sockets/ClientSocket.cpp \
 	Sockets/ServerSocket.cpp \
 	Sockets/ListeningSocket.cpp \
+	Server/IServer.cpp \
+	Server/Server.cpp \
 	main.cpp
 OBJ = $(SRC:.cpp=.o)
 
