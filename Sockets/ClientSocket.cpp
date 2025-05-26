@@ -1,8 +1,12 @@
 #include "ClientSocket.hpp"
 
+#include <stdexcept>
+#include <errno.h>
+#include <string.h>
+
 ClientSocket::ClientSocket(int domain, int service, int protocol, int port, u_long interface): ASocket(domain, service, protocol, port, interface) {
-	if (start_connection(get_socket(), get_address()) < 0)
-		throw CannotConnectException();
+	int status = start_connection(get_socket(), get_address());
+	is_connected(status);
 }
 
 //TODO:
@@ -25,4 +29,10 @@ ClientSocket::ClientSocket(int domain, int service, int protocol, int port, u_lo
 
 int ClientSocket::start_connection(int socket, sockaddr_in address) {
 	return connect(socket, (struct sockaddr*)&address, sizeof(address));
+}
+
+void ClientSocket::is_connected(int status) {
+	if (status < 0) {
+		throw std::runtime_error("connect() faled: " + std::string(strerror(errno)));
+	}
 }

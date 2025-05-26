@@ -1,5 +1,7 @@
 #include "Server.hpp"
 
+#include <string.h>
+
 Server::Server() : IServer(AF_INET, SOCK_STREAM, 0, 80, INADDR_ANY, 10) {
 	launch();
 }

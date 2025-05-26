@@ -1,20 +1,23 @@
-#ifndef ISERVER_HPP
-#define ISERVER_HPP
-#include <iostream>
+#ifndef SERVER_ISERVER_HPP
+#define SERVER_ISERVER_HPP
+
 #include "colors.hpp"
-#include "../Sockets/ListeningSocket.hpp"
+#include "ServerSocket.hpp"
+
+#include <iostream>
 
 class IServer {
-private:
-	ListeningSocket *_listen_socket;
-	virtual void server_accept() = 0;
-	virtual void server_process_handle() = 0;
-	virtual void server_respond() = 0;
 public:
 	IServer(int domain, int service, int protocol, int port, u_long interface, int backlog);
 	virtual ~IServer();
 	virtual void launch() = 0;
-	ListeningSocket *get_socket();
+	ServerSocket *get_socket();
+
+private:
+	ServerSocket* _server_socket;
+	virtual void server_accept() = 0;
+	virtual void server_process_handle() = 0;
+	virtual void server_respond() = 0;
 };
 
-#endif
+#endif  // SERVER_ISERVER_HPP

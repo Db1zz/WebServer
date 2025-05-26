@@ -1,8 +1,13 @@
 #include "ServerSocket.hpp"
 
-ServerSocket::ServerSocket(int domain, int service, int protocol, int port, u_long interface): ASocket(domain, service, protocol, port, interface) {
-	int connection = start_connection(get_socket(), get_address());
-	test_connection(connection);
+#include <errno.h>
+#include <stdexcept>
+#include <string.h>
+
+ServerSocket::ServerSocket(int domain, int service, int protocol, int port, u_long interface, int max_connections)
+	: ASocket(domain, service, protocol, port, interface), _max_connections(max_connections)
+{
+	start_connection(get_socket(), get_address());
 }
 
 //TODO:
@@ -21,9 +26,24 @@ ServerSocket::ServerSocket(int domain, int service, int protocol, int port, u_lo
 // 		//assign;
 // 	}
 // 	return (*this);
-// }
-
 
 int ServerSocket::start_connection(int socket, sockaddr_in address) {
-	return bind(socket, (struct sockaddr*)&address, sizeof(address));
+	int status;
+	status = bind(socket, (struct sockaddr*)&address, sizeof(address));
+	is_binded(status);
+	status = listen(get_socket(), _max_connections);
+	is_listening(status);
+	return 0;
+}
+
+void ServerSocket::is_listening(int status) {
+	if (status < 0) {
+		throw std::runtime_error("listen() failed: " + std::string(strerror(errno)));
+	}
+}
+
+void ServerSocket::is_binded(int status) {
+	if (status < 0) {
+		throw std::runtime_error("bind() failed: " + std::string(strerror(errno)));
+	}
 }
