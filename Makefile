@@ -8,6 +8,7 @@ SRC = Sockets/ASocket.cpp \
 	Sockets/ServerSocket.cpp \
 	Server/IServer.cpp \
 	Server/Server.cpp \
+	Server/ServerEvent.cpp \
 	main.cpp
 
 OBJ = $(SRC:.cpp=.o)

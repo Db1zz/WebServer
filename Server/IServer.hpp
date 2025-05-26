@@ -14,10 +14,7 @@ public:
 	ServerSocket *get_socket();
 
 private:
-	ServerSocket* _server_socket;
-	virtual void server_accept() = 0;
-	virtual void server_process_handle() = 0;
-	virtual void server_respond() = 0;
+	ServerSocket *_server_socket;
 };
 
 #endif  // SERVER_ISERVER_HPP

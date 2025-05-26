@@ -11,7 +11,7 @@ public:
 	virtual ~ASocket();
 
 	/* getters */
-	int get_socket() const;
+	int get_fd() const;
 	struct sockaddr_in get_address();
 
 	/* setters */

@@ -3,22 +3,26 @@
 
 #include "colors.hpp"
 #include "IServer.hpp"
+#include "ServerEvent.hpp"
 
 #include <iostream>
 #include <unistd.h>
+#include <sys/epoll.h>
 
 class Server: public IServer {
 public:
 	Server();
+	~Server();
 	void launch();
 
 private:
-	void server_accept();
-	void server_process_handle();
-	void server_respond();
+	ServerEvent event;
 
-	char _buffer[40000]; //change to reading to file later
-	int _new_socket;
+	void init();
+
+	void accept();
+	void process_handle();
+	void respond();
 };
 
 #endif  // SERVER_SERVER_HPP
