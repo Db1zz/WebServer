@@ -36,13 +36,64 @@ void Server::init() {
 
 void Server::handle_event(int amount_of_events) {
 	for (int i = 0; i < amount_of_events; ++i) {
-		if (_event[i]->data.fd == get_socket()->get_fd()) {
+		const epoll_event &request_event = *_event[i];
+		if (request_event.data.fd == get_socket()->get_fd()) {
 			// Accept connection and add new event
-			accept_new_connection(_event[i]->data.fd);
+			accept_new_connection(request_event.data.fd);
 		} else {
-			// Send response on event
+			// handle request and generate response
+			std::vector<std::string> request;
+
+			request = request_handler(request_event);
+			request.size(); // suppress unused variable err
+			response_handler(request_event);
 		}
 	}
+}
+
+std::vector<std::string> Server::read_request(const epoll_event &request_event) {
+	const size_t read_buff_size = 1024;
+	char read_buff[read_buff_size]; // TODO: read about what size of the header we can get
+	ssize_t rd_bytes;
+
+	rd_bytes = read(request_event.data.fd, read_buff, read_buff_size);
+	if (rd_bytes < 0) {
+		std::runtime_error("read() failed!");
+		close(request_event.data.fd);
+	}
+	// TODO: add loop in which we're going to fill std::vector<std::string>
+	return std::vector<std::string>(); // return empty arr
+}
+
+std::vector<std::string> Server::request_handler(const epoll_event &request_event) {
+	std::vector<std::string> request = read_request(request_event);
+
+	/* 
+		Goshan41k
+
+		We can validate request during parsing or before/after it,
+		depends on our implementation.
+
+		Parser should return struct, which will be used later in response_handler(),
+		right now I'm returning std::vector<std::string> cuz nothing is implemented and 
+		i'm not sure how this struct will look like. 
+	*/
+	// parse_request()
+	// request_validator();
+	return request;
+}
+
+void Server::response_handler(const epoll_event &request_event /* second arg is a struct that was parsed in request_handler()*/) {
+	char aboba[] = "aboba";
+	// Generate response and send it to request_event.data.fd
+	write(request_event.data.fd, "aboba", sizeof(aboba));
+}
+
+std::string Server::response_generator(/* TODO: add args*/) {
+	std::string response_str;
+
+	response_str = "some response";
+	return response_str;
 }
 
 void Server::accept_new_connection(int new_connection_fd) {
@@ -71,5 +122,5 @@ void Server::announce_new_connection(const struct sockaddr &cl_sockaddr, int cl_
 		std::runtime_error("genameinfo() failed");
 	}
 	printf("Accepted new connection on descriptor %d\n"
-		"(host: %s, port: %s)\n", cl_fd, hbuff, sbuff);
+		"(host: %s, addr: %s)\n", cl_fd, hbuff, sbuff);
 }
