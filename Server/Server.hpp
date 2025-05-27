@@ -16,13 +16,10 @@ public:
 	void launch();
 
 private:
-	ServerEvent event;
-
 	void init();
+	void handle_event(int amount_of_events);
 
-	void accept();
-	void process_handle();
-	void respond();
+	ServerEvent _event;
 };
 
 #endif  // SERVER_SERVER_HPP

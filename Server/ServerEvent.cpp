@@ -1,6 +1,8 @@
 #include "ServerEvent.hpp"
 
 #include <unistd.h>
+#include <stdexcept>
+#include <string.h>
 
 ServerEvent::ServerEvent()
     : _events_arr(NULL), _events_size(0), _events_capacity(5)
@@ -33,6 +35,26 @@ void ServerEvent::add_event(uint32_t events, int event_fd) {
 
     epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, event_fd, &new_event);
     ++_events_size;
+}
+
+/*
+    The same rules are applied to timeout as for epoll_wait()
+
+    read about it: man epoll_wait
+*/
+int ServerEvent::wait_event(int timeout) {
+    int nfds = epoll_wait(_epoll_fd, _events_arr, _events_capacity, _epoll_fd);
+    if (nfds < 0) {
+        std::runtime_error("epoll_wait() failed: " + std::string(strerror(errno)));
+    }
+    return nfds;
+}
+
+epoll_event *ServerEvent::operator[](size_t index) {
+    if (index > _events_size) {
+        std::runtime_error("Error in ServerEvent::operator[]: index > _events_size");
+    }
+    return &(_events_arr[index]);
 }
 
 void ServerEvent::init() {

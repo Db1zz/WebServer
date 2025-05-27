@@ -10,6 +10,9 @@ public:
     ~ServerEvent();
 
 	void add_event(uint32_t events, int event_fd);
+    int wait_event(int timeout);
+
+    epoll_event *operator[](size_t index);
 
     // TODO
     // void remove_event();
