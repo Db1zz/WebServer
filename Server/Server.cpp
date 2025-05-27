@@ -25,18 +25,22 @@ void Server::launch() {
 	std::cout << GREEN400 << "----LISTENING AT PORT 80----" << RESET
 	<< std::endl;
 	while (true) {
-		amount_of_events = _event.wait_event(-1);
+		amount_of_events = _event.wait_event(2.5);
 		handle_event(amount_of_events);
 	}
 }
 
 void Server::init() {
+	int yes = 1;
+
 	_event.add_event(EPOLLIN | EPOLLOUT, get_socket()->get_fd());
+	setsockopt(get_socket()->get_fd(), SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes));
 }
 
 void Server::handle_event(int amount_of_events) {
 	for (int i = 0; i < amount_of_events; ++i) {
 		const epoll_event &request_event = *_event[i];
+
 		if (request_event.data.fd == get_socket()->get_fd()) {
 			// Accept connection and add new event
 			accept_new_connection(request_event.data.fd);
@@ -105,7 +109,7 @@ void Server::accept_new_connection(int new_connection_fd) {
 	if (cl_fd < 0) {
 		std::runtime_error("accept() failed: " + std::string(strerror(errno)));
 	}
-	_event.add_event(EPOLLIN | EPOLLOUT, cl_fd);
+	_event.add_event(EPOLLIN, cl_fd);
 	announce_new_connection(cl_sockaddr, cl_fd);
 }
 
