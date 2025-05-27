@@ -18,6 +18,8 @@ public:
 private:
 	void init();
 	void handle_event(int amount_of_events);
+	void accept_new_connection(int new_connection_fd);
+	void announce_new_connection(const struct sockaddr &cl_sockaddr, int cl_fd);
 
 	ServerEvent _event;
 };

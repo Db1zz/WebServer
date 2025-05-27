@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <stdexcept>
 #include <string.h>
+#include <errno.h>
 
 ServerEvent::ServerEvent()
     : _events_arr(NULL), _events_size(0), _events_capacity(5)
@@ -43,7 +44,7 @@ void ServerEvent::add_event(uint32_t events, int event_fd) {
     read about it: man epoll_wait
 */
 int ServerEvent::wait_event(int timeout) {
-    int nfds = epoll_wait(_epoll_fd, _events_arr, _events_capacity, _epoll_fd);
+    int nfds = epoll_wait(_epoll_fd, _events_arr, _events_capacity, timeout);
     if (nfds < 0) {
         std::runtime_error("epoll_wait() failed: " + std::string(strerror(errno)));
     }
