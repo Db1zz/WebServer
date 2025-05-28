@@ -5,7 +5,7 @@
 #include <string.h>
 
 ClientSocket::ClientSocket(int domain, int service, int protocol, int port, u_long interface): ASocket(domain, service, protocol, port, interface) {
-	int status = start_connection(get_socket(), get_address());
+	int status = start_connection(get_fd(), get_address());
 	is_connected(status);
 }
 

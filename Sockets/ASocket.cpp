@@ -30,7 +30,7 @@ ASocket &ASocket::operator=(const ASocket &other) {
 ASocket::~ASocket() {}
 
 /* getters */
-int ASocket::get_socket() const {
+int ASocket::get_fd() const {
 	return _socket_fd;
 }
 

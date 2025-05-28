@@ -16,5 +16,5 @@ int main() {
 	// }
 	// std::cout << "yahoo!" << std::endl;
 	Server test;
-
+	test.launch();
 }
