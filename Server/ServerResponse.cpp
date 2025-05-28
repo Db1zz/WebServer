@@ -25,9 +25,8 @@ ServerResponse& ServerResponse::status_line(const int code) {
 
 ServerResponse& ServerResponse::html(const std::string& path) {
 	header("content-type", "text/html");
-	std::cout <<  "PATH: " << path << std::endl;
 	std::ifstream html_file;
-	html_file.open((path.c_str()));
+	html_file.open(path.c_str());
 		if(html_file.is_open()){
 			std::string temp;
 			while (getline(html_file, temp)) {

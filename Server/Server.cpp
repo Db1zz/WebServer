@@ -3,6 +3,7 @@
 #include <errno.h>
 #include <netdb.h> /* getnameinfo() */
 #include <string.h>
+
 #include <cstdio>
 
 Server::Server() : IServer(AF_INET, SOCK_STREAM, 0, 80, INADDR_ANY, 10) {
@@ -95,9 +96,10 @@ void Server::response_handler(const epoll_event &request_event /* second arg is 
 	ServerResponse resp;
 	// resp.header("content-type", "html");
 	// resp.header("content-length", resp.get_body_size());
-	resp.html("/Users/mariannazhukova/Desktop/webserv/Pages/index.html");
+	resp.html("Pages/index.html");
 	std::cout << resp.get_body() << std::endl;
-	std::string res = WS_PROTOCOL + resp.get_status() + resp.get_headers() + "\r\n" + resp.get_body();
+	std::string res = WS_PROTOCOL + resp.get_status() + resp.get_headers() +
+					  "\r\n" + resp.get_body();
 	// Generate response and send it to request_event.data.fd
 	write(request_event.data.fd, res.c_str(), res.size());
 }
