@@ -8,6 +8,7 @@
 #include "../Utilities/colors.hpp"
 #include "IServer.hpp"
 #include "ServerEvent.hpp"
+#include "ServerResponse.hpp"
 
 #include <iostream>
 #include <unistd.h>
@@ -15,6 +16,7 @@
 #include <string>
 #include <vector>
 
+#define WS_PROTOCOL "HTTP/1.1"
 class Server: public IServer {
 public:
 	Server();

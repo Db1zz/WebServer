@@ -1,12 +1,58 @@
 #include "ServerResponse.hpp"
 
-ServerResponse::ServerResponse() {
-	_status = "200 OK\r\n";
-}
+ServerResponse::ServerResponse() { _status_line = "200 OK\r\n"; }
 
 ServerResponse::~ServerResponse() {}
 
 ServerResponse& ServerResponse::operator<<(const std::string& data) {
-		_body += data;
+	_body += data;
+	return *this;
+}
+
+ServerResponse& ServerResponse::header(const std::string& key,
+									   const std::string& value) {
+	_headers += key + ": " + value + "\r\n";
+	return (*this);
+}
+
+ServerResponse& ServerResponse::status_line(const int code) {
+	std::stringstream code_str;
+	code_str << code;
+	_status_line = code_str.str() + " OK\r\n";
+	/* TODO: add up different status_texts depending on a code */
+	return (*this);
+}
+
+ServerResponse& ServerResponse::html(const std::string& path) {
+	header("content-type", "text/html");
+	std::ifstream html_file(path.c_str());
+		if(html_file.is_open()){
+			while (getline(html_file, _body)) {
+	   	 		std::cout << _body << std::endl;
+			}
+			html_file.close();
+		} else
+			status_line(404) << "file Not Found";
+	
+	header("content-length", get_body_size());
 		return *this;
+}
+#include <sstream>
+
+const std::string ServerResponse::get_body_size() const {
+	std::stringstream ss;
+	ss << _body.size();
+	return ss.str();
+}
+
+const std::string& ServerResponse::get_status() const {
+	return _status_line;
+}
+
+const std::string& ServerResponse::get_headers() const {
+	return _headers;
+}
+
+const std::string& ServerResponse::get_body() const {
+	return _body;
 }
