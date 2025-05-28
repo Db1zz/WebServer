@@ -5,6 +5,9 @@
 #include <fstream>
 #include <string>
 #include <sstream>
+#include <stdlib.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include "../Utilities/colors.hpp"
 #include "ServerResponse.hpp"
 

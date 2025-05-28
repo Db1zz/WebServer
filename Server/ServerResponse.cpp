@@ -25,14 +25,17 @@ ServerResponse& ServerResponse::status_line(const int code) {
 
 ServerResponse& ServerResponse::html(const std::string& path) {
 	header("content-type", "text/html");
-	std::ifstream html_file(path.c_str());
+	std::cout <<  "PATH: " << path << std::endl;
+	std::ifstream html_file;
+	html_file.open((path.c_str()));
 		if(html_file.is_open()){
-			while (getline(html_file, _body)) {
-	   	 		std::cout << _body << std::endl;
+			std::string temp;
+			while (getline(html_file, temp)) {
+	   	 		_body += temp;
 			}
 			html_file.close();
 		} else
-			status_line(404) << "file Not Found";
+			status_line(404) << "file not found :c";
 	
 	header("content-length", get_body_size());
 		return *this;

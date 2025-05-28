@@ -93,8 +93,10 @@ std::vector<std::string> Server::request_handler(
 
 void Server::response_handler(const epoll_event &request_event /* second arg is a struct that was parsed in request_handler()*/) {
 	ServerResponse resp;
-	resp.header("content-type", "html");
-	resp.header("content-length", resp.get_body_size());
+	// resp.header("content-type", "html");
+	// resp.header("content-length", resp.get_body_size());
+	resp.html("/Users/mariannazhukova/Desktop/webserv/Pages/index.html");
+	std::cout << resp.get_body() << std::endl;
 	std::string res = WS_PROTOCOL + resp.get_status() + resp.get_headers() + "\r\n" + resp.get_body();
 	// Generate response and send it to request_event.data.fd
 	write(request_event.data.fd, res.c_str(), res.size());
