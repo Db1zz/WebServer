@@ -6,7 +6,7 @@
 #include <errno.h>
 
 Server::Server()
-	: IServer(AF_INET, SOCK_STREAM, 0, 80, INADDR_ANY, 10)
+	: IServer(AF_INET, SOCK_STREAM, 0, 8080, INADDR_ANY, 10)
 {
 	init();
 }
@@ -22,7 +22,7 @@ void Server::launch() {
 		TODO:
 			Port shouldn't be static, modify cout later.
 	*/
-	std::cout << GREEN400 << "----LISTENING AT PORT 80----" << RESET
+	std::cout << GREEN400 << "----LISTENING AT PORT 8080----" << RESET
 	<< std::endl;
 	while (true) {
 		amount_of_events = _event.wait_event(2.5);
@@ -66,6 +66,7 @@ std::vector<std::string> Server::read_request(const epoll_event &request_event) 
 		close(request_event.data.fd);
 	}
 	// TODO: add loop in which we're going to fill std::vector<std::string>
+	std::cout << read_buff << std::endl;
 	return std::vector<std::string>(); // return empty arr
 }
 
