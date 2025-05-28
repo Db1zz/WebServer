@@ -51,6 +51,7 @@ void Server::handle_event(int amount_of_events) {
 			request = request_handler(request_event);
 			request.size(); // suppress unused variable err
 			response_handler(request_event);
+			close(request_event.data.fd);
 		}
 	}
 }
@@ -88,9 +89,9 @@ std::vector<std::string> Server::request_handler(const epoll_event &request_even
 }
 
 void Server::response_handler(const epoll_event &request_event /* second arg is a struct that was parsed in request_handler()*/) {
-	char aboba[] = "aboba";
+	char aboba[] = "aboba\n";
 	// Generate response and send it to request_event.data.fd
-	write(request_event.data.fd, "aboba", sizeof(aboba));
+	write(request_event.data.fd, aboba, strlen(aboba));
 }
 
 std::string Server::response_generator(/* TODO: add args*/) {

@@ -14,7 +14,7 @@ public:
 	ServerSocket *get_socket();
 
 private:
-	ServerSocket *_server_socket;
+	ServerSocket _server_socket;
 };
 
 #endif  // SERVER_ISERVER_HPP
