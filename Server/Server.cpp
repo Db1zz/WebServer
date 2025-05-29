@@ -21,6 +21,7 @@ void Server::launch() {
 		TODO:
 			Port shouldn't be static, modify cout later.
 	*/
+	get_socket()->start_connection();
 	std::cout << GREEN400 << "----LISTENING AT PORT 80----" << RESET
 			  << std::endl;
 	while (true) {

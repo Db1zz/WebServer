@@ -17,9 +17,10 @@ public:
 	/* setters */
 	void set_socket(int socket);
 	void set_address(struct sockaddr_in address);
+	void set_opt(int opt, bool to_set, int level = SOL_SOCKET);
 
 	/* general functions */
-	virtual int start_connection(int socket, struct sockaddr_in address) = 0;
+	virtual int start_connection() = 0;
 	void close_socket();
 
 	//TODO:
@@ -31,7 +32,7 @@ public:
 
 	//either remove connection or use it with setter in derived class???
 	
-private:
+protected:
 	/* deleted operations */
 	ASocket(const ASocket &other);
 	ASocket &operator= (const ASocket &other);

@@ -15,6 +15,7 @@ int main() {
 	// 	std::cerr << RED300 << e.what() << RESET << std::endl;
 	// }
 	// std::cout << "yahoo!" << std::endl;
-	Server test;
-	test.launch();
+	Server server;
+	server.get_socket()->set_opt(SO_REUSEADDR, true);
+	server.launch();
 }

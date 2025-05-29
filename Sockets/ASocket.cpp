@@ -47,6 +47,10 @@ void ASocket::set_address(sockaddr_in address) {
 	_address = address;
 }
 
+void ASocket::set_opt(int opt, bool to_set, int level) {
+	setsockopt(_socket_fd, level, opt, &to_set, sizeof(to_set));
+}
+
 /* general functions */
 void ASocket::close_socket() {
 	close(_socket_fd);

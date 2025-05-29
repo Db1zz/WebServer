@@ -8,7 +8,7 @@
 class ClientSocket: public ASocket {
 public:
 	ClientSocket(int domain, int service, int protocol, int port, u_long interface);	
-	int start_connection(int socket, struct sockaddr_in address);
+	int start_connection();
 
 private:
 	void is_connected(int status);

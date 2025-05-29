@@ -9,7 +9,7 @@ class ServerSocket: public ASocket {
 public:
 	ServerSocket(int domain, int service, int protocol, int port, u_long interface, int max_connections);
 	// ~ServerSocket();
-	int start_connection(int socket, struct sockaddr_in address);
+	int start_connection();
 
 private:
 	void is_binded(int status);

@@ -7,7 +7,6 @@
 ServerSocket::ServerSocket(int domain, int service, int protocol, int port, u_long interface, int max_connections)
 	: ASocket(domain, service, protocol, port, interface), _max_connections(max_connections)
 {
-	start_connection(get_fd(), get_address());
 }
 
 //TODO:
@@ -27,9 +26,9 @@ ServerSocket::ServerSocket(int domain, int service, int protocol, int port, u_lo
 // 	}
 // 	return (*this);
 
-int ServerSocket::start_connection(int socket, sockaddr_in address) {
+int ServerSocket::start_connection() {
 	int status;
-	status = bind(socket, (struct sockaddr*)&address, sizeof(address));
+	status = bind(_socket_fd, (struct sockaddr*)&_address, sizeof(_address));
 	is_binded(status);
 	status = listen(get_fd(), _max_connections);
 	is_listening(status);
