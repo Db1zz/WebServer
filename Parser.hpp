@@ -8,6 +8,7 @@
 #include <exception>
 #include <fstream>
 #include <iostream>
+#include <map>
 #include <vector>
 
 #include "Token.hpp"
@@ -17,6 +18,7 @@ class Parser {
    private:
 	std::string &m_fileName;
 	std::vector<Token> _tokens;
+	std::map<std::string, t_TokenType> _keywords;
 	std::string _source;
 	int _start;
 	size_t _current;
@@ -28,9 +30,12 @@ class Parser {
 	Parser &operator=(const Parser &original);
 	~Parser();
 	std::vector<Token> scanTokens();
+	void addKeywords();
 	bool isAtEnd();
 	void addToken(t_TokenType type);
 	char advance();
+	char peek();
+	void identifier(char c);
 	void scanToken();
 };
 

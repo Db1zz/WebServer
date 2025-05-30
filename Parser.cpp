@@ -19,6 +19,7 @@ Parser::Parser(std::string fileName) : m_fileName(fileName) {
 		_source += tempString;
 		_source += '\n';
 	}
+	addKeywords();
 	std::vector<Token> temp = scanTokens();
 	for (size_t i = 0; i < temp.size(); i++) {
 		std::cout << temp[i].getAll();
@@ -39,6 +40,26 @@ Parser &Parser::operator=(const Parser &original) {
 }
 
 Parser::~Parser() {
+}
+
+void Parser::addKeywords() {
+	_keywords["server"] = SERVER;
+	_keywords["listen"] = LISTEN;
+	_keywords["host"] = HOST;
+	_keywords["server_name"] = SERVER_NAME;
+	_keywords["methods"] = METHODS;
+	_keywords["get"] = GET;
+	_keywords["post"] = POST;
+	_keywords["delete"] = DELETE;
+	_keywords["auto_index"] = AUTO_INDEX;
+	_keywords["on"] = ON;
+	_keywords["off"] = OFF;
+	_keywords["index"] = INDEX;
+	_keywords["root"] = ROOT;
+	_keywords["error_page"] = ERROR_PAGE;
+	_keywords["cgi"] = CGI;
+	_keywords["max_client_body_size"] = MAX_CLIENT_BODY_SIZE;
+	_keywords["return"] = RETURN;
 }
 
 std::vector<Token> Parser::scanTokens() {
@@ -62,6 +83,27 @@ void Parser::addToken(t_TokenType type) {
 char Parser::advance() {
 	_current++;
 	return _source.at(_current - 1);
+}
+
+char Parser::peek() {
+	return _source.at(_current);
+}
+
+void Parser::identifier(char c) {
+	while (!isAtEnd()) {
+		c = peek();
+		if (isalnum(c) || c == '_' || c == '-')
+			advance();
+		else
+			break;
+	}
+	std::string text = _source.substr(_start, _current - _start);
+	std::map<std::string, t_TokenType>::iterator it = _keywords.find(text);
+	if (it != _keywords.end()) {
+		addToken(it->second);
+	} else {
+		addToken(IDENTIFIER);
+	}
 }
 
 void Parser::scanToken() {
@@ -93,7 +135,17 @@ void Parser::scanToken() {
 		case '\n':
 			_line++;
 			break;
+		case ':':
+			addToken(COLON);
+			break;
+		case ';':
+			addToken(SEMICOLON);
+			break;
 		default:
-			std::cerr << "Unexpected character: " << c << " at line: " << _line << '\n';
+			if (isalnum(c) || c == '_' || c == '-') {
+				identifier(c);
+			} else {
+				std::cerr << "Unexpected character: " << c << " at line: " << _line << '\n';
+			}
 	}
 }
