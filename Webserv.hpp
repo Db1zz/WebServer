@@ -1,28 +1,36 @@
 #ifndef WEBSERV_HPP
 #define WEBSERV_HPP
 
+#include <map>
 #include <string>
+#include <vector>
 
 typedef struct s_methods {
-	bool m_get;
-	bool m_post;
-	bool m_delete;
+	bool getMethod;
+	bool postMethod;
+	bool deleteMethod;
 } t_methods;
 
+typedef struct s_commonConfig {
+	std::string root;
+	t_methods methods;
+	std::vector<std::string> index;
+	std::string max_client_body; // needs to be changed in the future
+	std::map<int, std::string> errorPage;
+	bool auto_index;
+} t_commonConfig;
+
 typedef struct s_location {
+	t_commonConfig common;
 } t_location;
 
 typedef struct s_config {
 	std::vector<std::string> server_name;
 	std::vector<int> listen;
 	// int host;
-	t_methods methods;
-	bool auto_index;  // false by default
-	std::string root;
-	std::vector<std::string> index;
-	std::map<int, std::string> error_page;
+	t_commonConfig common;
 	std::vector<t_location> location;
-	std::string max_client_body;
+
 } t_config;
 
 typedef enum e_TokenType {
