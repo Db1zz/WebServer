@@ -67,7 +67,7 @@ std::vector<Token> Parser::scanTokens() {
 		_start = _current;
 		scanToken();
 	}
-	_tokens.push_back(Token(END_OF_FILE, ""));
+	_tokens.push_back(Token(END_OF_FILE, "", -1));
 	return _tokens;
 }
 
@@ -77,7 +77,7 @@ bool Parser::isAtEnd() {
 
 void Parser::addToken(t_TokenType type) {
 	std::string text = _source.substr(_start, _current - _start);
-	_tokens.push_back(Token(type, text));
+	_tokens.push_back(Token(type, text, _line));
 }
 
 char Parser::advance() {
@@ -145,7 +145,7 @@ void Parser::scanToken() {
 			if (isalnum(c) || c == '_' || c == '-') {
 				identifier(c);
 			} else {
-				std::cerr << "Unexpected character: " << c << " at line: " << _line << '\n';
+				std::cerr << "Unexpected character '" << c << "' at line: " << _line << '\n';
 			}
 	}
 }
