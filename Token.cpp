@@ -6,3 +6,11 @@ Token::Token(e_TokenType type, std::string lexeme, int line) : _type(type), _lex
 std::string Token::getAll() {
 	return _lexeme;
 }
+
+t_TokenType Token::getType() {
+	return _type;
+}
+
+int Token::getLine() {
+	return _line;
+}

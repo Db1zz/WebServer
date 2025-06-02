@@ -4,6 +4,7 @@ Parser::Parser(std::string fileName) : m_fileName(fileName) {
 	_start = 0;
 	_current = 0;
 	_line = 1;
+	_currentToken = 0;
 	std::cout << "[LOG]: Got filename as: " << m_fileName << "\n";
 	if (access(m_fileName.c_str(), R_OK) == -1 || strstr(m_fileName.c_str(), ".conf\0") == NULL) {
 		std::cerr << "No file found with the extension '.conf' or no rights to read!\n";
@@ -147,5 +148,61 @@ void Parser::scanToken() {
 			} else {
 				std::cerr << "Unexpected character '" << c << "' at line: " << _line << '\n';
 			}
+	}
+}
+
+bool Parser::tokenIsAtEnd() {
+	if (_tokens.at(_currentToken).getType() == END_OF_FILE)
+		return true;
+	return false;
+}
+
+Token Parser::tokenAdvance() {
+	if (!tokenIsAtEnd())
+		_currentToken++;
+	return previous();
+}
+
+bool Parser::check(t_TokenType type) {
+	if (!tokenIsAtEnd())
+		return false;
+	return tokenPeek().getType() == type;
+}
+
+Token Parser::tokenPeek() {
+	return _tokens.at(_currentToken);
+}
+
+Token Parser::previous() {
+	return _tokens.at(_currentToken - 1);
+}
+
+bool Parser::match(t_TokenType type) {
+	if (_tokens.at(_currentToken).getType() == type) {
+		tokenAdvance();
+		return true;
+	}
+	return false;
+}
+
+Token Parser::consume(t_TokenType type, std::string message)
+{
+	if (check(type))
+		return tokenAdvance();
+	std::string str = "Parse error at line ";
+	str += tokenPeek().getLine();
+	str += ": ";
+	str += message;
+	throw std::runtime_error(str);
+}
+
+void Parser::parseConfig() {
+	while (!tokenIsAtEnd()) {
+		if (match(SERVER)) {
+			
+		} else {
+			std::cerr << "Expected server block\n";
+			exit(1);
+		}
 	}
 }

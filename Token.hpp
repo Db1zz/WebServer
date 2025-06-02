@@ -14,6 +14,8 @@ class Token {
    public:
 	Token(e_TokenType type, std::string lexeme, int line);
 	std::string getAll();
+	t_TokenType getType();
+	int getLine();
 };
 
 #endif

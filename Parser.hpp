@@ -21,6 +21,7 @@ class Parser {
 	int _start;
 	size_t _current;
 	int _line;
+	int _currentToken;
 
    public:
 	Parser(std::string fileName);
@@ -35,6 +36,15 @@ class Parser {
 	char peek();
 	void identifier(char c);
 	void scanToken();
+	void parseConfig();
+	bool tokenIsAtEnd();
+	bool match(t_TokenType type);
+	Token tokenAdvance();
+	Token previous();
+	Token tokenPeek();
+	bool check(t_TokenType);
+	Token consume(t_TokenType type, std::string message);
+
 };
 
 #endif
