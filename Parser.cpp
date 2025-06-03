@@ -26,6 +26,8 @@ Parser::Parser(std::string fileName) : m_fileName(fileName) {
 		std::cout << temp[i].getAll();
 		std::cout << "\n";
 	}
+	std::cout << "\n\n";
+	parseConfig();
 }
 
 Parser::Parser(const Parser &original) : m_fileName(original.m_fileName) {
@@ -164,7 +166,7 @@ Token Parser::tokenAdvance() {
 }
 
 bool Parser::check(t_TokenType type) {
-	if (!tokenIsAtEnd())
+	if (tokenIsAtEnd())
 		return false;
 	return tokenPeek().getType() == type;
 }
@@ -185,21 +187,28 @@ bool Parser::match(t_TokenType type) {
 	return false;
 }
 
-Token Parser::consume(t_TokenType type, std::string message)
-{
+Token Parser::consume(t_TokenType type, std::string message) {
 	if (check(type))
 		return tokenAdvance();
-	std::string str = "Parse error at line ";
-	str += tokenPeek().getLine();
-	str += ": ";
-	str += message;
-	throw std::runtime_error(str);
+	std::stringstream str;
+	str << "Parse error at line " << tokenPeek().getLine() << ": " << message << " got '" << _tokens.at(_currentToken).getAll() << "' instead\n";
+	throw std::runtime_error(str.str());
 }
 
 void Parser::parseConfig() {
 	while (!tokenIsAtEnd()) {
 		if (match(SERVER)) {
-			
+			consume(LEFT_BRACE, "expected '{' after server block");
+			while (!check(RIGHT_BRACE) && !tokenIsAtEnd())
+			{
+				if (match(LISTEN))
+				{
+					std::cout << "Found listen\n"; // give it to function and than consume semicolon in it
+					consume(SEMICOLON, "expected ';' after the statement");
+				}
+				exit(1); // DEBUG escape loop manually for now
+			}
+			consume(RIGHT_BRACE, "expected terminator '}' after server block content");
 		} else {
 			std::cerr << "Expected server block\n";
 			exit(1);

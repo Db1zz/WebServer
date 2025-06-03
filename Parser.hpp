@@ -8,6 +8,7 @@
 #include <exception>
 #include <fstream>
 #include <iostream>
+#include <sstream>
 
 #include "Token.hpp"
 #include "Webserv.hpp"
