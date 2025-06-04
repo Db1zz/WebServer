@@ -11,6 +11,10 @@
 #include "../Utilities/colors.hpp"
 #include "ServerResponse.hpp"
 
+#define PAGE_INITIAL "Pages/index.html"
+#define PAGE_404 "Pages/404.html"
+#define STYLESHEET "Pages/styles.css"
+
 class ServerResponse {
    public:
 	ServerResponse();

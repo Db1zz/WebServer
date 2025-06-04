@@ -1,4 +1,5 @@
 #include "ServerResponse.hpp"
+#include <sstream>
 
 ServerResponse::ServerResponse() { _status_line = "200 OK\r\n"; }
 
@@ -25,6 +26,8 @@ ServerResponse& ServerResponse::status_line(const int code) {
 
 ServerResponse& ServerResponse::html(const std::string& path) {
 	header("content-type", "text/html");
+	header("server", "comrades_webserv");
+	/*add date? mandatory?*/
 	std::ifstream html_file;
 	html_file.open(path.c_str());
 		if(html_file.is_open()){
@@ -39,7 +42,6 @@ ServerResponse& ServerResponse::html(const std::string& path) {
 	header("content-length", get_body_size());
 		return *this;
 }
-#include <sstream>
 
 const std::string ServerResponse::get_body_size() const {
 	std::stringstream ss;

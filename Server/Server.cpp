@@ -97,7 +97,7 @@ void Server::response_handler(const epoll_event &request_event /* second arg is 
 	ServerResponse resp;
 	// resp.header("content-type", "html");
 	// resp.header("content-length", resp.get_body_size());
-	resp.html("Pages/index.html");
+	resp.html(PAGE_INITIAL);
 	std::cout << resp.get_body() << std::endl;
 	std::string res = WS_PROTOCOL + resp.get_status() + resp.get_headers() +
 					  "\r\n" + resp.get_body();
