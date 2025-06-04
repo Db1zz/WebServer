@@ -23,18 +23,20 @@ typedef struct s_request {
 	std::string host;
 	std::string language; //dont need for now
 	std::string connection;
+	std::string content_type;
 
 } t_request;
 
 
 class ServerResponse {
    public:
-	ServerResponse();
+	ServerResponse(const t_request &request);
 	~ServerResponse();
 	ServerResponse& operator<<(const std::string& data);
 	ServerResponse& header(const std::string& key, const std::string& value);
 	ServerResponse& status_line(const int code);
 	ServerResponse& html(const std::string &path);
+	std::string generate_response();
 
 	/*getters*/
 	const std::string get_body_size() const;
@@ -42,10 +44,12 @@ class ServerResponse {
 	const std::string &get_headers() const;
 	const std::string &get_body() const;
 
+
    private :
 	std::string _status_line;
 	std::string _body;
 	std::string _headers;
+	const t_request* _req_data;
 
 	/*setters*/
 	/*getters*/

@@ -1,8 +1,9 @@
 #include "ServerResponse.hpp"
+#include "Server.hpp"
 #include <sstream>
 
 
-ServerResponse::ServerResponse() { _status_line = "200 OK\r\n"; }
+ServerResponse::ServerResponse(const t_request &request):  _req_data(&request) { _status_line = "200 OK\r\n"; }
 
 ServerResponse::~ServerResponse() {}
 
@@ -43,6 +44,16 @@ ServerResponse& ServerResponse::html(const std::string& path) {
 	header("content-length", get_body_size());
 		return *this;
 }
+
+std::string ServerResponse::generate_response() {
+	// resp.header("content-type", "html");
+	// resp.header("content-length", resp.get_body_size());
+	html(PAGE_INITIAL);
+	std::cout << get_body() << std::endl;
+	std::string res = WS_PROTOCOL + get_status() + get_headers() +
+					  "\r\n" + get_body();
+	 return std::string(); 
+	}
 
 const std::string ServerResponse::get_body_size() const {
 	std::stringstream ss;
