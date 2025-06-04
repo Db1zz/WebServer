@@ -1,6 +1,7 @@
 #include "ServerResponse.hpp"
 #include <sstream>
 
+
 ServerResponse::ServerResponse() { _status_line = "200 OK\r\n"; }
 
 ServerResponse::~ServerResponse() {}

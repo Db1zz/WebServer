@@ -51,7 +51,15 @@ void Server::handle_event(int amount_of_events) {
 
 			request = request_handler(request_event);
 			request.size();	 // suppress unused variable err
-			response_handler(request_event);
+			/*hardcoding the request for now*/
+			t_request req;
+			req.method = "GET";
+			req.uri_path = "/";
+			req.user_agent = "";
+			req.host = "localhost";
+			req.language = "";
+			req.connection = "keep-alive";
+			response_handler(request_event, req);
 			close(request_event.data.fd);
 		}
 	}
@@ -93,10 +101,11 @@ std::vector<std::string> Server::request_handler(
 	return request;
 }
 
-void Server::response_handler(const epoll_event &request_event /* second arg is a struct that was parsed in request_handler()*/) {
+void Server::response_handler(const epoll_event &request_event, t_request request) {
 	ServerResponse resp;
 	// resp.header("content-type", "html");
 	// resp.header("content-length", resp.get_body_size());
+	(void) request;
 	resp.html(PAGE_INITIAL);
 	std::cout << resp.get_body() << std::endl;
 	std::string res = WS_PROTOCOL + resp.get_status() + resp.get_headers() +

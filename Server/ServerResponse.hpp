@@ -15,6 +15,18 @@
 #define PAGE_404 "Pages/404.html"
 #define STYLESHEET "Pages/styles.css"
 
+
+typedef struct s_request {
+	std::string method;
+	std::string uri_path;
+	std::string user_agent; //dont need for now
+	std::string host;
+	std::string language; //dont need for now
+	std::string connection;
+
+} t_request;
+
+
 class ServerResponse {
    public:
 	ServerResponse();
