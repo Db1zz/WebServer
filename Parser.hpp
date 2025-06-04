@@ -48,8 +48,8 @@ class Parser {
 	void parseListen();
 	void parseServerName();
 	void parseRoot();
-
-
+	
+	t_config tempConfig;
 };
 
 #endif

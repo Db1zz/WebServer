@@ -23,10 +23,10 @@ Parser::Parser(std::string fileName) : m_fileName(fileName) {
 	addKeywords();
 	std::vector<Token> temp = scanTokens();
 	for (size_t i = 0; i < temp.size(); i++) {
-		std::cout << temp[i].getAll();
-		std::cout << "\n";
+		if (temp[i].getType() != END_OF_FILE)
+			std::cout << temp[i].getAll() << "\n";
 	}
-	std::cout << "\n\n";
+	std::cout << "--------------------------------\n";
 	parseConfig();
 }
 
@@ -202,15 +202,14 @@ void Parser::parseListen() {
 		str << previous().getAll();
 		if (match(SEMICOLON)) {
 			// its only a port needs to be added to the config
-			return ;
+			return;
 		}
-		for (size_t i = 0; i < 3; i++)
-		{
+		for (size_t i = 0; i < 3; i++) {
 			if (!match(DOT))
-			throw std::runtime_error("Expexted a dot between ip adress numbers");
+				throw std::runtime_error("Expexted a dot between ip adress numbers");
 			str << previous().getAll();
 			if (!match(IDENTIFIER))
-			throw std::runtime_error("Expected a number after the dot ");
+				throw std::runtime_error("Expected a number after the dot ");
 			str << previous().getAll();
 		}
 		// so far ip address add it to the config
@@ -219,12 +218,10 @@ void Parser::parseListen() {
 			consume(IDENTIFIER, "expected port after colon");
 			str << previous().getAll();
 			// add the port to the config
-		}
-		else
+		} else
 			consume(SEMICOLON, "expected ';' after the statement");
 		std::cout << str.str() << '\n';
-	}
-	else
+	} else
 		throw std::runtime_error("Expected identifier");
 }
 
@@ -234,12 +231,15 @@ void Parser::parseRoot() {
 	consume(SEMICOLON, "expected ';' after the statement");
 }
 
-void Parser::parseServerName()
-{
-	if (!match(IDENTIFIER))
-		throw std::runtime_error("Expected identifier");
-	std::stringstream str;
-	str << previous().getAll();
+void Parser::parseServerName() {
+	consume(IDENTIFIER, "Expected IDENTIFIER");
+	tempConfig.server_name.push_back(previous().getAll());
+	int i = 0;
+	while (check(IDENTIFIER)) {
+		consume(IDENTIFIER, "expected identifier");
+		tempConfig.server_name.push_back(previous().getAll());
+		i++;
+	}
 	consume(SEMICOLON, "expected ';' after the statement");
 }
 
@@ -247,16 +247,22 @@ void Parser::parseConfig() {
 	while (!tokenIsAtEnd()) {
 		if (match(SERVER)) {
 			consume(LEFT_BRACE, "expected '{' after server block");
-			int i = 0; // DEBUG ONLY
+			int i = 0;	// DEBUG ONLY
 			while (!check(RIGHT_BRACE) && !tokenIsAtEnd()) {
 				if (match(LISTEN)) {
 					parseListen();
+				} else if (match(SERVER_NAME)) {
+					parseServerName();
 				}
-				else if (match(SERVER_NAME))
-					// parse server_name;
-				i++; // DEBUG
-				if (i > 2) // DEBUG
+				i++;		  // DEBUG
+				if (i > 2)	  // DEBUG
+				{
+					for (size_t i = 0; i < tempConfig.server_name.size(); i++)
+					{
+						std::cout << "server name: " << tempConfig.server_name.at(i) << '\n';
+					}
 					exit(1);  // DEBUG escape loop manually for now
+				}
 			}
 			consume(RIGHT_BRACE, "expected terminator '}' after server block content");
 		} else {
@@ -264,4 +270,8 @@ void Parser::parseConfig() {
 			exit(1);
 		}
 	}
+	// for (size_t i = 0; i < tempConfig.server_name.size(); i++)
+	// {
+	// 	std::cout << i << '\n';
+	// }
 }
