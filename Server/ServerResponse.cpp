@@ -52,7 +52,7 @@ std::string ServerResponse::generate_response() {
 	std::cout << get_body() << std::endl;
 	std::string res = WS_PROTOCOL + get_status() + get_headers() +
 					  "\r\n" + get_body();
-	 return std::string(); 
+	 return res; 
 	}
 
 const std::string ServerResponse::get_body_size() const {
