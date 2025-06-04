@@ -15,7 +15,7 @@ typedef struct s_commonConfig {
 	std::string root;
 	t_methods methods;
 	std::vector<std::string> index;
-	std::string max_client_body; // needs to be changed in the future
+	std::string max_client_body;  // needs to be changed in the future
 	std::map<int, std::string> errorPage;
 	bool auto_index;
 } t_commonConfig;
@@ -26,11 +26,10 @@ typedef struct s_location {
 
 typedef struct s_config {
 	std::vector<std::string> server_name;
-	std::vector<int> listen;
-	// int host;
+	std::vector<std::string> host;
+	std::vector<std::string> port;
 	t_commonConfig common;
 	std::vector<t_location> location;
-
 } t_config;
 
 typedef enum e_TokenType {

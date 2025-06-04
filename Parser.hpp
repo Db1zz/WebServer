@@ -45,6 +45,10 @@ class Parser {
 	Token tokenPeek();
 	bool check(t_TokenType);
 	Token consume(t_TokenType type, std::string message);
+	void parseListen();
+	void parseServerName();
+	void parseRoot();
+
 
 };
 

@@ -195,18 +195,68 @@ Token Parser::consume(t_TokenType type, std::string message) {
 	throw std::runtime_error(str.str());
 }
 
+void Parser::parseListen() {
+	// string stream and than give back the string in the config
+	std::stringstream str;
+	if (match(IDENTIFIER)) {
+		str << previous().getAll();
+		if (match(SEMICOLON)) {
+			// its only a port needs to be added to the config
+			return ;
+		}
+		for (size_t i = 0; i < 3; i++)
+		{
+			if (!match(DOT))
+			throw std::runtime_error("Expexted a dot between ip adress numbers");
+			str << previous().getAll();
+			if (!match(IDENTIFIER))
+			throw std::runtime_error("Expected a number after the dot ");
+			str << previous().getAll();
+		}
+		// so far ip address add it to the config
+		if (check(COLON)) {
+			consume(COLON, "expected ':' for the port part");
+			consume(IDENTIFIER, "expected port after colon");
+			str << previous().getAll();
+			// add the port to the config
+		}
+		else
+			consume(SEMICOLON, "expected ';' after the statement");
+		std::cout << str.str() << '\n';
+	}
+	else
+		throw std::runtime_error("Expected identifier");
+}
+
+void Parser::parseRoot() {
+	if (!check(IDENTIFIER))
+		throw std::runtime_error("Expected identifier");
+	consume(SEMICOLON, "expected ';' after the statement");
+}
+
+void Parser::parseServerName()
+{
+	if (!match(IDENTIFIER))
+		throw std::runtime_error("Expected identifier");
+	std::stringstream str;
+	str << previous().getAll();
+	consume(SEMICOLON, "expected ';' after the statement");
+}
+
 void Parser::parseConfig() {
 	while (!tokenIsAtEnd()) {
 		if (match(SERVER)) {
 			consume(LEFT_BRACE, "expected '{' after server block");
-			while (!check(RIGHT_BRACE) && !tokenIsAtEnd())
-			{
-				if (match(LISTEN))
-				{
-					std::cout << "Found listen\n"; // give it to function and than consume semicolon in it
-					consume(SEMICOLON, "expected ';' after the statement");
+			int i = 0; // DEBUG ONLY
+			while (!check(RIGHT_BRACE) && !tokenIsAtEnd()) {
+				if (match(LISTEN)) {
+					parseListen();
 				}
-				exit(1); // DEBUG escape loop manually for now
+				else if (match(SERVER_NAME))
+					// parse server_name;
+				i++; // DEBUG
+				if (i > 2) // DEBUG
+					exit(1);  // DEBUG escape loop manually for now
 			}
 			consume(RIGHT_BRACE, "expected terminator '}' after server block content");
 		} else {
