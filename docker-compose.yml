@@ -1,0 +1,11 @@
+version: "3.8"
+
+services:
+  webserv:
+    build:
+      context: .
+    container_name: webserv_container
+    volumes:
+      - .:/app
+    working_dir: /app
+    command: ./webserv
