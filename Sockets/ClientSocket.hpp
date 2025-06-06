@@ -13,4 +13,5 @@ public:
 private:
 	void is_connected(int status);
 };
+
 #endif  // SOCKETS_CLIENTSOCKET_HPP
