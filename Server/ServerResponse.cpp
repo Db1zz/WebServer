@@ -30,6 +30,8 @@ ServerResponse& ServerResponse::status_line(const int code) {
 		msg = " not found\r\n";
 	else if (code == 500)
 		msg = " internal server error\r\n";
+	else
+		msg = " error\r\n";
 	_status_line = " " + code_str.str() + msg;
 	return (*this);
 }
@@ -45,63 +47,54 @@ ServerResponse& ServerResponse::html(const std::string& path) {
 		html_file.close();
 	} else
 		status_line(404) << "file not found :c";
-
-	// header("content-length", get_body_size());
 	return *this;
 }
 
 std::string ServerResponse::generate_response() {
 	status_line(200);
-	header("content-type", _req_data->content_type);
+	_resp_content_type = identify_mime();
+	header("content-type", _resp_content_type);
 	header("server", "comrades_webserv");
-	//_resp_content_type = identify_mime();
-	if (_req_data->content_type == "text/html")	 // change to _resp_content_type when done
-		html(
-			PAGE_INITIAL);	// change to uri_path and modify the function to pick the page
-	else if (_req_data->mime_type == "application/json") {
-		// add a separate function to pick the correct call for all types
+	if (_resp_content_type == "text/html")
+		html(PAGE_INITIAL);
+	else if (_resp_content_type == "application/json") {
+		json("json response");
 	} else {
 		status_line(406);
-		(*this) << "Not Acceptable";
+		(*this) << "not acceptable\r\n";
+		/*TODO: figure out how to still serve a page with incorrect requests*/
 	}
+	header("content-length", get_body_size());
 	_response = WS_PROTOCOL + get_status() + get_headers() + "\r\n" + get_body();
 	std::cout << GREEN400 "RESPONSE:\n" << _response << RESET << std::endl;
 	return _response;
 }
 
-// std::string ServerResponse::identify_mime() {
-// 	std::string mime_type = _req_data->mime_type;
-// 	static const std::map<std::string, std::string> mime_types = {
-// 		{"/", "text/html"},
-// 		{".html", "text/html"},
-// 		{".jpeg", "image/jpeg"},
-// 		{".jpg", "image/jpeg"},
-// 		{".ico", "image/x-icon"},
-// 		{".png", "image/png"},
-// 		{".bin", "application/octet-stream"},
-// 		{".bmp", "image/bmp"},
-// 		{".css", "text/css"},
-// 		{".csv", "text/csv"},
-// 		{".gif", "image/gif"},
-// 		{".js", "text/javascript"},
-// 		{".json", "application/json"},
-// 		{".mp3", "audio/mpeg"},
-// 		{".mp4", "video/mp4"},
-// 		{".mpeg", "video/mpeg"},
-// 		{".pdf", "application/pdf"},
-// 		{".svg", "image/svg+xml"},
-// 		{".txt", "text/plain"},
-// 		{".wav", "audio/wav"},
-// 		{".xhtml", "application/xhtml+xml"},
-// 		{".tif", "image/tiff"}
-// 	};
+ServerResponse& ServerResponse::json(const std::string& data) {
+	_body = data;
+	return *this;
+}
 
-// 	std::map<std::string, std::string>::const_iterator it =
-// mime_types.find(mime_type); 	if (it != mime_types.end()) 		return
-// it->second; 	else { 		status_line(415); 		this << "unsupported media
-// type";
-// 	}
-// }
+std::string ServerResponse::identify_mime() {
+	if (_req_data->mime_type == "html") {
+		_resp_content_type = "text/html";
+	} else if (_req_data->mime_type == "css") {
+		_resp_content_type = "text/css";
+	} else if (_req_data->mime_type == "js") {
+		_resp_content_type = "application/javascript";
+	} else if (_req_data->mime_type == "json") {
+		_resp_content_type = "application/json";
+	} else if (_req_data->mime_type == "jpg" || _req_data->mime_type == "jpeg") {
+		_resp_content_type = "image/jpeg";
+	} else if (_req_data->mime_type == "png") {
+		_resp_content_type = "image/png";
+	} else if (_req_data->mime_type == "gif") {
+		_resp_content_type = "image/gif";
+	} else {
+		_resp_content_type = "application/octet-stream";
+	}
+	return _resp_content_type;
+}
 
 const std::string ServerResponse::get_body_size() const {
 	std::stringstream ss;
