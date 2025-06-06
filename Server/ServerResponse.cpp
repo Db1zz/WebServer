@@ -15,8 +15,7 @@ ServerResponse& ServerResponse::operator<<(const std::string& data) {
 	return *this;
 }
 
-ServerResponse& ServerResponse::header(const std::string& key,
-									   const std::string& value) {
+ServerResponse& ServerResponse::header(const std::string& key, const std::string& value) {
 	_headers += key + ": " + value + "\r\n";
 	return (*this);
 }
@@ -24,8 +23,14 @@ ServerResponse& ServerResponse::header(const std::string& key,
 ServerResponse& ServerResponse::status_line(const int code) {
 	std::stringstream code_str;
 	code_str << code;
-	_status_line = " " + code_str.str() + " OK\r\n";
-	/* TODO: add up different status_texts depending on a code */
+	std::string msg = "";
+	if (code == 200)
+		msg = " OK\r\n";
+	else if (code == 404)
+		msg = " not found\r\n";
+	else if (code == 500)
+		msg = " internal server error\r\n";
+	_status_line = " " + code_str.str() + msg;
 	return (*this);
 }
 
@@ -50,19 +55,16 @@ std::string ServerResponse::generate_response() {
 	header("content-type", _req_data->content_type);
 	header("server", "comrades_webserv");
 	//_resp_content_type = identify_mime();
-	if (_req_data->content_type ==
-		"text/html")  // change to _resp_content_type when done
-	{
-		html(PAGE_INITIAL);	 // change to uri_path and modify the function to
-							 // pick the page
-	} else if (_req_data->mime_type == "application/json") {
+	if (_req_data->content_type == "text/html")	 // change to _resp_content_type when done
+		html(
+			PAGE_INITIAL);	// change to uri_path and modify the function to pick the page
+	else if (_req_data->mime_type == "application/json") {
 		// add a separate function to pick the correct call for all types
 	} else {
 		status_line(406);
 		(*this) << "Not Acceptable";
 	}
-	_response =
-		WS_PROTOCOL + get_status() + get_headers() + "\r\n" + get_body();
+	_response = WS_PROTOCOL + get_status() + get_headers() + "\r\n" + get_body();
 	std::cout << GREEN400 "RESPONSE:\n" << _response << RESET << std::endl;
 	return _response;
 }
