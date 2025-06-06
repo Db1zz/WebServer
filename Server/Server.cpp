@@ -52,7 +52,8 @@ void Server::handle_event(int amount_of_events) {
 			request = request_handler(request_event);
 			request.size();	 // suppress unused variable err
 
-			/*hardcoding the request for now, this filled struct should be received from parser later*/
+			/*hardcoding the request for now, this filled struct should be
+			 * received from parser later*/
 			t_request req;
 			req.method = "GET";
 			req.uri_path = "/";
@@ -60,6 +61,7 @@ void Server::handle_event(int amount_of_events) {
 			req.host = "localhost";
 			req.language = "";
 			req.connection = "keep-alive";
+			req.mime_type = ".html";
 			req.content_type = "text/html";
 
 			response_handler(request_event, req);
@@ -81,7 +83,7 @@ std::vector<std::string> Server::read_request(
 		close(request_event.data.fd);
 	}
 	// TODO: add loop in which we're going to fill std::vector<std::string>
-	std::cout << read_buff << std::endl;
+	std::cout << CYAN300 << "REQUEST:\n" << read_buff << RESET << std::endl;
 	return std::vector<std::string>();	// return empty arr
 }
 
@@ -104,7 +106,8 @@ std::vector<std::string> Server::request_handler(
 	return request;
 }
 
-void Server::response_handler(const epoll_event &request_event, const t_request &request) {
+void Server::response_handler(const epoll_event &request_event,
+							  const t_request &request) {
 	ServerResponse resp(request);
 	std::string res = resp.generate_response();
 	write(request_event.data.fd, res.c_str(), res.size());

@@ -23,7 +23,8 @@ typedef struct s_request {
 	std::string host;
 	std::string language; //dont need for now
 	std::string connection;
-	std::string content_type;
+	std::string mime_type; //format that client can accept in response
+	std::string content_type; //format of data sent to the server
 
 } t_request;
 
@@ -37,6 +38,7 @@ class ServerResponse {
 	ServerResponse& status_line(const int code);
 	ServerResponse& html(const std::string &path);
 	std::string generate_response();
+	std::string identify_mime();
 
 	/*getters*/
 	const std::string get_body_size() const;
@@ -46,9 +48,11 @@ class ServerResponse {
 
 
    private :
+	std::string _resp_content_type;
 	std::string _status_line;
 	std::string _body;
 	std::string _headers;
+	std::string _response;
 	const t_request* _req_data;
 
 	/*setters*/
