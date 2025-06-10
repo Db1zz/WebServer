@@ -51,9 +51,9 @@ void Parser::addKeywords() {
 	_keywords["host"] = HOST;
 	_keywords["server_name"] = SERVER_NAME;
 	_keywords["methods"] = METHODS;
-	_keywords["get"] = GET;
-	_keywords["post"] = POST;
-	_keywords["delete"] = DELETE;
+	_keywords["GET"] = GET;
+	_keywords["POST"] = POST;
+	_keywords["DELETE"] = DELETE;
 	_keywords["auto_index"] = AUTO_INDEX;
 	_keywords["on"] = ON;
 	_keywords["off"] = OFF;
@@ -226,21 +226,58 @@ void Parser::parseListen() {
 }
 
 void Parser::parseRoot() {
-	if (!check(IDENTIFIER))
-		throw std::runtime_error("Expected identifier");
+	std::stringstream temp;
+	while (check(SLASH) || check(IDENTIFIER))
+	{
+		temp << consume(SLASH, "expected a '/'").getAll();
+		temp << consume(IDENTIFIER, "expected an identifiar").getAll();
+	}
+	tempConfig.common.root = temp.str();
 	consume(SEMICOLON, "expected ';' after the statement");
 }
 
 void Parser::parseServerName() {
-	consume(IDENTIFIER, "Expected IDENTIFIER");
-	tempConfig.server_name.push_back(previous().getAll());
-	int i = 0;
+	bool found = false;
 	while (check(IDENTIFIER)) {
-		consume(IDENTIFIER, "expected identifier");
-		tempConfig.server_name.push_back(previous().getAll());
-		i++;
+		std::stringstream temp;
+		temp << consume(IDENTIFIER, "expected an identifier").getAll();
+		while (check(DOT)) {
+			temp << consume(DOT, "expected dot").getAll();
+			temp << consume(IDENTIFIER, "expected identifier after dot").getAll();
+		}
+		tempConfig.server_name.push_back(temp.str());
+		found = true;
 	}
+	if (!found)
+		throw std::runtime_error("Expected at least one server name");
 	consume(SEMICOLON, "expected ';' after the statement");
+}
+
+void Parser::parseMethods() {
+	while (!check(SEMICOLON))
+	{
+		std::cout << _tokens.at(_currentToken).getType() << '\n';
+		if (match(GET))
+		{
+			tempConfig.common.methods.getMethod = true;
+		}
+		else if (match(POST))
+		{
+			tempConfig.common.methods.postMethod = true;
+		}
+		else if (match(DELETE))
+		{
+			tempConfig.common.methods.deleteMethod = true;
+		}
+		else
+		{
+			std::cout << previous().getAll() << '\n';
+			throw std::runtime_error("Unrecognized method found. Allowed methods are GET POST DELETE");
+		}
+	}
+	if (!tempConfig.common.methods.deleteMethod && !tempConfig.common.methods.getMethod && !tempConfig.common.methods.postMethod)
+		throw std::runtime_error("No method found");
+	consume(SEMICOLON, "exptected ';' after the statement");
 }
 
 void Parser::parseConfig() {
@@ -254,11 +291,16 @@ void Parser::parseConfig() {
 				} else if (match(SERVER_NAME)) {
 					parseServerName();
 				}
-				i++;		  // DEBUG
-				if (i > 2)	  // DEBUG
+				else if (match(ROOT)) {
+					parseRoot();
+				}
+				else if (match(METHODS)) {
+					parseMethods();
+				}
+				i++;		// DEBUG
+				if (i > 2)	// DEBUG
 				{
-					for (size_t i = 0; i < tempConfig.server_name.size(); i++)
-					{
+					for (size_t i = 0; i < tempConfig.server_name.size(); i++) {
 						std::cout << "server name: " << tempConfig.server_name.at(i) << '\n';
 					}
 					exit(1);  // DEBUG escape loop manually for now

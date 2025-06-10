@@ -48,6 +48,7 @@ class Parser {
 	void parseListen();
 	void parseServerName();
 	void parseRoot();
+	void parseMethods();
 	
 	t_config tempConfig;
 };

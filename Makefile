@@ -1,4 +1,4 @@
-NAME = Webserv
+NAME = webserv
 CXX = c++
 CXXFLAGS = -Wall -Werror -Wextra -std=c++98 -g
 SRC = main.cpp Parser.cpp Token.cpp
