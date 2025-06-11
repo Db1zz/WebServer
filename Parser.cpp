@@ -196,42 +196,54 @@ Token Parser::consume(t_TokenType type, std::string message) {
 }
 
 void Parser::parseListen() {
-	// string stream and than give back the string in the config
-	std::stringstream str;
-	if (match(IDENTIFIER)) {
-		str << previous().getAll();
-		if (match(SEMICOLON)) {
-			// its only a port needs to be added to the config
-			return;
+	while (!check(SEMICOLON)) {
+		std::stringstream str;
+		bool is_ip = false;
+		int dotCount = 0;
+		if (match(IDENTIFIER)) {
+			std::string first = previous().getAll();
+			str << first;
+			while (check(DOT) && dotCount < 3) {
+				is_ip = true;
+				consume(DOT, "expected dot between IP address numbers");
+				str << ".";
+				consume(IDENTIFIER, "expected number after dot");
+				str << previous().getAll();
+				dotCount++;
+			}
+			if (check(COLON)) {
+				consume(COLON, "expected ':' for the port part");
+				consume(IDENTIFIER, "expected port after colon");
+				str << ":" << previous().getAll();
+				tempConfig.host.push_back(str.str());
+			} else if (is_ip) {
+				tempConfig.host.push_back(str.str());
+			} else {
+				tempConfig.port.push_back(str.str());
+			}
+		} else {
+			throw std::runtime_error("Expected identifier in listen directive");
 		}
-		for (size_t i = 0; i < 3; i++) {
-			if (!match(DOT))
-				throw std::runtime_error("Expexted a dot between ip adress numbers");
-			str << previous().getAll();
-			if (!match(IDENTIFIER))
-				throw std::runtime_error("Expected a number after the dot ");
-			str << previous().getAll();
-		}
-		// so far ip address add it to the config
-		if (check(COLON)) {
-			consume(COLON, "expected ':' for the port part");
-			consume(IDENTIFIER, "expected port after colon");
-			str << previous().getAll();
-			// add the port to the config
-		} else
-			consume(SEMICOLON, "expected ';' after the statement");
-		std::cout << str.str() << '\n';
-	} else
-		throw std::runtime_error("Expected identifier");
+	}
+	consume(SEMICOLON, "expected ';' after the statement");
 }
 
 void Parser::parseRoot() {
 	std::stringstream temp;
-	while (check(SLASH) || check(IDENTIFIER))
-	{
-		temp << consume(SLASH, "expected a '/'").getAll();
-		temp << consume(IDENTIFIER, "expected an identifiar").getAll();
+	// Accept any sequence of SLASH and/or IDENTIFIER tokens, in any order
+	bool found = false;
+	while (check(SLASH) || check(IDENTIFIER)) {
+		if (check(SLASH)) {
+			temp << consume(SLASH, "expected a '/' in root path").getAll();
+			found = true;
+		}
+		if (check(IDENTIFIER)) {
+			temp << consume(IDENTIFIER, "expected an identifier in root path").getAll();
+			found = true;
+		}
 	}
+	if (!found)
+		throw std::runtime_error("Expected at least one '/' or identifier in root path");
 	tempConfig.common.root = temp.str();
 	consume(SEMICOLON, "expected ';' after the statement");
 }
@@ -254,23 +266,15 @@ void Parser::parseServerName() {
 }
 
 void Parser::parseMethods() {
-	while (!check(SEMICOLON))
-	{
+	while (!check(SEMICOLON)) {
 		std::cout << _tokens.at(_currentToken).getType() << '\n';
-		if (match(GET))
-		{
+		if (match(GET)) {
 			tempConfig.common.methods.getMethod = true;
-		}
-		else if (match(POST))
-		{
+		} else if (match(POST)) {
 			tempConfig.common.methods.postMethod = true;
-		}
-		else if (match(DELETE))
-		{
+		} else if (match(DELETE)) {
 			tempConfig.common.methods.deleteMethod = true;
-		}
-		else
-		{
+		} else {
 			std::cout << previous().getAll() << '\n';
 			throw std::runtime_error("Unrecognized method found. Allowed methods are GET POST DELETE");
 		}
@@ -290,19 +294,15 @@ void Parser::parseConfig() {
 					parseListen();
 				} else if (match(SERVER_NAME)) {
 					parseServerName();
-				}
-				else if (match(ROOT)) {
+				} else if (match(ROOT)) {
 					parseRoot();
-				}
-				else if (match(METHODS)) {
+				} else if (match(METHODS)) {
 					parseMethods();
 				}
 				i++;		// DEBUG
 				if (i > 2)	// DEBUG
 				{
-					for (size_t i = 0; i < tempConfig.server_name.size(); i++) {
-						std::cout << "server name: " << tempConfig.server_name.at(i) << '\n';
-					}
+					std::cout << tempConfig.common.root << '\n';
 					exit(1);  // DEBUG escape loop manually for now
 				}
 			}
