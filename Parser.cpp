@@ -228,24 +228,44 @@ void Parser::parseListen() {
 	consume(SEMICOLON, "expected ';' after the statement");
 }
 
-void Parser::parseRoot() {
+void Parser::parseIndex() // use the colon
+{
+	std::stringstream temp;
+	while (!check(SEMICOLON))
+	{
+		temp.str("");
+		if (check(DOT))
+			temp << consume(DOT, "expected a dot").getAll();
+		temp << consume(IDENTIFIER, "expected an identifier").getAll();
+		while (check(DOT))
+		{
+			temp << consume(DOT, "expected a dot").getAll();
+			temp << consume(IDENTIFIER, "expected an identifier").getAll();
+		}
+		tempConfig.common.index.push_back(temp.str());
+	}
+	consume(SEMICOLON, "expected ';' after the statement");
+}
+
+std::string Parser::parsePath() {
 	std::stringstream temp;
 	// Accept any sequence of SLASH and/or IDENTIFIER tokens, in any order
 	bool found = false;
-	while (check(SLASH) || check(IDENTIFIER)) {
+	while (!check(SEMICOLON)) {
 		if (check(SLASH)) {
-			temp << consume(SLASH, "expected a '/' in root path").getAll();
+			temp << consume(SLASH, "expected a '/'").getAll();
 			found = true;
 		}
-		if (check(IDENTIFIER)) {
-			temp << consume(IDENTIFIER, "expected an identifier in root path").getAll();
+		else if (check(IDENTIFIER)) {
+			temp << consume(IDENTIFIER, "expected an identifier").getAll();
 			found = true;
 		}
+		else
+			throw std::runtime_error("Unrecognized character " + previous().getAll());
 	}
 	if (!found)
 		throw std::runtime_error("Expected at least one '/' or identifier in root path");
-	tempConfig.common.root = temp.str();
-	consume(SEMICOLON, "expected ';' after the statement");
+	return temp.str();
 }
 
 void Parser::parseServerName() {
@@ -295,13 +315,21 @@ void Parser::parseConfig() {
 				} else if (match(SERVER_NAME)) {
 					parseServerName();
 				} else if (match(ROOT)) {
-					parseRoot();
-				} else if (match(METHODS)) {
+					tempConfig.common.root = parsePath();
+					consume(SEMICOLON, "expected ';' after the statement");
+				} else if (match(INDEX)) {
+					parseIndex();
+				}
+				else if (match(METHODS)) {
 					parseMethods();
 				}
 				i++;		// DEBUG
 				if (i > 2)	// DEBUG
 				{
+					for (size_t i = 0; i < tempConfig.common.index.size(); i++)
+					{
+						std::cout << tempConfig.common.index.at(i) << '\n';
+					}
 					std::cout << tempConfig.common.root << '\n';
 					exit(1);  // DEBUG escape loop manually for now
 				}

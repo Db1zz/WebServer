@@ -47,9 +47,10 @@ class Parser {
 	Token consume(t_TokenType type, std::string message);
 	void parseListen();
 	void parseServerName();
-	void parseRoot();
+	std::string parsePath();
+	void parseIndex();
 	void parseMethods();
-	
+
 	t_config tempConfig;
 };
 
