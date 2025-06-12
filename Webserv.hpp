@@ -21,6 +21,7 @@ typedef struct s_commonConfig {
 } t_commonConfig;
 
 typedef struct s_location {
+	std::string path;
 	t_commonConfig common;
 } t_location;
 

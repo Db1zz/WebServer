@@ -70,7 +70,7 @@ std::vector<Token> Parser::scanTokens() {
 		_start = _current;
 		scanToken();
 	}
-	_tokens.push_back(Token(END_OF_FILE, "", -1));
+	_tokens.push_back(Token(END_OF_FILE, "", -1, -1));
 	return _tokens;
 }
 
@@ -80,7 +80,7 @@ bool Parser::isAtEnd() {
 
 void Parser::addToken(t_TokenType type) {
 	std::string text = _source.substr(_start, _current - _start);
-	_tokens.push_back(Token(type, text, _line));
+	_tokens.push_back(Token(type, text, _line, _start));
 }
 
 char Parser::advance() {
@@ -228,19 +228,29 @@ void Parser::parseListen() {
 	consume(SEMICOLON, "expected ';' after the statement");
 }
 
-void Parser::parseIndex() // use the colon
-{
-	std::stringstream temp;
-	while (!check(SEMICOLON))
-	{
-		temp.str("");
-		if (check(DOT))
-			temp << consume(DOT, "expected a dot").getAll();
-		temp << consume(IDENTIFIER, "expected an identifier").getAll();
-		while (check(DOT))
-		{
-			temp << consume(DOT, "expected a dot").getAll();
-			temp << consume(IDENTIFIER, "expected an identifier").getAll();
+void Parser::parseIndex() {
+	while (!check(SEMICOLON)) {
+		std::stringstream temp;
+		int lastEnd = -1;
+		if (check(DOT)) {
+			Token firstDot = consume(DOT, "expected dot at start of filename");
+			temp << firstDot.getAll();
+			lastEnd = firstDot.getColon() + firstDot.getAll().length();
+			Token first = consume(IDENTIFIER, "expected an identifier");
+			temp << first.getAll();
+			lastEnd = first.getColon() + first.getAll().length();
+		} else {
+			Token first = consume(IDENTIFIER, "expected an identifier");
+			temp << first.getAll();
+			lastEnd = first.getColon() + first.getAll().length();
+		}
+		while (check(DOT)) {
+			Token dot = tokenPeek();
+			if (dot.getColon() != lastEnd) break;
+			temp << consume(DOT, "expected dot").getAll();
+			Token next = consume(IDENTIFIER, "expected identifier after dot");
+			temp << next.getAll();
+			lastEnd = next.getColon() + next.getAll().length();
 		}
 		tempConfig.common.index.push_back(temp.str());
 	}
@@ -251,21 +261,26 @@ std::string Parser::parsePath() {
 	std::stringstream temp;
 	// Accept any sequence of SLASH and/or IDENTIFIER tokens, in any order
 	bool found = false;
-	while (!check(SEMICOLON)) {
+	while (check(IDENTIFIER) || check(SLASH)) {
 		if (check(SLASH)) {
 			temp << consume(SLASH, "expected a '/'").getAll();
 			found = true;
-		}
-		else if (check(IDENTIFIER)) {
+		} else if (check(IDENTIFIER)) {
 			temp << consume(IDENTIFIER, "expected an identifier").getAll();
 			found = true;
 		}
-		else
-			throw std::runtime_error("Unrecognized character " + previous().getAll());
 	}
 	if (!found)
 		throw std::runtime_error("Expected at least one '/' or identifier in root path");
 	return temp.str();
+}
+
+void Parser::parseLocation() {
+	t_location tempLocation;
+	tempLocation.path = parsePath();
+	consume(SEMICOLON, "expected a ';' after the statement");
+	// parse the common things
+	tempConfig.location.push_back(tempLocation);
 }
 
 void Parser::parseServerName() {
@@ -304,6 +319,16 @@ void Parser::parseMethods() {
 	consume(SEMICOLON, "exptected ';' after the statement");
 }
 
+void Parser::parseAutoIndex() {
+	if (match(ON))
+		tempConfig.common.auto_index = true;
+	else if (check(OFF))
+		consume(OFF, "expected off");
+	else
+		throw std::runtime_error("Unrecognized option. Allowed options are on or off!");
+	consume(SEMICOLON, "exptected ';' after the statement");
+}
+
 void Parser::parseConfig() {
 	while (!tokenIsAtEnd()) {
 		if (match(SERVER)) {
@@ -319,15 +344,17 @@ void Parser::parseConfig() {
 					consume(SEMICOLON, "expected ';' after the statement");
 				} else if (match(INDEX)) {
 					parseIndex();
-				}
-				else if (match(METHODS)) {
+				} else if (match(METHODS)) {
 					parseMethods();
+				} else if (match(AUTO_INDEX)) {
+					parseAutoIndex();
+				} else {
+					throw std::runtime_error("Unexpected token, got " + previous().getAll());
 				}
 				i++;		// DEBUG
 				if (i > 2)	// DEBUG
 				{
-					for (size_t i = 0; i < tempConfig.common.index.size(); i++)
-					{
+					for (size_t i = 0; i < tempConfig.common.index.size(); i++) {
 						std::cout << tempConfig.common.index.at(i) << '\n';
 					}
 					std::cout << tempConfig.common.root << '\n';

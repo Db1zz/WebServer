@@ -50,6 +50,8 @@ class Parser {
 	std::string parsePath();
 	void parseIndex();
 	void parseMethods();
+	void parseLocation();
+	void parseAutoIndex();
 
 	t_config tempConfig;
 };
