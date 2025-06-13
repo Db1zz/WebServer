@@ -3,37 +3,32 @@
 
 #include <string>
 
-template <typename T = std::string>
 class Status {
 public:
-	Status() : _ok(true) {}
-	Status(T error) : _ok(false), _error(error) {}
-	Status(T error, bool ok) : _ok(ok), _error(error) {}
-	Status(const Status &to_copy) {
-		*this = to_copy;
-	}
+	Status();
+	Status(std::string error);
+	Status(std::string error, int code);
+	Status(std::string error, int code, bool ok);
+	Status(const Status &to_copy);
 
-	Status<T> &operator=(const Status<T> &to_copy) {
-		if (this != &to_copy) {
-			_ok = to_copy._ok;
-			_error = to_copy._error;
-		}
-		return *this;
-	}
-
-	T operator+(const T &_error2) {
-		return _error + _error2;
-	}
+	Status &operator=(const Status &to_copy);
+	std::string operator+(const std::string &_msg);
 
 	operator bool() const { return !_ok; }
 
-	bool ok() const { return _ok; }
-	T &get() { return _error; }
-	const T &get() const { return _error; }
+	void set_ok(bool ok) { _ok = ok; }
+	void set_msg(std::string msg) { _msg = msg; }
+	void set_code(int code) { _code = code; }
+
+	bool ok() { return _ok; }
+	int code() const { return _code; }
+	std::string &msg() { return _msg; }
+	const std::string &msg() const { return _msg; }
 
 protected:
 	bool _ok;
-	T _error;
+	int _code;
+	std::string _msg;
 };
 
 #endif  // WEBSERVER_UTILITIES_STATUS_HPP
