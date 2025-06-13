@@ -6,7 +6,6 @@
 
 ServerResponse::ServerResponse(const t_request& request) : _req_data(&request) {
 	_status_line = "200";
-	// maybe set a default msg in status directly?
 }
 
 ServerResponse::~ServerResponse() {}
@@ -25,12 +24,10 @@ ServerResponse& ServerResponse::header(const std::string& key,
 ServerResponse& ServerResponse::status_line(const int code) {
 	std::stringstream code_str;
 	code_str << code;
-	std::string msg = _status_msg.get();
+	std::string msg = _status_msg.msg();
 	_status_line = " " + code_str.str() + " " + msg + "\r\n";
 	return (*this);
 }
-
-/*TODO: check ngnix behavior and codes and implement the same*/
 
 ServerResponse& ServerResponse::html(const std::string& path) {
 	std::fstream html_file;
@@ -43,8 +40,7 @@ ServerResponse& ServerResponse::html(const std::string& path) {
 		html_file.close();
 	} else {
 		status_line(404);
-		html(PAGE_404);	 // create error class inheriting serverResponse and
-						 // send its body when error
+		html(PAGE_404);
 	}
 	return *this;
 }
@@ -60,9 +56,7 @@ std::string ServerResponse::generate_response() {
 		json("json response");
 	} else {
 		status_line(406);
-		(*this) << "not acceptable\r\n";
-		/*TODO: figure out how to still serve a page with incorrect requests
-		2. check how different data types are sent(when not html)*/
+		(*this) << " not acceptable\r\n";
 	}
 	header("content-length", get_body_size());
 	_response =

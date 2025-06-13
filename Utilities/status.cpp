@@ -1,7 +1,7 @@
 #include "status.hpp"
 
 Status::Status()
-	: _ok(true), _code(0), _msg("") {}
+	: _ok(true), _code(0), _msg("OK") {}
 
 Status::Status(std::string error)
 	: _ok(false), _code(1), _msg(error) {}
