@@ -15,7 +15,7 @@
 #include "../Utilities/status.hpp"
 #include "ServerResponse.hpp"
 
-#define PAGE_INITIAL "Pages/index.html"
+#define PAGE_INITIAL "Pages/inde.html"
 #define PAGE_404 "Pages/404.html"
 #define STYLESHEET "Pages/styles.css"
 

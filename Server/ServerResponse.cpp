@@ -26,9 +26,6 @@ ServerResponse& ServerResponse::status_line(const int code) {
 	std::stringstream code_str;
 	code_str << code;
 	std::string msg = _status_msg.get();
-	if (msg == "") {
-		msg = " OK";
-	};
 	_status_line = " " + code_str.str() + " " + msg + "\r\n";
 	return (*this);
 }
@@ -44,9 +41,11 @@ ServerResponse& ServerResponse::html(const std::string& path) {
 			_body += temp;
 		}
 		html_file.close();
-	} else
-		status_line(404);  // create error class inheriting serverResponse and
-						   // send its body when error
+	} else {
+		status_line(404);
+		html(PAGE_404);	 // create error class inheriting serverResponse and
+						 // send its body when error
+	}
 	return *this;
 }
 
@@ -67,7 +66,7 @@ std::string ServerResponse::generate_response() {
 	}
 	header("content-length", get_body_size());
 	_response =
-		WS_PROTOCOL + get_status() + get_headers() + "\r\n" + get_body();
+		WS_PROTOCOL + get_status() + get_headers() + "\r\n" + get_body() + "\r\n";;
 	std::cout << GREEN400 "RESPONSE:\n" << _response << RESET << std::endl;
 	return _response;
 }
