@@ -11,6 +11,7 @@ SRC = Sockets/ASocket.cpp \
 	Server/ServerResponse.cpp \
 	Server/ServerEvent.cpp \
 	Utilities/fs.cpp \
+	Utilities/status.cpp \
 	main.cpp
 
 OBJ = $(SRC:.cpp=.o)
