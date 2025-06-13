@@ -29,7 +29,7 @@ ServerResponse& ServerResponse::status_line(const int code) {
 	if (msg == "") {
 		msg = " OK";
 	};
-	_status_line = " " + code_str.str() + " " + _status_msg.get() + "\r\n";
+	_status_line = " " + code_str.str() + " " + msg + "\r\n";
 	return (*this);
 }
 
