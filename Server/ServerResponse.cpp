@@ -5,7 +5,8 @@
 #include "Server.hpp"
 
 ServerResponse::ServerResponse(const t_request& request) : _req_data(&request) {
-	_status_line = " 200 OK\r\n";
+	_status_line = "200";
+	// maybe set a default msg in status directly?
 }
 
 ServerResponse::~ServerResponse() {}
@@ -15,7 +16,8 @@ ServerResponse& ServerResponse::operator<<(const std::string& data) {
 	return *this;
 }
 
-ServerResponse& ServerResponse::header(const std::string& key, const std::string& value) {
+ServerResponse& ServerResponse::header(const std::string& key,
+									   const std::string& value) {
 	_headers += key + ": " + value + "\r\n";
 	return (*this);
 }
@@ -23,30 +25,28 @@ ServerResponse& ServerResponse::header(const std::string& key, const std::string
 ServerResponse& ServerResponse::status_line(const int code) {
 	std::stringstream code_str;
 	code_str << code;
-	std::string msg = "";
-	if (code == 200)
-		msg = " OK\r\n";
-	else if (code == 404)
-		msg = " not found\r\n";
-	else if (code == 500)
-		msg = " internal server error\r\n";
-	else
-		msg = " error\r\n";
-	_status_line = " " + code_str.str() + msg;
+	std::string msg = _status_msg.get();
+	if (msg == "") {
+		msg = " OK";
+	};
+	_status_line = " " + code_str.str() + " " + _status_msg.get() + "\r\n";
 	return (*this);
 }
 
+/*TODO: check ngnix behavior and codes and implement the same*/
+
 ServerResponse& ServerResponse::html(const std::string& path) {
-	std::ifstream html_file;
-	html_file.open(path.c_str());
-	if (html_file.is_open()) {
+	std::fstream html_file;
+	_status_msg = fs::open_file(html_file, path, std::ios::in);
+	if (_status_msg.ok()) {
 		std::string temp;
 		while (getline(html_file, temp)) {
 			_body += temp;
 		}
 		html_file.close();
 	} else
-		status_line(404) << "file not found :c";
+		status_line(404);  // create error class inheriting serverResponse and
+						   // send its body when error
 	return *this;
 }
 
@@ -62,10 +62,12 @@ std::string ServerResponse::generate_response() {
 	} else {
 		status_line(406);
 		(*this) << "not acceptable\r\n";
-		/*TODO: figure out how to still serve a page with incorrect requests*/
+		/*TODO: figure out how to still serve a page with incorrect requests
+		2. check how different data types are sent(when not html)*/
 	}
 	header("content-length", get_body_size());
-	_response = WS_PROTOCOL + get_status() + get_headers() + "\r\n" + get_body();
+	_response =
+		WS_PROTOCOL + get_status() + get_headers() + "\r\n" + get_body();
 	std::cout << GREEN400 "RESPONSE:\n" << _response << RESET << std::endl;
 	return _response;
 }
@@ -84,7 +86,8 @@ std::string ServerResponse::identify_mime() {
 		_resp_content_type = "application/javascript";
 	} else if (_req_data->mime_type == "json") {
 		_resp_content_type = "application/json";
-	} else if (_req_data->mime_type == "jpg" || _req_data->mime_type == "jpeg") {
+	} else if (_req_data->mime_type == "jpg" ||
+			   _req_data->mime_type == "jpeg") {
 		_resp_content_type = "image/jpeg";
 	} else if (_req_data->mime_type == "png") {
 		_resp_content_type = "image/png";
