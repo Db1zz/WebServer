@@ -60,6 +60,7 @@ void Parser::addKeywords() {
 	_keywords["index"] = INDEX;
 	_keywords["root"] = ROOT;
 	_keywords["error_page"] = ERROR_PAGE;
+	_keywords["location"] = LOCATION;
 	_keywords["cgi"] = CGI;
 	_keywords["max_client_body_size"] = MAX_CLIENT_BODY_SIZE;
 	_keywords["return"] = RETURN;
@@ -228,7 +229,8 @@ void Parser::parseListen() {
 	consume(SEMICOLON, "expected ';' after the statement");
 }
 
-void Parser::parseIndex() {
+std::vector<std::string> Parser::parseIndex() {
+	std::vector<std::string> tempVector;
 	while (!check(SEMICOLON)) {
 		std::stringstream temp;
 		int lastEnd = -1;
@@ -252,9 +254,10 @@ void Parser::parseIndex() {
 			temp << next.getAll();
 			lastEnd = next.getColon() + next.getAll().length();
 		}
-		tempConfig.common.index.push_back(temp.str());
+		tempVector.push_back(temp.str());
 	}
 	consume(SEMICOLON, "expected ';' after the statement");
+	return tempVector;
 }
 
 std::string Parser::parsePath() {
@@ -275,12 +278,30 @@ std::string Parser::parsePath() {
 	return temp.str();
 }
 
-void Parser::parseLocation() {
+t_location Parser::parseLocation() {
 	t_location tempLocation;
+	t_commonConfig tempCommon;
 	tempLocation.path = parsePath();
-	consume(SEMICOLON, "expected a ';' after the statement");
-	// parse the common things
-	tempConfig.location.push_back(tempLocation);
+	consume(LEFT_BRACE, "expected opening '{' for location block");
+	while (!check(RIGHT_BRACE)) {
+		if (match(ROOT)) {
+			tempCommon.root = parsePath();
+			consume(SEMICOLON, "expected ';' after the statement");
+		} else if (match(INDEX)) {
+			std::vector<std::string> tempVector = parseIndex();
+			tempCommon.index.insert(tempCommon.index.end(), tempVector.begin(), tempVector.end());
+		} else if (match(METHODS)) {
+			tempCommon.methods = parseMethods();
+		} else if (match(AUTO_INDEX)) {
+			tempCommon.auto_index = parseAutoIndex();
+		} else {
+			throw std::runtime_error("Unexpected token in the location block: " + previous().getAll());
+		}
+		// common things are: root, methods, index, max_client_body, error_page, auto_index
+	}
+	consume(RIGHT_BRACE, "expected closing '}' for location block");
+	tempLocation.common = tempCommon;
+	return tempLocation;
 }
 
 void Parser::parseServerName() {
@@ -300,33 +321,37 @@ void Parser::parseServerName() {
 	consume(SEMICOLON, "expected ';' after the statement");
 }
 
-void Parser::parseMethods() {
+t_methods Parser::parseMethods() {
+	t_methods methodStruct;
+	methodStruct.getMethod = false;
+	methodStruct.postMethod = false;
+	methodStruct.deleteMethod = false;
 	while (!check(SEMICOLON)) {
-		std::cout << _tokens.at(_currentToken).getType() << '\n';
 		if (match(GET)) {
-			tempConfig.common.methods.getMethod = true;
+			methodStruct.getMethod = true;
 		} else if (match(POST)) {
-			tempConfig.common.methods.postMethod = true;
+			methodStruct.postMethod = true;
 		} else if (match(DELETE)) {
-			tempConfig.common.methods.deleteMethod = true;
+			methodStruct.deleteMethod = true;
 		} else {
 			std::cout << previous().getAll() << '\n';
 			throw std::runtime_error("Unrecognized method found. Allowed methods are GET POST DELETE");
 		}
 	}
-	if (!tempConfig.common.methods.deleteMethod && !tempConfig.common.methods.getMethod && !tempConfig.common.methods.postMethod)
-		throw std::runtime_error("No method found");
 	consume(SEMICOLON, "exptected ';' after the statement");
+	return methodStruct;
 }
 
-void Parser::parseAutoIndex() {
+bool Parser::parseAutoIndex() {
+	bool autoIndex = false;
 	if (match(ON))
-		tempConfig.common.auto_index = true;
+		autoIndex = true;
 	else if (check(OFF))
 		consume(OFF, "expected off");
 	else
 		throw std::runtime_error("Unrecognized option. Allowed options are on or off!");
 	consume(SEMICOLON, "exptected ';' after the statement");
+	return autoIndex;
 }
 
 void Parser::parseConfig() {
@@ -343,21 +368,22 @@ void Parser::parseConfig() {
 					tempConfig.common.root = parsePath();
 					consume(SEMICOLON, "expected ';' after the statement");
 				} else if (match(INDEX)) {
-					parseIndex();
+					std::vector<std::string> tempVector = parseIndex();
+					tempConfig.common.index.insert(tempConfig.common.index.end(), tempVector.begin(), tempVector.end());
 				} else if (match(METHODS)) {
-					parseMethods();
+					tempConfig.common.methods = parseMethods();
 				} else if (match(AUTO_INDEX)) {
-					parseAutoIndex();
-				} else {
-					throw std::runtime_error("Unexpected token, got " + previous().getAll());
+					tempConfig.common.auto_index = parseAutoIndex();
+				} else if (match(LOCATION)) {
+					tempConfig.location.push_back(parseLocation());
 				}
 				i++;		// DEBUG
 				if (i > 2)	// DEBUG
 				{
-					for (size_t i = 0; i < tempConfig.common.index.size(); i++) {
-						std::cout << tempConfig.common.index.at(i) << '\n';
+					for (size_t i = 0; i < tempConfig.location.size(); i++) {
+						std::cout << tempConfig.location.at(i).path << '\n';
 					}
-					std::cout << tempConfig.common.root << '\n';
+					std::cout << tempConfig.location.at(0).common.auto_index << '\n';
 					exit(1);  // DEBUG escape loop manually for now
 				}
 			}

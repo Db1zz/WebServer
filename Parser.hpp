@@ -48,10 +48,10 @@ class Parser {
 	void parseListen();
 	void parseServerName();
 	std::string parsePath();
-	void parseIndex();
-	void parseMethods();
-	void parseLocation();
-	void parseAutoIndex();
+	std::vector<std::string> parseIndex();
+	t_methods parseMethods();
+	t_location parseLocation();
+	bool parseAutoIndex();
 
 	t_config tempConfig;
 };
