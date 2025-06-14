@@ -354,6 +354,21 @@ bool Parser::parseAutoIndex() {
 	return autoIndex;
 }
 
+void Parser::parseErrorPage() {
+	std::vector<std::string> codes;
+	// Parse all codes (IDENTIFIER) until the next token is not an IDENTIFIER
+	while (check(IDENTIFIER)) {
+		codes.push_back(consume(IDENTIFIER, "expected error code").getAll());
+	}
+	// Parse the path (can be relative or absolute)
+	for (size_t i = 0; i < codes.size(); i++)
+		std::cout << "codes: " << codes.at(i) << "\n";
+	std::string path = parsePath();
+	std::cout << "Path: " << path << "\n";
+	consume(SEMICOLON, "expected ';' after error_page");
+
+}
+
 void Parser::parseConfig() {
 	while (!tokenIsAtEnd()) {
 		if (match(SERVER)) {
@@ -376,6 +391,8 @@ void Parser::parseConfig() {
 					tempConfig.common.auto_index = parseAutoIndex();
 				} else if (match(LOCATION)) {
 					tempConfig.location.push_back(parseLocation());
+				} else if (match(ERROR_PAGE)) {
+					parseErrorPage();
 				}
 				i++;		// DEBUG
 				if (i > 2)	// DEBUG

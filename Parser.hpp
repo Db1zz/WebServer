@@ -52,6 +52,7 @@ class Parser {
 	t_methods parseMethods();
 	t_location parseLocation();
 	bool parseAutoIndex();
+	void parseErrorPage();
 
 	t_config tempConfig;
 };
