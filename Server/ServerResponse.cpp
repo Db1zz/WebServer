@@ -1,7 +1,12 @@
 #include "ServerResponse.hpp"
+
 #include <sstream>
 
-ServerResponse::ServerResponse() { _status_line = "200 OK\r\n"; }
+#include "Server.hpp"
+
+ServerResponse::ServerResponse(const t_request& request) : _req_data(&request) {
+	_status_line = "200";
+}
 
 ServerResponse::~ServerResponse() {}
 
@@ -19,28 +24,72 @@ ServerResponse& ServerResponse::header(const std::string& key,
 ServerResponse& ServerResponse::status_line(const int code) {
 	std::stringstream code_str;
 	code_str << code;
-	_status_line = code_str.str() + " OK\r\n";
-	/* TODO: add up different status_texts depending on a code */
+	std::string msg = _status_msg.msg();
+	_status_line = " " + code_str.str() + " " + msg + "\r\n";
 	return (*this);
 }
 
 ServerResponse& ServerResponse::html(const std::string& path) {
-	header("content-type", "text/html");
+	std::fstream html_file;
+	_status_msg = fs::open_file(html_file, path, std::ios::in);
+	if (_status_msg.ok()) {
+		std::string temp;
+		while (getline(html_file, temp)) {
+			_body += temp;
+		}
+		html_file.close();
+	} else {
+		status_line(404);
+		html(PAGE_404);
+	}
+	return *this;
+}
+
+std::string ServerResponse::generate_response() {
+	status_line(200);
+	_resp_content_type = identify_mime();
+	header("content-type", _resp_content_type);
 	header("server", "comrades_webserv");
-	/*add date? mandatory?*/
-	std::ifstream html_file;
-	html_file.open(path.c_str());
-		if(html_file.is_open()){
-			std::string temp;
-			while (getline(html_file, temp)) {
-	   	 		_body += temp;
-			}
-			html_file.close();
-		} else
-			status_line(404) << "file not found :c";
-	
+	if (_resp_content_type == "text/html")
+		html(PAGE_INITIAL);
+	else if (_resp_content_type == "application/json") {
+		json("json response");
+	} else {
+		status_line(406);
+		(*this) << " not acceptable\r\n";
+	}
 	header("content-length", get_body_size());
-		return *this;
+	_response =
+		WS_PROTOCOL + get_status() + get_headers() + "\r\n" + get_body() + "\r\n";;
+	std::cout << GREEN400 "RESPONSE:\n" << _response << RESET << std::endl;
+	return _response;
+}
+
+ServerResponse& ServerResponse::json(const std::string& data) {
+	_body = data;
+	return *this;
+}
+
+std::string ServerResponse::identify_mime() {
+	if (_req_data->mime_type == "html") {
+		_resp_content_type = "text/html";
+	} else if (_req_data->mime_type == "css") {
+		_resp_content_type = "text/css";
+	} else if (_req_data->mime_type == "js") {
+		_resp_content_type = "application/javascript";
+	} else if (_req_data->mime_type == "json") {
+		_resp_content_type = "application/json";
+	} else if (_req_data->mime_type == "jpg" ||
+			   _req_data->mime_type == "jpeg") {
+		_resp_content_type = "image/jpeg";
+	} else if (_req_data->mime_type == "png") {
+		_resp_content_type = "image/png";
+	} else if (_req_data->mime_type == "gif") {
+		_resp_content_type = "image/gif";
+	} else {
+		_resp_content_type = "application/octet-stream";
+	}
+	return _resp_content_type;
 }
 
 const std::string ServerResponse::get_body_size() const {
@@ -49,14 +98,8 @@ const std::string ServerResponse::get_body_size() const {
 	return ss.str();
 }
 
-const std::string& ServerResponse::get_status() const {
-	return _status_line;
-}
+const std::string& ServerResponse::get_status() const { return _status_line; }
 
-const std::string& ServerResponse::get_headers() const {
-	return _headers;
-}
+const std::string& ServerResponse::get_headers() const { return _headers; }
 
-const std::string& ServerResponse::get_body() const {
-	return _body;
-}
+const std::string& ServerResponse::get_body() const { return _body; }

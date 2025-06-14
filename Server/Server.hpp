@@ -30,7 +30,7 @@ private:
 	void announce_new_connection(const struct sockaddr &cl_sockaddr, int cl_fd);
 	std::vector<std::string> read_request(const epoll_event &request_event);
 	std::vector<std::string> request_handler(const epoll_event &request_event);
-	void response_handler(const epoll_event &request_event);
+	void response_handler(const epoll_event &request_event, const t_request &request);
 	std::string response_generator(/* TODO: add args*/);
 
 	ServerEvent _event;

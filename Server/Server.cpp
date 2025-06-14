@@ -51,7 +51,20 @@ void Server::handle_event(int amount_of_events) {
 
 			request = request_handler(request_event);
 			request.size();	 // suppress unused variable err
-			response_handler(request_event);
+
+			/*hardcoding the request for now, this filled struct should be
+			 * received from parser later*/
+			t_request req;
+			req.method = "GET";
+			req.uri_path = "/";
+			req.user_agent = "";
+			req.host = "localhost";
+			req.language = "";
+			req.connection = "keep-alive";
+			req.mime_type = "html";
+			req.content_type = "text/html";
+
+			response_handler(request_event, req);
 			close(request_event.data.fd);
 		}
 	}
@@ -70,7 +83,7 @@ std::vector<std::string> Server::read_request(
 		close(request_event.data.fd);
 	}
 	// TODO: add loop in which we're going to fill std::vector<std::string>
-	std::cout << read_buff << std::endl;
+	std::cout << CYAN300 << "REQUEST:\n" << read_buff << RESET << std::endl;
 	return std::vector<std::string>();	// return empty arr
 }
 
@@ -93,15 +106,10 @@ std::vector<std::string> Server::request_handler(
 	return request;
 }
 
-void Server::response_handler(const epoll_event &request_event /* second arg is a struct that was parsed in request_handler()*/) {
-	ServerResponse resp;
-	// resp.header("content-type", "html");
-	// resp.header("content-length", resp.get_body_size());
-	resp.html(PAGE_INITIAL);
-	std::cout << resp.get_body() << std::endl;
-	std::string res = WS_PROTOCOL + resp.get_status() + resp.get_headers() +
-					  "\r\n" + resp.get_body();
-	// Generate response and send it to request_event.data.fd
+void Server::response_handler(const epoll_event &request_event,
+							  const t_request &request) {
+	ServerResponse resp(request);
+	std::string res = resp.generate_response();
 	write(request_event.data.fd, res.c_str(), res.size());
 }
 
