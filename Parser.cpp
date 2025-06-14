@@ -295,7 +295,7 @@ t_location Parser::parseLocation() {
 		} else if (match(AUTO_INDEX)) {
 			tempCommon.auto_index = parseAutoIndex();
 		} else {
-			throw std::runtime_error("Unexpected token in the location block: " + previous().getAll());
+			throw std::runtime_error("Unexpected token in the location block: " + tokenPeek().getAll());
 		}
 		// common things are: root, methods, index, max_client_body, error_page, auto_index
 	}
