@@ -16,7 +16,7 @@ typedef struct s_commonConfig {
 	t_methods methods;
 	std::vector<std::string> index;
 	std::string max_client_body;  // needs to be changed in the future
-	std::map<int, std::string> errorPage; // needs to be done
+	std::map<int, std::string> errorPage;
 	bool auto_index;
 } t_commonConfig;
 
@@ -60,9 +60,9 @@ typedef enum e_TokenType {
 	ROOT,
 	ERROR_PAGE,
 	LOCATION,
-	CGI,
-	MAX_CLIENT_BODY_SIZE,
-	RETURN,
+	CGI, // this needs to be done
+	MAX_CLIENT_BODY_SIZE, // this needs to be done
+	RETURN, // this needs to be done
 
 	END_OF_FILE,
 } t_TokenType;

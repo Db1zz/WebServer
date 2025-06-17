@@ -18,6 +18,7 @@ class Token {
 	t_TokenType getType();
 	int getLine();
 	int	getColon();
+	int getLength();
 };
 
 #endif

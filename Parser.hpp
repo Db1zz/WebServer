@@ -53,6 +53,7 @@ class Parser {
 	t_location parseLocation();
 	bool parseAutoIndex();
 	void parseErrorPage();
+	bool isSpaceBetween(Token curr, Token next);
 
 	t_config tempConfig;
 };

@@ -18,3 +18,7 @@ int Token::getLine() {
 int Token::getColon() {
 	return _colon;
 }
+
+int Token::getLength() {
+	return _lexeme.size();
+}

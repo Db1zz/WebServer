@@ -196,6 +196,13 @@ Token Parser::consume(t_TokenType type, std::string message) {
 	throw std::runtime_error(str.str());
 }
 
+bool Parser::isSpaceBetween(Token curr, Token next) {
+	if (curr.getLength() + curr.getColon() + 1 == next.getColon()) {
+		return true;
+	}
+	return false;
+}
+
 void Parser::parseListen() {
 	while (!check(SEMICOLON)) {
 		std::stringstream str;
@@ -264,13 +271,19 @@ std::string Parser::parsePath() {
 	std::stringstream temp;
 	// Accept any sequence of SLASH and/or IDENTIFIER tokens, in any order
 	bool found = false;
-	while (check(IDENTIFIER) || check(SLASH)) {
+	while (check(IDENTIFIER) || check(SLASH) || check(DOT) || check(MINUS) || check(COLON)) {
 		if (check(SLASH)) {
 			temp << consume(SLASH, "expected a '/'").getAll();
 			found = true;
 		} else if (check(IDENTIFIER)) {
 			temp << consume(IDENTIFIER, "expected an identifier").getAll();
 			found = true;
+		} else if (check(DOT)) {
+			temp << consume(DOT, "expected a dot").getAll();
+		} else if (check(MINUS)) {
+			temp << consume(MINUS, "expected a minus").getAll();
+		} else if (check(COLON)) {
+			temp << consume(COLON, "expected a colon").getAll();
 		}
 	}
 	if (!found)
@@ -323,9 +336,9 @@ void Parser::parseServerName() {
 
 t_methods Parser::parseMethods() {
 	t_methods methodStruct;
-	methodStruct.getMethod = false;
-	methodStruct.postMethod = false;
-	methodStruct.deleteMethod = false;
+	methodStruct.getMethod = false;		// DEBUG
+	methodStruct.postMethod = false;	// DEBUG
+	methodStruct.deleteMethod = false;	// DEBUG *later a function gonna fill up this values*
 	while (!check(SEMICOLON)) {
 		if (match(GET)) {
 			methodStruct.getMethod = true;
@@ -334,7 +347,6 @@ t_methods Parser::parseMethods() {
 		} else if (match(DELETE)) {
 			methodStruct.deleteMethod = true;
 		} else {
-			std::cout << previous().getAll() << '\n';
 			throw std::runtime_error("Unrecognized method found. Allowed methods are GET POST DELETE");
 		}
 	}
@@ -356,17 +368,35 @@ bool Parser::parseAutoIndex() {
 
 void Parser::parseErrorPage() {
 	std::vector<std::string> codes;
-	// Parse all codes (IDENTIFIER) until the next token is not an IDENTIFIER
+	std::string tempString;
+	bool nonDigit;
 	while (check(IDENTIFIER)) {
-		codes.push_back(consume(IDENTIFIER, "expected error code").getAll());
+		tempString = consume(IDENTIFIER, "expected identifier").getAll();
+		if (!isSpaceBetween(previous(), tokenPeek()))
+			break;
+		for (size_t i = 0; i < tempString.size(); i++) {
+			if (std::isdigit(tempString.at(i))) {
+				nonDigit = false;
+			} else {
+				nonDigit = true;
+				break;
+			}
+		}
+		if (nonDigit)
+			break;
+		codes.push_back(tempString);
+		tempString = "";
 	}
-	// Parse the path (can be relative or absolute)
-	for (size_t i = 0; i < codes.size(); i++)
-		std::cout << "codes: " << codes.at(i) << "\n";
-	std::string path = parsePath();
-	std::cout << "Path: " << path << "\n";
-	consume(SEMICOLON, "expected ';' after error_page");
+	std::string path = tempString + parsePath();
+	for (size_t i = 0; i < codes.size(); i++) {
+		tempConfig.common.errorPage.insert(std::pair<int, std::string>(atoi(codes.at(i).c_str()), path));  // later maybe check if its correct error code
+	}
+	// for (std::map<int, std::string>::iterator it = tempConfig.common.errorPage.begin(); it != tempConfig.common.errorPage.end(); it++)
+	// {
+	// 	std::cout << "Code: " << it->first << " with path: " << it->second << '\n';
+	// }
 
+	consume(SEMICOLON, "expected ';' after error_page");
 }
 
 void Parser::parseConfig() {
@@ -397,10 +427,10 @@ void Parser::parseConfig() {
 				i++;		// DEBUG
 				if (i > 2)	// DEBUG
 				{
-					for (size_t i = 0; i < tempConfig.location.size(); i++) {
-						std::cout << tempConfig.location.at(i).path << '\n';
-					}
-					std::cout << tempConfig.location.at(0).common.auto_index << '\n';
+					// for (size_t i = 0; i < tempConfig.location.size(); i++) {
+					// 	std::cout << tempConfig.location.at(i).path << '\n';
+					// }
+					// std::cout << tempConfig.location.at(0).common.auto_index << '\n';
 					exit(1);  // DEBUG escape loop manually for now
 				}
 			}
