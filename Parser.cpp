@@ -22,12 +22,16 @@ Parser::Parser(std::string fileName) : m_fileName(fileName) {
 	}
 	addKeywords();
 	std::vector<Token> temp = scanTokens();
-	for (size_t i = 0; i < temp.size(); i++) {
-		if (temp[i].getType() != END_OF_FILE)
-			std::cout << temp[i].getAll() << "\n";
+	/* 	for (size_t i = 0; i < temp.size(); i++) {
+			if (temp[i].getType() != END_OF_FILE)
+				std::cout << temp[i].getAll() << "\n";
+		}
+		std::cout << "--------------------------------\n"; */
+	try {
+		parseConfig();
+	} catch (const std::exception &e) {
+		std::cerr << e.what() << '\n';
 	}
-	std::cout << "--------------------------------\n";
-	parseConfig();
 }
 
 Parser::Parser(const Parser &original) : m_fileName(original.m_fileName) {
@@ -96,7 +100,7 @@ char Parser::peek() {
 void Parser::identifier(char c) {
 	while (!isAtEnd()) {
 		c = peek();
-		if (isalnum(c) || c == '_' || c == '-')
+		if (isalnum(c) || c == '_' || c == '-' || c == '=' || c == '?')
 			advance();
 		else
 			break;
@@ -146,7 +150,7 @@ void Parser::scanToken() {
 			addToken(SEMICOLON);
 			break;
 		default:
-			if (isalnum(c) || c == '_' || c == '-') {
+			if (isalnum(c) || c == '_' || c == '-' || c == '=' || c == '?') {
 				identifier(c);
 			} else {
 				std::cerr << "Unexpected character '" << c << "' at line: " << _line << '\n';
@@ -269,7 +273,6 @@ std::vector<std::string> Parser::parseIndex() {
 
 std::string Parser::parsePath() {
 	std::stringstream temp;
-	// Accept any sequence of SLASH and/or IDENTIFIER tokens, in any order
 	bool found = false;
 	while (check(IDENTIFIER) || check(SLASH) || check(DOT) || check(MINUS) || check(COLON)) {
 		if (check(SLASH)) {
@@ -294,6 +297,12 @@ std::string Parser::parsePath() {
 t_location Parser::parseLocation() {
 	t_location tempLocation;
 	t_commonConfig tempCommon;
+	tempCommon.auto_index = false;
+	tempCommon.methods.deleteMethod = false;
+	tempCommon.methods.getMethod = false;
+	tempCommon.methods.postMethod = false;
+	tempCommon.returnCode = -1;
+	tempCommon.root = "";
 	tempLocation.path = parsePath();
 	consume(LEFT_BRACE, "expected opening '{' for location block");
 	while (!check(RIGHT_BRACE)) {
@@ -307,10 +316,14 @@ t_location Parser::parseLocation() {
 			tempCommon.methods = parseMethods();
 		} else if (match(AUTO_INDEX)) {
 			tempCommon.auto_index = parseAutoIndex();
+			// max_client_body_size
+		} else if (match(ERROR_PAGE)) {
+			std::map<int, std::string> tempMap = parseErrorPage();
+			tempCommon.errorPage.insert(tempMap.begin(), tempMap.end());
 		} else {
 			throw std::runtime_error("Unexpected token in the location block: " + tokenPeek().getAll());
 		}
-		// common things are: root, methods, index, max_client_body, error_page, auto_index
+		// common things are: root, methods, index, error_page, auto_index
 	}
 	consume(RIGHT_BRACE, "expected closing '}' for location block");
 	tempLocation.common = tempCommon;
@@ -336,9 +349,9 @@ void Parser::parseServerName() {
 
 t_methods Parser::parseMethods() {
 	t_methods methodStruct;
-	methodStruct.getMethod = false;		// DEBUG
-	methodStruct.postMethod = false;	// DEBUG
-	methodStruct.deleteMethod = false;	// DEBUG *later a function gonna fill up this values*
+	methodStruct.getMethod = false;
+	methodStruct.postMethod = false;
+	methodStruct.deleteMethod = false;
 	while (!check(SEMICOLON)) {
 		if (match(GET)) {
 			methodStruct.getMethod = true;
@@ -366,9 +379,10 @@ bool Parser::parseAutoIndex() {
 	return autoIndex;
 }
 
-void Parser::parseErrorPage() {
+std::map<int, std::string> Parser::parseErrorPage() {
 	std::vector<std::string> codes;
 	std::string tempString;
+	std::map<int, std::string> tempMap;
 	bool nonDigit;
 	while (check(IDENTIFIER)) {
 		tempString = consume(IDENTIFIER, "expected identifier").getAll();
@@ -389,21 +403,89 @@ void Parser::parseErrorPage() {
 	}
 	std::string path = tempString + parsePath();
 	for (size_t i = 0; i < codes.size(); i++) {
-		tempConfig.common.errorPage.insert(std::pair<int, std::string>(atoi(codes.at(i).c_str()), path));  // later maybe check if its correct error code
+		tempMap.insert(std::pair<int, std::string>(atoi(codes.at(i).c_str()), path));  // later maybe check if its correct error code
 	}
-	// for (std::map<int, std::string>::iterator it = tempConfig.common.errorPage.begin(); it != tempConfig.common.errorPage.end(); it++)
-	// {
-	// 	std::cout << "Code: " << it->first << " with path: " << it->second << '\n';
-	// }
-
 	consume(SEMICOLON, "expected ';' after error_page");
+	return tempMap;
+}
+
+std::vector<t_config> Parser::getConfigStruct() {
+	std::cout << "-----------------------------\n";
+	for (size_t i = 0; i < _configVector.size(); i++) {
+		t_config temp = _configVector.at(i);
+
+		// Print hosts
+		for (size_t host_i = 0; host_i < temp.host.size(); host_i++)
+			std::cout << "Host: " << temp.host.at(host_i) << '\n';
+
+		// Print ports
+		for (size_t port_i = 0; port_i < temp.port.size(); port_i++)
+			std::cout << "Port: " << temp.port.at(port_i) << '\n';
+
+		// Print server names
+		for (size_t sn_i = 0; sn_i < temp.server_name.size(); sn_i++)
+			std::cout << "Server Name: " << temp.server_name.at(sn_i) << '\n';
+
+		// Print max client body size
+		std::cout << "Max Client Body Size: " << temp.max_client_body << '\n';
+
+		// Print common config
+		std::cout << "Root: " << temp.common.root << '\n';
+		std::cout << "Auto Index: " << (temp.common.auto_index ? "on" : "off") << '\n';
+		std::cout << "Return Code: " << temp.common.returnCode << '\n';
+
+		// Print index files
+		for (size_t idx = 0; idx < temp.common.index.size(); idx++)
+			std::cout << "Index: " << temp.common.index.at(idx) << '\n';
+
+		// Print error pages
+		for (std::map<int, std::string>::iterator it = temp.common.errorPage.begin(); it != temp.common.errorPage.end(); ++it)
+			std::cout << "Error Page: " << it->first << " -> " << it->second << '\n';
+
+		// Print allowed methods
+		std::cout << "Methods: "
+				  << (temp.common.methods.getMethod ? "GET " : "")
+				  << (temp.common.methods.postMethod ? "POST " : "")
+				  << (temp.common.methods.deleteMethod ? "DELETE " : "")
+				  << '\n';
+
+		// Print locations
+		for (size_t loc_i = 0; loc_i < temp.location.size(); loc_i++) {
+			const t_location &loc = temp.location.at(loc_i);
+			std::cout << "Location Path: " << loc.path << '\n';
+			std::cout << "  Root: " << loc.common.root << '\n';
+			std::cout << "  Auto Index: " << (loc.common.auto_index ? "on" : "off") << '\n';
+			std::cout << "  Return Code: " << loc.common.returnCode << '\n';
+			for (size_t idx = 0; idx < loc.common.index.size(); idx++)
+				std::cout << "  Index: " << loc.common.index.at(idx) << '\n';
+			for (std::map<int, std::string>::const_iterator it = loc.common.errorPage.begin(); it != loc.common.errorPage.end(); ++it)
+				std::cout << "  Error Page: " << it->first << " -> " << it->second << '\n';
+			std::cout << "  Methods: "
+					  << (loc.common.methods.getMethod ? "GET " : "")
+					  << (loc.common.methods.postMethod ? "POST " : "")
+					  << (loc.common.methods.deleteMethod ? "DELETE " : "")
+					  << '\n';
+		}
+		std::cout << "-----------------------------\n";
+	}
+	return _configVector;
+}
+
+void Parser::fillDefaultValues() {
+	tempConfig.max_client_body = "0";  // change
+	tempConfig.common.auto_index = false;
+	tempConfig.common.methods.deleteMethod = false;
+	tempConfig.common.methods.getMethod = false;
+	tempConfig.common.methods.postMethod = false;
+	tempConfig.common.returnCode = -1;
+	tempConfig.common.root = "";
 }
 
 void Parser::parseConfig() {
 	while (!tokenIsAtEnd()) {
 		if (match(SERVER)) {
+			fillDefaultValues();
 			consume(LEFT_BRACE, "expected '{' after server block");
-			int i = 0;	// DEBUG ONLY
 			while (!check(RIGHT_BRACE) && !tokenIsAtEnd()) {
 				if (match(LISTEN)) {
 					parseListen();
@@ -422,7 +504,8 @@ void Parser::parseConfig() {
 				} else if (match(LOCATION)) {
 					tempConfig.location.push_back(parseLocation());
 				} else if (match(ERROR_PAGE)) {
-					parseErrorPage();
+					std::map<int, std::string> tempMap = parseErrorPage();
+					tempConfig.common.errorPage.insert(tempMap.begin(), tempMap.end());
 				} else if (match(RETURN)) {
 					bool nonDigit = false;
 					std::string tempString = consume(IDENTIFIER, "expected a status code").getAll();
@@ -438,25 +521,15 @@ void Parser::parseConfig() {
 						throw std::runtime_error("return status code should be a number");
 					tempConfig.common.returnCode = atol(tempString.c_str());
 					consume(SEMICOLON, "expected ';' after the statement");
+				} else {
+					throw std::runtime_error("Unexpected keyword found: " + tokenPeek().getAll());
 				}
-				i++;		// DEBUG
-				if (i > 2)	// DEBUG
-				{
-					// for (size_t i = 0; i < tempConfig.location.size(); i++) {
-					// 	std::cout << tempConfig.location.at(i).path << '\n';
-					// }
-					// std::cout << tempConfig.location.at(0).common.auto_index << '\n';
-					exit(1);  // DEBUG escape loop manually for now
-				}
+				// max_client_body_size
 			}
 			consume(RIGHT_BRACE, "expected terminator '}' after server block content");
+			_configVector.push_back(tempConfig);
 		} else {
-			std::cerr << "Expected server block\n";
-			exit(1);
+			throw std::runtime_error("expected server block, got \"" + tokenPeek().getAll() + "\" instead");
 		}
 	}
-	// for (size_t i = 0; i < tempConfig.server_name.size(); i++)
-	// {
-	// 	std::cout << i << '\n';
-	// }
 }

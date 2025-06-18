@@ -12,5 +12,6 @@ int main(int argc, char** argv) {
 	} else if (argc == 2) {
 		fileName = argv[argc - 1];
 	}
-	Parser(fileName.c_str());
+	Parser parser(fileName.c_str());
+	parser.getConfigStruct();
 }

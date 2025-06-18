@@ -17,12 +17,13 @@ class Parser {
    private:
 	std::string &m_fileName;
 	std::vector<Token> _tokens;
+	std::vector<t_config> _configVector;
 	std::map<std::string, t_TokenType> _keywords;
 	std::string _source;
-	int _start; // Token
-	size_t _current; // Token 
-	int _line; // Token
-	int _currentToken; // Token
+	int _start;
+	size_t _current;
+	int _line;
+	int _currentToken;
 
    public:
 	Parser(std::string fileName);
@@ -52,8 +53,10 @@ class Parser {
 	t_methods parseMethods();
 	t_location parseLocation();
 	bool parseAutoIndex();
-	void parseErrorPage();
+	std::map<int, std::string> parseErrorPage();
 	bool isSpaceBetween(Token curr, Token next);
+	std::vector<t_config> getConfigStruct();
+	void fillDefaultValues();
 
 	t_config tempConfig;
 };
