@@ -1,7 +1,8 @@
 NAME = webserv
 CXX = c++
 CXXFLAGS = -Wall -Werror -Wextra -std=c++98 -g
-SRC = main.cpp Parser.cpp Token.cpp
+SRC = main.cpp Parser/Parser.cpp \
+				Parser/Token.cpp
 OBJ = $(SRC:.cpp=.o)
 
 all: $(NAME)

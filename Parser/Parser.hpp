@@ -1,5 +1,5 @@
-#ifndef PARSER_HPP
-#define PARSER_HPP
+#ifndef PARSER_PARSER_HPP
+#define PARSER_PARSER_HPP
 
 #include <unistd.h>
 
@@ -11,7 +11,7 @@
 #include <sstream>
 
 #include "Token.hpp"
-#include "Webserv.hpp"
+#include "../Webserv.hpp"
 
 class Parser {
    private:
