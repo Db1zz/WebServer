@@ -1,4 +1,8 @@
 #include "Parser/Parser.hpp"
+#include "Sockets/ClientSocket.hpp"
+#include "Sockets/ServerSocket.hpp"
+#include "Sockets/ASocket.hpp"
+#include "Server/Server.hpp"
 
 int main(int argc, char** argv) {
 	std::string fileName;
@@ -14,4 +18,7 @@ int main(int argc, char** argv) {
 	}
 	Parser parser(fileName.c_str());
 	parser.getConfigStruct();
+	Server server;
+	server.get_socket()->set_opt(SO_REUSEADDR, true);
+	server.launch();
 }
