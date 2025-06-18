@@ -18,6 +18,7 @@ typedef struct s_commonConfig {
 	std::string max_client_body;  // needs to be changed in the future
 	std::map<int, std::string> errorPage;
 	bool auto_index;
+	int returnCode;
 } t_commonConfig;
 
 typedef struct s_location {
@@ -62,7 +63,7 @@ typedef enum e_TokenType {
 	LOCATION,
 	CGI, // this needs to be done
 	MAX_CLIENT_BODY_SIZE, // this needs to be done
-	RETURN, // this needs to be done
+	RETURN,
 
 	END_OF_FILE,
 } t_TokenType;

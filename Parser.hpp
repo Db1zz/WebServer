@@ -19,10 +19,10 @@ class Parser {
 	std::vector<Token> _tokens;
 	std::map<std::string, t_TokenType> _keywords;
 	std::string _source;
-	int _start;
-	size_t _current;
-	int _line;
-	int _currentToken;
+	int _start; // Token
+	size_t _current; // Token 
+	int _line; // Token
+	int _currentToken; // Token
 
    public:
 	Parser(std::string fileName);

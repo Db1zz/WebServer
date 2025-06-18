@@ -423,6 +423,21 @@ void Parser::parseConfig() {
 					tempConfig.location.push_back(parseLocation());
 				} else if (match(ERROR_PAGE)) {
 					parseErrorPage();
+				} else if (match(RETURN)) {
+					bool nonDigit = false;
+					std::string tempString = consume(IDENTIFIER, "expected a status code").getAll();
+					for (size_t i = 0; i < tempString.size(); i++) {
+						if (std::isdigit(tempString.at(i))) {
+							nonDigit = false;
+						} else {
+							nonDigit = true;
+							break;
+						}
+					}
+					if (nonDigit)
+						throw std::runtime_error("return status code should be a number");
+					tempConfig.common.returnCode = atol(tempString.c_str());
+					consume(SEMICOLON, "expected ';' after the statement");
 				}
 				i++;		// DEBUG
 				if (i > 2)	// DEBUG
