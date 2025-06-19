@@ -100,7 +100,7 @@ char Parser::peek() {
 void Parser::identifier(char c) {
 	while (!isAtEnd()) {
 		c = peek();
-		if (isalnum(c) || c == '_' || c == '-' || c == '=' || c == '?')
+		if (isalnum(c) || c == '_' || c == '-' || c == '=' || c == '?' || c == '.' || c == '#')
 			advance();
 		else
 			break;
