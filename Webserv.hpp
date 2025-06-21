@@ -18,6 +18,7 @@ typedef struct s_commonConfig {
 	std::map<int, std::string> errorPage;
 	bool auto_index;
 	int returnCode;
+	std::string returnPath;
 } t_commonConfig;
 
 typedef struct s_location {

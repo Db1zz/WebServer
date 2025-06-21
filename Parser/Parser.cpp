@@ -22,11 +22,11 @@ Parser::Parser(std::string fileName) : m_fileName(fileName) {
 	}
 	addKeywords();
 	std::vector<Token> temp = scanTokens();
-	/* 	for (size_t i = 0; i < temp.size(); i++) {
-			if (temp[i].getType() != END_OF_FILE)
-				std::cout << temp[i].getAll() << "\n";
-		}
-		std::cout << "--------------------------------\n"; */
+	for (size_t i = 0; i < temp.size(); i++) {
+		if (temp[i].getType() != END_OF_FILE)
+			std::cout << temp[i].getAll() << "\n";
+	}
+	std::cout << "--------------------------------\n";
 	try {
 		parseConfig();
 	} catch (const std::exception &e) {
@@ -100,7 +100,7 @@ char Parser::peek() {
 void Parser::identifier(char c) {
 	while (!isAtEnd()) {
 		c = peek();
-		if (isalnum(c) || c == '_' || c == '-' || c == '=' || c == '?' || c == '.' || c == '#')
+		if (isalnum(c) || c == '_' || c == '-' || c == '=' || c == '?' || c == '.' || c == '#' || c == '/' || c == '\'' || c == '\"')
 			advance();
 		else
 			break;
@@ -273,14 +273,11 @@ std::vector<std::string> Parser::parseIndex() {
 
 std::string Parser::parsePath() {
 	std::stringstream temp;
-	bool found = false;
 	while (check(IDENTIFIER) || check(SLASH) || check(DOT) || check(MINUS) || check(COLON)) {
 		if (check(SLASH)) {
 			temp << consume(SLASH, "expected a '/'").getAll();
-			found = true;
 		} else if (check(IDENTIFIER)) {
 			temp << consume(IDENTIFIER, "expected an identifier").getAll();
-			found = true;
 		} else if (check(DOT)) {
 			temp << consume(DOT, "expected a dot").getAll();
 		} else if (check(MINUS)) {
@@ -289,8 +286,6 @@ std::string Parser::parsePath() {
 			temp << consume(COLON, "expected a colon").getAll();
 		}
 	}
-	if (!found)
-		throw std::runtime_error("Expected at least one '/' or identifier in root path");
 	return temp.str();
 }
 
@@ -320,6 +315,8 @@ t_location Parser::parseLocation() {
 		} else if (match(ERROR_PAGE)) {
 			std::map<int, std::string> tempMap = parseErrorPage();
 			tempCommon.errorPage.insert(tempMap.begin(), tempMap.end());
+		} else if (match(RETURN)) {
+			parseReturn(tempCommon.returnPath, &tempCommon.returnCode);
 		} else {
 			throw std::runtime_error("Unexpected token in the location block: " + tokenPeek().getAll());
 		}
@@ -433,6 +430,7 @@ std::vector<t_config> Parser::getConfigStruct() {
 		std::cout << "Root: " << temp.common.root << '\n';
 		std::cout << "Auto Index: " << (temp.common.auto_index ? "on" : "off") << '\n';
 		std::cout << "Return Code: " << temp.common.returnCode << '\n';
+		std::cout << "Return Path: " << temp.common.returnPath << '\n';
 
 		// Print index files
 		for (size_t idx = 0; idx < temp.common.index.size(); idx++)
@@ -456,6 +454,7 @@ std::vector<t_config> Parser::getConfigStruct() {
 			std::cout << "  Root: " << loc.common.root << '\n';
 			std::cout << "  Auto Index: " << (loc.common.auto_index ? "on" : "off") << '\n';
 			std::cout << "  Return Code: " << loc.common.returnCode << '\n';
+			std::cout << "  Return Path: " << loc.common.returnPath << '\n';
 			for (size_t idx = 0; idx < loc.common.index.size(); idx++)
 				std::cout << "  Index: " << loc.common.index.at(idx) << '\n';
 			for (std::map<int, std::string>::const_iterator it = loc.common.errorPage.begin(); it != loc.common.errorPage.end(); ++it)
@@ -479,6 +478,24 @@ void Parser::fillDefaultValues() {
 	tempConfig.common.methods.postMethod = false;
 	tempConfig.common.returnCode = -1;
 	tempConfig.common.root = "";
+}
+
+void Parser::parseReturn(std::string &path, int *code) {
+	bool nonDigit = false;
+	std::string tempString = tokenPeek().getAll();
+	for (size_t i = 0; i < tempString.size(); i++) {
+		if (std::isdigit(tempString.at(i))) {
+			nonDigit = false;
+		} else {
+			nonDigit = true;
+			break;
+		}
+	}
+	if (!nonDigit)
+		*code = atol(consume(IDENTIFIER, "expected a status code").getAll().c_str());
+	if (nonDigit || !check(SEMICOLON))
+		path = parsePath();
+	consume(SEMICOLON, "expected ';' after the statement");
 }
 
 void Parser::parseConfig() {
@@ -507,20 +524,7 @@ void Parser::parseConfig() {
 					std::map<int, std::string> tempMap = parseErrorPage();
 					tempConfig.common.errorPage.insert(tempMap.begin(), tempMap.end());
 				} else if (match(RETURN)) {
-					bool nonDigit = false;
-					std::string tempString = consume(IDENTIFIER, "expected a status code").getAll();
-					for (size_t i = 0; i < tempString.size(); i++) {
-						if (std::isdigit(tempString.at(i))) {
-							nonDigit = false;
-						} else {
-							nonDigit = true;
-							break;
-						}
-					}
-					if (nonDigit)
-						throw std::runtime_error("return status code should be a number");
-					tempConfig.common.returnCode = atol(tempString.c_str());
-					consume(SEMICOLON, "expected ';' after the statement");
+					parseReturn(tempConfig.common.returnPath, &tempConfig.common.returnCode);
 				} else {
 					throw std::runtime_error("Unexpected keyword found: " + tokenPeek().getAll());
 				}

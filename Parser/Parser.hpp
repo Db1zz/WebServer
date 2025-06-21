@@ -57,6 +57,7 @@ class Parser {
 	bool isSpaceBetween(Token curr, Token next);
 	std::vector<t_config> getConfigStruct();
 	void fillDefaultValues();
+	void parseReturn(std::string &path, int *code);
 
 	t_config tempConfig;
 };
