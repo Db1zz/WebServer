@@ -58,6 +58,7 @@ class Parser {
 	std::vector<t_config> getConfigStruct();
 	void fillDefaultValues();
 	void parseReturn(std::string &path, int *code);
+	size_t	parseMaxClientBody();
 
 	t_config tempConfig;
 };

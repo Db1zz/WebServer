@@ -19,12 +19,13 @@ typedef struct s_commonConfig {
 	bool auto_index;
 	int returnCode;
 	std::string returnPath;
+	std::map<std::string, std::string> cgi;
+	size_t max_client_body;
 } t_commonConfig;
 
 typedef struct s_location {
 	std::string path;
 	t_commonConfig common;
-	std::string max_client_body;  // needs to be changed in the future
 } t_location;
 
 typedef struct s_config {
@@ -33,7 +34,6 @@ typedef struct s_config {
 	std::vector<std::string> port;
 	t_commonConfig common;
 	std::vector<t_location> location;
-	std::string max_client_body;  // needs to be changed in the future
 } t_config;
 
 typedef enum e_TokenType {
@@ -63,8 +63,8 @@ typedef enum e_TokenType {
 	ROOT,
 	ERROR_PAGE,
 	LOCATION,
-	CGI, // this needs to be done
-	MAX_CLIENT_BODY_SIZE, // this needs to be done
+	CGI,
+	MAX_CLIENT_BODY_SIZE,
 	RETURN,
 
 	END_OF_FILE,

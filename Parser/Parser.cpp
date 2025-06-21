@@ -304,6 +304,7 @@ t_location Parser::parseLocation() {
 	t_location tempLocation;
 	t_commonConfig tempCommon;
 	tempCommon.auto_index = false;
+	tempCommon.max_client_body = 0;
 	tempCommon.methods.deleteMethod = false;
 	tempCommon.methods.getMethod = false;
 	tempCommon.methods.postMethod = false;
@@ -328,6 +329,15 @@ t_location Parser::parseLocation() {
 			tempCommon.errorPage.insert(tempMap.begin(), tempMap.end());
 		} else if (match(RETURN)) {
 			parseReturn(tempCommon.returnPath, &tempCommon.returnCode);
+		} else if (match(CGI)) {
+			std::string extension;
+			consume(DOT, "expected an extension type with a dot, example: .py");
+			extension = "." + consume(IDENTIFIER, "expected an extension type with a dot, example: .py").getAll();
+			tempCommon.cgi.insert(std::pair<std::string, std::string>(extension, parsePath()));
+			consume(SEMICOLON, "expected ';' after the statement");
+		} else if (match(MAX_CLIENT_BODY_SIZE)) {
+			tempCommon.max_client_body = parseMaxClientBody();
+			consume(SEMICOLON, "expected ';' after the statement");
 		} else {
 			throw std::runtime_error("Unexpected token in the location block: " + tokenPeek().getAll());
 		}
@@ -434,7 +444,7 @@ std::vector<t_config> Parser::getConfigStruct() {
 			std::cout << "Server Name: " << temp.server_name.at(sn_i) << '\n';
 
 		// Print max client body size
-		std::cout << "Max Client Body Size: " << temp.max_client_body << '\n';
+		std::cout << "Max Client Body Size: " << temp.common.max_client_body << '\n';
 
 		// Print common config
 		std::cout << "Root: " << temp.common.root << '\n';
@@ -457,10 +467,13 @@ std::vector<t_config> Parser::getConfigStruct() {
 				  << (temp.common.methods.deleteMethod ? "DELETE " : "")
 				  << '\n';
 
+		for (std::map<std::string, std::string>::const_iterator cgi_it = temp.common.cgi.begin(); cgi_it != temp.common.cgi.end(); cgi_it++)
+			std::cout << "CGI: " << cgi_it->first << " " << cgi_it->second << '\n';
 		// Print locations
 		for (size_t loc_i = 0; loc_i < temp.location.size(); loc_i++) {
 			const t_location &loc = temp.location.at(loc_i);
 			std::cout << "Location Path: " << loc.path << '\n';
+			std::cout << " Max Client Body Size: " << loc.common.max_client_body << '\n';
 			std::cout << "  Root: " << loc.common.root << '\n';
 			std::cout << "  Auto Index: " << (loc.common.auto_index ? "on" : "off") << '\n';
 			std::cout << "  Return Code: " << loc.common.returnCode << '\n';
@@ -474,6 +487,8 @@ std::vector<t_config> Parser::getConfigStruct() {
 					  << (loc.common.methods.postMethod ? "POST " : "")
 					  << (loc.common.methods.deleteMethod ? "DELETE " : "")
 					  << '\n';
+			for (std::map<std::string, std::string>::const_iterator cgi_it = loc.common.cgi.begin(); cgi_it != loc.common.cgi.end(); cgi_it++)
+				std::cout << "  CGI: " << cgi_it->first << " " << cgi_it->second << '\n';
 		}
 		std::cout << "-----------------------------\n";
 	}
@@ -481,7 +496,7 @@ std::vector<t_config> Parser::getConfigStruct() {
 }
 
 void Parser::fillDefaultValues() {
-	tempConfig.max_client_body = "0";  // change
+	tempConfig.common.max_client_body = 0;
 	tempConfig.common.auto_index = false;
 	tempConfig.common.methods.deleteMethod = false;
 	tempConfig.common.methods.getMethod = false;
@@ -506,6 +521,29 @@ void Parser::parseReturn(std::string &path, int *code) {
 	if (nonDigit || !check(SEMICOLON))
 		path = parsePath();
 	consume(SEMICOLON, "expected ';' after the statement");
+}
+
+size_t Parser::parseMaxClientBody() {
+	std::string number = consume(IDENTIFIER, "expected number and unit specifier").getAll();
+	size_t i = 0;
+	while (i < number.size()) {
+		if (!std::isdigit(number.at(i)))
+			break;
+		i++;
+	}
+	if (i == number.size())
+		return atol(number.c_str());
+	switch (number.at(i)) {
+		case 'k':
+			return atol(number.c_str()) * 1024;
+		case 'm':
+			return atol(number.c_str()) * 1024 * 1024;
+		case 'g':
+			return atol(number.c_str()) * 1024 * 1024 * 1024;
+		default:
+			throw std::runtime_error("Unrecognizeable unit found in one of the max_client_body_size directive");
+	}
+	return 0;
 }
 
 void Parser::parseConfig() {
@@ -535,10 +573,18 @@ void Parser::parseConfig() {
 					tempConfig.common.errorPage.insert(tempMap.begin(), tempMap.end());
 				} else if (match(RETURN)) {
 					parseReturn(tempConfig.common.returnPath, &tempConfig.common.returnCode);
+				} else if (match(CGI)) {
+					std::string extension;
+					consume(DOT, "expected an extension type with a dot, example: .py");
+					extension = "." + consume(IDENTIFIER, "expected an extension type with a dot, example: .py").getAll();
+					tempConfig.common.cgi.insert(std::pair<std::string, std::string>(extension, parsePath()));
+					consume(SEMICOLON, "expected ';' after the statement");
+				} else if (match(MAX_CLIENT_BODY_SIZE)) {
+					tempConfig.common.max_client_body = parseMaxClientBody();
+					consume(SEMICOLON, "expected ';' after the statement");
 				} else {
 					throw std::runtime_error("Unexpected keyword found: " + tokenPeek().getAll());
 				}
-				// max_client_body_size
 			}
 			consume(RIGHT_BRACE, "expected terminator '}' after server block content");
 			_configVector.push_back(tempConfig);
