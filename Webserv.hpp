@@ -46,8 +46,6 @@ typedef enum e_TokenType {
 	COLON,
 
 	IDENTIFIER,
-	STRING,
-	NUMBER,
 	SERVER,
 	LISTEN,
 	HOST,

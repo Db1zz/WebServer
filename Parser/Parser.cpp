@@ -323,7 +323,6 @@ t_location Parser::parseLocation() {
 			tempCommon.methods = parseMethods();
 		} else if (match(AUTO_INDEX)) {
 			tempCommon.auto_index = parseAutoIndex();
-			// max_client_body_size
 		} else if (match(ERROR_PAGE)) {
 			std::map<int, std::string> tempMap = parseErrorPage();
 			tempCommon.errorPage.insert(tempMap.begin(), tempMap.end());
