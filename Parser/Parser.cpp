@@ -227,10 +227,25 @@ void Parser::parseListen() {
 				consume(COLON, "expected ':' for the port part");
 				consume(IDENTIFIER, "expected port after colon");
 				str << ":" << previous().getAll();
+				for (size_t i = 0; i < tempConfig.host.size(); i++) {
+					if (tempConfig.host.at(i) == str.str()) {
+						throw std::runtime_error("Duplicate listen");
+					}
+				}
 				tempConfig.host.push_back(str.str());
 			} else if (is_ip) {
+				for (size_t i = 0; i < tempConfig.host.size(); i++) {
+					if (tempConfig.host.at(i) == str.str()) {
+						throw std::runtime_error("Duplicate listen");
+					}
+				}
 				tempConfig.host.push_back(str.str());
 			} else {
+				for (size_t i = 0; i < tempConfig.port.size(); i++) {
+					if (tempConfig.port.at(i) == str.str()) {
+						throw std::runtime_error("Duplicate listen");
+					}
+				}
 				tempConfig.port.push_back(str.str());
 			}
 		} else {
@@ -320,7 +335,6 @@ t_location Parser::parseLocation() {
 		} else {
 			throw std::runtime_error("Unexpected token in the location block: " + tokenPeek().getAll());
 		}
-		// common things are: root, methods, index, error_page, auto_index
 	}
 	consume(RIGHT_BRACE, "expected closing '}' for location block");
 	tempLocation.common = tempCommon;
