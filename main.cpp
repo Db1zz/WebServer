@@ -16,8 +16,18 @@ int main(int argc, char** argv) {
 	} else if (argc == 2) {
 		fileName = argv[argc - 1];
 	}
-	Parser parser(fileName.c_str());
-	parser.getConfigStruct();
+	std::vector<t_config> config;
+	try
+	{
+		Parser parser(fileName.c_str());
+		config = parser.getConfigStruct();
+		
+	}
+	catch(const std::exception& e)
+	{
+		std::cerr << e.what() << '\n';
+		return 1;
+	}
 	Server server;
 	server.get_socket()->set_opt(SO_REUSEADDR, true);
 	server.launch();

@@ -22,16 +22,12 @@ Parser::Parser(std::string fileName) : m_fileName(fileName) {
 	}
 	addKeywords();
 	std::vector<Token> temp = scanTokens();
-	for (size_t i = 0; i < temp.size(); i++) {
+	/* for (size_t i = 0; i < temp.size(); i++) {
 		if (temp[i].getType() != END_OF_FILE)
 			std::cout << temp[i].getAll() << "\n";
 	}
-	std::cout << "--------------------------------\n";
-	try {
-		parseConfig();
-	} catch (const std::exception &e) {
-		std::cerr << e.what() << '\n';
-	}
+	std::cout << "--------------------------------\n"; */
+	parseConfig();
 }
 
 Parser::Parser(const Parser &original) : m_fileName(original.m_fileName) {
