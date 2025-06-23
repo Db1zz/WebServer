@@ -40,9 +40,11 @@ ServerResponse& ServerResponse::html(const std::string& path,
 		html_file.close();
 	} else if (is_error_page) {
 		_status.set_status_line(404, "Not Found");
-		html(_server_data->common.errorPage.at(406), false);
+		html(_server_data->common.errorPage.at(404), false);
 	} else {
-		_body = "<h1>404 Not Found</h1>";
+		/*modify this part later, add default page to serve if config files fail*/
+		_status.set_status_line(404, "Not Found");
+		_body = "<h1>404 Not Found</h1>"; //need this for debugging purposes for now
 	}
 	return *this;
 }
@@ -53,12 +55,12 @@ std::string ServerResponse::generate_response() {
 	header("content-type", _resp_content_type);
 	header("server", "comrades_webserv");
 	if (_resp_content_type == "text/html")
-		html(PAGE_INITIAL, false);
+		html(_server_data->location[0].path, false);
 	else if (_resp_content_type == "application/json") {
 		json("json response");
 	} else {
 		_status.set_status_line(406, "Not Acceptable");
-		html(_server_data->common.errorPage.at(404), true);
+		html(_server_data->common.errorPage.at(406), true);
 	}
 	header("content-length", get_body_size());
 	_response = WS_PROTOCOL + _status.status_line() + get_headers() + "\r\n" +

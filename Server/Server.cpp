@@ -63,10 +63,8 @@ void Server::handle_event(int amount_of_events) {
 			req.host = "localhost";
 			req.language = "";
 			req.connection = "keep-alive";
-			// req.mime_type = "html";
-			req.mime_type = "error_test";
-			// req.content_type = "text/html";
-			req.content_type = "test_error";
+			req.mime_type = "html";
+			req.content_type = "text/html";
 
 			response_handler(request_event, req);
 			close(request_event.data.fd);
