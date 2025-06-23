@@ -1,6 +1,8 @@
 #include "ServerResponse.hpp"
 
-ServerResponse::ServerResponse(const t_request& request, const t_config& server_data) : _req_data(&request), _server_data(&server_data) {
+ServerResponse::ServerResponse(const t_request& request,
+							   const t_config& server_data)
+	: _req_data(&request), _server_data(&server_data) {
 	_status_line = "200";
 }
 
@@ -25,15 +27,18 @@ ServerResponse& ServerResponse::status_line(const int code) {
 	return (*this);
 }
 
-// ServerResponse& ServerResponse::serve_static_page(){
-// 	// loop through locations -> find matching uri path
-// 	// check if method is allowed for this location(write a separate function that will be passed in every function with different types of a request, set status to 405 Method Not Allowed or proceed)
-// 	//function to build the path
-// 	//build a function serve_static_page
-// 	//build a function serve dynamic_page
-// };
+ServerResponse& ServerResponse::serve_static_page() {
+	// loop through locations -> find matching uri path
+	// check if method is allowed for this location(write a separate function
+	// that will be passed in every function with different types of a request,
+	// set status to 405 Method Not Allowed or proceed)
+	// function to build the path
+	// build a function serve_static_page
+	// build a function serve dynamic_page
+	return *this;
+};
 
-ServerResponse& ServerResponse::html(const std::string& path) {
+ServerResponse& ServerResponse::html(const std::string& path, bool is_error_page) {
 	std::fstream html_file;
 	_status_msg = fs::open_file(html_file, path, std::ios::in);
 	if (_status_msg.ok()) {
@@ -42,11 +47,13 @@ ServerResponse& ServerResponse::html(const std::string& path) {
 			_body += temp;
 		}
 		html_file.close();
+	} else if (is_error_page) {
+		status_line(404, "Not Found");
+		html(_server_data->common.errorPage.at(406), false);
 	} else {
-		status_line(404);
-		html(PAGE_404);
+		_body = "<h1>404 Not Found</h1>";
 	}
-	return *this;
+    return *this;
 }
 
 std::string ServerResponse::generate_response() {
@@ -55,16 +62,19 @@ std::string ServerResponse::generate_response() {
 	header("content-type", _resp_content_type);
 	header("server", "comrades_webserv");
 	if (_resp_content_type == "text/html")
-		html(PAGE_INITIAL);
+		html(PAGE_INITIAL, false);
 	else if (_resp_content_type == "application/json") {
 		json("json response");
 	} else {
-		status_line(406);
-		(*this) << " not acceptable\r\n";
+		status_line(406, "Not Acceptable");
+		// html(_server_data->common.errorPage.at(_status_msg.code()));
+		html(_server_data->common.errorPage.at(404), true);
+		//(*this) << " not acceptable\r\n";
 	}
 	header("content-length", get_body_size());
-	_response =
-		WS_PROTOCOL + get_status() + get_headers() + "\r\n" + get_body() + "\r\n";;
+	_response = WS_PROTOCOL + get_status() + get_headers() + "\r\n" +
+				get_body() + "\r\n";
+	;
 	std::cout << GREEN400 "RESPONSE:\n" << _response << RESET << std::endl;
 	return _response;
 }
@@ -91,7 +101,7 @@ std::string ServerResponse::identify_mime() {
 	} else if (_req_data->mime_type == "gif") {
 		_resp_content_type = "image/gif";
 	} else {
-		_resp_content_type = "application/octet-stream";
+		_resp_content_type = "text/html";
 	}
 	return _resp_content_type;
 }

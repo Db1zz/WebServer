@@ -4,7 +4,7 @@
 #include <string>
 
 class Status {
-public:
+   public:
 	Status();
 	Status(std::string error);
 	Status(std::string error, int code);
@@ -25,10 +25,10 @@ public:
 	std::string &msg() { return _msg; }
 	const std::string &msg() const { return _msg; }
 
-protected:
+   protected:
 	bool _ok;
 	int _code;
 	std::string _msg;
 };
 
-#endif  // WEBSERVER_UTILITIES_STATUS_HPP
+#endif	// WEBSERVER_UTILITIES_STATUS_HPP

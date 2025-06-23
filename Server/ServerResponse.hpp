@@ -36,9 +36,9 @@ class ServerResponse {
 	ServerResponse& operator<<(const std::string& data);
 	ServerResponse& header(const std::string& key, const std::string& value);
 	ServerResponse& status_line(const int code);
-	//ServerResponse& serve_static_page();
+	ServerResponse& serve_static_page();
 	//ServerResponse& serve_dynamic_page();
-	ServerResponse& html(const std::string& path);
+	ServerResponse& html(const std::string& path, bool is_error_page);
 	ServerResponse& json(const std::string& data);
 	std::string generate_response();
 	std::string identify_mime();
