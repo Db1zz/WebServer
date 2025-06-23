@@ -42,9 +42,11 @@ ServerResponse& ServerResponse::html(const std::string& path,
 		_status.set_status_line(404, "Not Found");
 		html(_server_data->common.errorPage.at(404), false);
 	} else {
-		/*modify this part later, add default page to serve if config files fail*/
+		/*modify this part later, add default page to serve if config files
+		 * fail*/
 		_status.set_status_line(404, "Not Found");
-		_body = "<h1>404 Not Found</h1>"; //need this for debugging purposes for now
+		_body = "<h1>404 Not Found</h1>";  // need this for debugging purposes
+										   // for now
 	}
 	return *this;
 }
@@ -53,10 +55,11 @@ std::string ServerResponse::generate_response() {
 	_status.set_status_line(200, "OK");
 	_resp_content_type = identify_mime();
 	header("content-type", _resp_content_type);
-	header("server", "comrades_webserv");
-	if (_resp_content_type == "text/html")
-		html(_server_data->location[0].path, false);
-	else if (_resp_content_type == "application/json") {
+	header("server",
+		   _server_data->server_name[0]);  // looping through dif names?
+	if (_resp_content_type == "text/html") {
+		html(_server_data->location[0].common.index.at(0), false);
+	} else if (_resp_content_type == "application/json") {
 		json("json response");
 	} else {
 		_status.set_status_line(406, "Not Acceptable");

@@ -493,7 +493,7 @@ std::vector<t_config> Parser::getConfigStruct() {
 	// 			std::cout << "  CGI: " << cgi_it->first << " " << cgi_it->second << '\n';
 	// 	}
 	// 	std::cout << "-----------------------------\n";
-	//}
+	// }
 	return _configVector;
 }
 
