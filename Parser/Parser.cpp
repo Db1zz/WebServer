@@ -497,6 +497,13 @@ std::vector<t_config> Parser::getConfigStruct() {
 void Parser::fillDefaultValues() {
 	tempConfig.common.max_client_body = 0;
 	tempConfig.common.auto_index = false;
+	tempConfig.host.clear();
+	tempConfig.location.clear();
+	tempConfig.port.clear();
+	tempConfig.server_name.clear();
+	tempConfig.common.cgi.clear();
+	tempConfig.common.errorPage.clear();
+	tempConfig.common.index.clear();
 	tempConfig.common.methods.deleteMethod = false;
 	tempConfig.common.methods.getMethod = false;
 	tempConfig.common.methods.postMethod = false;
