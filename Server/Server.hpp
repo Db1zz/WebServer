@@ -20,7 +20,7 @@
 #define WS_PROTOCOL "HTTP/1.1"
 class Server: public IServer {
 public:
-	Server();
+	Server(std::vector<t_config> configs);
 	~Server();
 	void launch();
 

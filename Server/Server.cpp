@@ -6,7 +6,9 @@
 
 #include <cstdio>
 
-Server::Server() : IServer(AF_INET, SOCK_STREAM, 0, 80, INADDR_ANY, 10) {
+Server::Server(std::vector<t_config> configs)
+	: IServer(AF_INET, SOCK_STREAM, 0, 80, INADDR_ANY, 10), _configs(configs)
+{
 	init();
 }
 
