@@ -29,8 +29,15 @@ ServerResponse& ServerResponse::status_line(const int code) {
 	return (*this);
 }
 
+
+
 ServerResponse& ServerResponse::html(const std::string& path) {
 	std::fstream html_file;
+	// loop through locations -> find matching uri path
+	// check if method is allowed for this location(write a separate function that will be passed in every function with different types of a request, set status to 405 Method Not Allowed or proceed)
+	//function to build the path
+	//build a function serve_static_page
+	//build a function serve dynamic_page
 	_status_msg = fs::open_file(html_file, path, std::ios::in);
 	if (_status_msg.ok()) {
 		std::string temp;
@@ -50,6 +57,7 @@ std::string ServerResponse::generate_response() {
 	_resp_content_type = identify_mime();
 	header("content-type", _resp_content_type);
 	header("server", "comrades_webserv");
+	//check static or dynamic
 	if (_resp_content_type == "text/html")
 		html(PAGE_INITIAL);
 	else if (_resp_content_type == "application/json") {
