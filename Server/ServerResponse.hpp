@@ -45,19 +45,17 @@ class ServerResponse {
 
 	/*getters*/
 	const std::string get_body_size() const;
-	const std::string& get_status() const;
 	const std::string& get_headers() const;
 	const std::string& get_body() const;
 
    private:
 	std::string _resp_content_type;
-	std::string _status_line;
 	std::string _body;
 	std::string _headers;
 	std::string _response;
 	const t_request* _req_data;
 	const t_config * _server_data; 
-	Status _status_msg;
+	Status _status;
 	/*setters*/
 	/*getters*/
 };
