@@ -7,25 +7,26 @@
 #include <cstdio>
 
 Server::Server(std::vector<t_config> configs)
-	: IServer(AF_INET, SOCK_STREAM, 0, 80, INADDR_ANY, 10), _configs(configs)
+	: _configs(configs)
 {
 	init();
 }
 
 Server::~Server() {
-	// nothing to destroy :< living in peace <3
+	destroy_sockets();
+}
+
+void Server::destroy_sockets() {
+	for (size_t i = 0; i < _sockets.size(); ++i) {
+		if (_sockets[i]) {
+			delete _sockets[i];
+		}
+	}
 }
 
 void Server::launch() {
 	int amount_of_events = 0;
 
-	/*
-		TODO:
-			Port shouldn't be static, modify cout later.
-	*/
-	get_socket()->start_connection();
-	std::cout << GREEN400 << "----LISTENING AT PORT 80----" << RESET
-			  << std::endl;
 	while (true) {
 		amount_of_events = _event.wait_event(2.5);
 		handle_event(amount_of_events);
@@ -33,18 +34,14 @@ void Server::launch() {
 }
 
 void Server::init() {
-	int yes = 1;
-
-	_event.add_event(EPOLLIN | EPOLLOUT, get_socket()->get_fd());
-	setsockopt(get_socket()->get_fd(), SOL_SOCKET, SO_REUSEADDR, &yes,
-			   sizeof(yes));
+	create_sockets_from_configs();
 }
 
 void Server::handle_event(int amount_of_events) {
 	for (int i = 0; i < amount_of_events; ++i) {
 		const epoll_event &request_event = *_event[i];
 
-		if (request_event.data.fd == get_socket()->get_fd()) {
+		if (request_event.data.fd == 0) {
 			// Accept connection and add new event
 			accept_new_connection(request_event.data.fd);
 		} else {
@@ -150,4 +147,28 @@ void Server::announce_new_connection(const struct sockaddr &cl_sockaddr,
 		"Accepted new connection on descriptor %d\n"
 		"(host: %s, addr: %s)\n",
 		cl_fd, hbuff, sbuff);
+}
+
+void Server::create_sockets_from_configs() {
+	int yes = 1;
+
+	_sockets.reserve(_configs.size());
+	for (size_t i = 0; i < _configs.size(); ++i) {
+		t_config &config = _configs[i];
+		ServerSocket *socket = _sockets[i];
+		for (size_t j = 0; j < config.host.size(); ++j) {
+			for (size_t k = 0; k < config.port.size(); ++k) {
+				print_debug_addr(config.host[j], config.port[k]);
+				socket = new ServerSocket(config.host[j], config.port[k]);
+				setsockopt(socket->get_fd(), SOL_SOCKET, SO_REUSEADDR, &yes,
+				sizeof(yes));
+				_event.add_event(EPOLLIN | EPOLLOUT, socket->get_fd());
+				socket->start_connection();
+			}
+		}
+	}
+}
+
+void Server::print_debug_addr(const std::string &address, const std::string &port) {
+	std::cout << GREEN400 << "Listening at: " << address << ":" << port << RESET << std::endl;
 }
