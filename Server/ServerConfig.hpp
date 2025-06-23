@@ -1,5 +1,5 @@
-#ifndef WEBSERV_HPP
-#define WEBSERV_HPP
+#ifndef SERVER_SERVER_CONFIG_HPP
+#define SERVER_SERVER_CONFIG_HPP
 
 #include <map>
 #include <string>
@@ -36,36 +36,4 @@ typedef struct s_config {
 	std::vector<t_location> location;
 } t_config;
 
-typedef enum e_TokenType {
-	LEFT_BRACE,
-	RIGHT_BRACE,
-	DOT,
-	MINUS,
-	SLASH,
-	SEMICOLON,
-	COLON,
-
-	IDENTIFIER,
-	SERVER,
-	LISTEN,
-	HOST,
-	SERVER_NAME,
-	METHODS,
-	GET,
-	POST,
-	DELETE,
-	AUTO_INDEX,
-	ON,
-	OFF,
-	INDEX,
-	ROOT,
-	ERROR_PAGE,
-	LOCATION,
-	CGI,
-	MAX_CLIENT_BODY_SIZE,
-	RETURN,
-
-	END_OF_FILE,
-} t_TokenType;
-
-#endif
+#endif  // SERVER_SERVER_CONFIG_HPP

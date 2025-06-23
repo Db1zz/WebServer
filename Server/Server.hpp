@@ -9,6 +9,7 @@
 #include "IServer.hpp"
 #include "ServerEvent.hpp"
 #include "ServerResponse.hpp"
+#include "ServerConfig.hpp"
 
 #include <iostream>
 #include <unistd.h>
@@ -33,6 +34,7 @@ private:
 	void response_handler(const epoll_event &request_event, const t_request &request);
 	std::string response_generator(/* TODO: add args*/);
 
+	std::vector<t_config> _configs;
 	ServerEvent _event;
 };
 

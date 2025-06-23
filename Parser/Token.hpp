@@ -3,7 +3,37 @@
 
 #include <string>
 
-#include "../Webserv.hpp"
+typedef enum e_TokenType {
+	LEFT_BRACE,
+	RIGHT_BRACE,
+	DOT,
+	MINUS,
+	SLASH,
+	SEMICOLON,
+	COLON,
+
+	IDENTIFIER,
+	SERVER,
+	LISTEN,
+	HOST,
+	SERVER_NAME,
+	METHODS,
+	GET,
+	POST,
+	DELETE,
+	AUTO_INDEX,
+	ON,
+	OFF,
+	INDEX,
+	ROOT,
+	ERROR_PAGE,
+	LOCATION,
+	CGI,
+	MAX_CLIENT_BODY_SIZE,
+	RETURN,
+
+	END_OF_FILE,
+} t_TokenType;
 
 class Token {
    private:
