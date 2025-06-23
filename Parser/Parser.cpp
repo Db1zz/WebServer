@@ -311,6 +311,9 @@ t_location Parser::parseLocation() {
 	tempCommon.returnCode = -1;
 	tempCommon.root = "";
 	tempLocation.path = parsePath();
+	tempCommon.cgi.clear();
+	tempCommon.errorPage.clear();
+	tempCommon.index.clear();
 	consume(LEFT_BRACE, "expected opening '{' for location block");
 	while (!check(RIGHT_BRACE)) {
 		if (match(ROOT)) {
