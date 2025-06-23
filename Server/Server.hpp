@@ -9,6 +9,7 @@
 #include "IServer.hpp"
 #include "ServerEvent.hpp"
 #include "ServerResponse.hpp"
+#include "ServerRequest.hpp"
 #include "ServerConfig.hpp"
 
 #include <iostream>

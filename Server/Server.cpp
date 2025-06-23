@@ -110,7 +110,7 @@ std::vector<std::string> Server::request_handler(
 
 void Server::response_handler(const epoll_event &request_event,
 							  const t_request &request) {
-	ServerResponse resp(request);
+	ServerResponse resp(request, _configs[0]);
 	std::string res = resp.generate_response();
 	write(request_event.data.fd, res.c_str(), res.size());
 }

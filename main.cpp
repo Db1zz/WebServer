@@ -28,7 +28,7 @@ int main(int argc, char** argv) {
 		std::cerr << e.what() << '\n';
 		return 1;
 	}
-	Server server;
+	Server server(config);
 	server.get_socket()->set_opt(SO_REUSEADDR, true);
 	server.launch();
 }
