@@ -38,10 +38,10 @@ class ServerResponse {
 	ServerResponse& status_line(const int code);
 	ServerResponse& serve_static_page();
 	//ServerResponse& serve_dynamic_page();
-	ServerResponse& html(const std::string& path, bool is_error_page);
 	ServerResponse& json(const std::string& data);
 	std::string generate_response();
 	std::string identify_mime();
+	bool html(const std::string& path, bool is_error_page);
 
 	/*getters*/
 	const std::string get_body_size() const;

@@ -25,7 +25,7 @@ ServerResponse& ServerResponse::serve_static_page() {
 	return *this;
 };
 
-ServerResponse& ServerResponse::html(const std::string& path,
+bool ServerResponse::html(const std::string& path,
 									 bool is_error_page) {
 	std::fstream html_file;
 	_status = fs::open_file(html_file, path, std::ios::in);
@@ -35,16 +35,28 @@ ServerResponse& ServerResponse::html(const std::string& path,
 			_body += temp;
 		}
 		html_file.close();
+		return (true)
 	} else if (!is_error_page) {
 		_status.set_status_line(404, "Not Found");
 		html(_server_data->common.errorPage.at(404), true);
-	} else {
-		_status.set_status_line(404, "Not Found");
-		_body =
-			"<!DOCTYPE html><html><head><title>404 Not Found</title></head>"
-			"<body><h1>404 Not Found</h1></body></html>";
+	} else
+		send_error_page(404, "Not Found");
+	return false;
+}
+
+void send_error_page(int code, std::string error_msg) {
+	std::stringstream code_str;
+	code_str << code;
+	header("content-type", "text/html");
+	if (!html(_server_data->common.errorPage.at(code), true)) {
+		_status.set_status_line(code, "error_msg");
+		std::string err_msg = code_str.str() + " " + error_msg + " ";
+		_body = "<!DOCTYPE html><html><head><title>" +
+				err_msg
+				"</title></head>"
+				"<body><h1>" +
+				err_msg + "</h1></body></html>";
 	}
-	return *this;
 }
 
 // std::string ServerResponse::generate_response() {
@@ -74,8 +86,12 @@ std::string ServerResponse::generate_response() {
 	for (size_t i = 0; i < _server_data->location.size(); ++i) {
 		if (_req_data->uri_path.find(_server_data->location[i].path) == 0) {
 			found = true;
-			if (_server_data->location[i].common.methods.count(
-					_req_data->method)) {
+			if ((_req_data->method == "GET" &&
+				 _server_data->location[i].common.methods.getMethod) ||
+				(_req_data->method == "POST" &&
+				 _server_data->location[i].common.methods.postMethod) ||
+				(_req_data->method == "DELETE" &&
+				 _server_data->location[i].common.methods.deleteMethod)) {
 				return serve_static_page(_server_data->location[i],
 										 _req_data->uri_path);
 			} else {
@@ -91,12 +107,6 @@ std::string ServerResponse::generate_response() {
 				get_body();
 	return _response;
 }
-
-/*void send_error_page(int code, std::string error_msg) {
-header("content-type", "text/html");
-_status.set_status_line(code, error_msg);
-check if error pages exists in pages, if not, send html error page directly, add
-codes and messages, xonstruct the html body to send }*/
 
 ServerResponse& ServerResponse::json(const std::string& data) {
 	_body = data;
