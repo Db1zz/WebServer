@@ -68,15 +68,16 @@ void ServerSocket::close_socket() {
 
 /* private functions */
 void ServerSocket::is_socket_created(int socket_fd) {
-	if (socket_fd < 0)
+	if (socket_fd < 0) {
 		throw std::runtime_error("socket() failed: " + std::string(strerror(errno)));
+	}
 }
 
 int ServerSocket::start_connection() {
 	int status;
 	status = bind(_socket_fd, (struct sockaddr*)&_address, sizeof(_address));
 	is_binded(status);
-	status = listen(get_fd(), SOCKET_DEFAULT_MAX_CONNECTIONS);
+	status = listen(_socket_fd, SOCKET_DEFAULT_MAX_CONNECTIONS);
 	is_listening(status);
 	return 0;
 }

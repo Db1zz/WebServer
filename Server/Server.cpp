@@ -40,7 +40,7 @@ void Server::init() {
 void Server::handle_event(int amount_of_events) {
 	for (int i = 0; i < amount_of_events; ++i) {
 		const epoll_event &request_event = *_event[i];
-
+		
 		if (request_event.data.fd == 0) {
 			// Accept connection and add new event
 			accept_new_connection(request_event.data.fd);
@@ -149,6 +149,16 @@ void Server::announce_new_connection(const struct sockaddr &cl_sockaddr,
 		cl_fd, hbuff, sbuff);
 }
 
+void Server::set_default_host_and_port_if_needed(t_config &config)
+{
+	if (config.host.size() == 0) {
+		config.host.push_back(SERVER_DEFAULT_ADDR);
+	}
+	if (config.port.size() == 0) {
+		config.port.push_back(SERVER_DEFAULT_PORT);
+	}
+}
+
 void Server::create_sockets_from_configs() {
 	int yes = 1;
 
@@ -156,6 +166,7 @@ void Server::create_sockets_from_configs() {
 	for (size_t i = 0; i < _configs.size(); ++i) {
 		t_config &config = _configs[i];
 		ServerSocket *socket = _sockets[i];
+		set_default_host_and_port_if_needed(config);
 		for (size_t j = 0; j < config.host.size(); ++j) {
 			for (size_t k = 0; k < config.port.size(); ++k) {
 				print_debug_addr(config.host[j], config.port[k]);
