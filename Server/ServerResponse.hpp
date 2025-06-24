@@ -13,12 +13,10 @@
 #include "../Utilities/colors.hpp"
 #include "../Utilities/fs.hpp"
 #include "../Utilities/status.hpp"
-#include "ServerResponse.hpp"
-#include "ServerRequest.hpp"
 #include "Server.hpp"
 #include "ServerConfig.hpp"
-#include <sstream>
-
+#include "ServerRequest.hpp"
+#include "ServerResponse.hpp"
 
 #define PAGE_INITIAL "Pages/index.html"
 #define PAGE_404 "Pages/404.html"
@@ -35,13 +33,14 @@ class ServerResponse {
 	~ServerResponse();
 	ServerResponse& operator<<(const std::string& data);
 	ServerResponse& header(const std::string& key, const std::string& value);
-	ServerResponse& status_line(const int code);
-	ServerResponse& serve_static_page();
-	//ServerResponse& serve_dynamic_page();
+	ServerResponse& serve_static_page(const t_location& loc,
+									  const std::string& uri);
+	// ServerResponse& serve_dynamic_page();
 	ServerResponse& json(const std::string& data);
 	std::string generate_response();
 	std::string identify_mime();
 	bool html(const std::string& path, bool is_error_page);
+	void send_error_page(int code, std::string error_msg);
 
 	/*getters*/
 	const std::string get_body_size() const;
@@ -54,7 +53,7 @@ class ServerResponse {
 	std::string _headers;
 	std::string _response;
 	const t_request* _req_data;
-	const t_config * _server_data; 
+	const t_config* _server_data;
 	Status _status;
 	/*setters*/
 	/*getters*/

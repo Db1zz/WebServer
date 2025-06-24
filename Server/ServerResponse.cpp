@@ -17,16 +17,23 @@ ServerResponse& ServerResponse::header(const std::string& key,
 	return (*this);
 }
 
-ServerResponse& ServerResponse::serve_static_page() {
-	// build file path
-	// identify mime
-	// open and read the file
-	// send error
+ServerResponse& ServerResponse::serve_static_page(const t_location& loc,
+												  const std::string& uri) {
+	std::string file_path = loc.common.root + uri.substr(loc.path.length());
+	if (!file_path.empty() && file_path[file_path.size() - 1] == '/') {
+		file_path +=
+			loc.common.index.empty() ? "index.html" : loc.common.index[0];
+	}
+	_resp_content_type = identify_mime();
+	header("content-type", _resp_content_type);
+	html(file_path, false);
+	header("content-length", get_body_size());
+	_response = WS_PROTOCOL + _status.status_line() + get_headers() + "\r\n" +
+				get_body();
 	return *this;
-};
+}
 
-bool ServerResponse::html(const std::string& path,
-									 bool is_error_page) {
+bool ServerResponse::html(const std::string& path, bool is_error_page) {
 	std::fstream html_file;
 	_status = fs::open_file(html_file, path, std::ios::in);
 	if (_status.ok()) {
@@ -35,51 +42,29 @@ bool ServerResponse::html(const std::string& path,
 			_body += temp;
 		}
 		html_file.close();
-		return (true)
+		return true;
 	} else if (!is_error_page) {
 		_status.set_status_line(404, "Not Found");
 		html(_server_data->common.errorPage.at(404), true);
-	} else
+	} else {
 		send_error_page(404, "Not Found");
+	}
 	return false;
 }
 
-void send_error_page(int code, std::string error_msg) {
+void ServerResponse::send_error_page(int code, std::string error_msg) {
 	std::stringstream code_str;
 	code_str << code;
 	header("content-type", "text/html");
 	if (!html(_server_data->common.errorPage.at(code), true)) {
-		_status.set_status_line(code, "error_msg");
+		_status.set_status_line(code, error_msg);
 		std::string err_msg = code_str.str() + " " + error_msg + " ";
-		_body = "<!DOCTYPE html><html><head><title>" +
-				err_msg
+		_body = "<!DOCTYPE html><html><head><title>" + err_msg +
 				"</title></head>"
 				"<body><h1>" +
 				err_msg + "</h1></body></html>";
 	}
 }
-
-// std::string ServerResponse::generate_response() {
-// 	_status.set_status_line(200, "OK");
-// 	_resp_content_type = identify_mime();
-// 	header("content-type", _resp_content_type);
-// 	header("server",
-// 		   _server_data->server_name[0]);  // looping through dif names?
-// 	if (_resp_content_type == "text/html") {
-// 		html(_server_data->location[0].common.index.at(0), false);
-// 	} else if (_resp_content_type == "application/json") {
-// 		json("json response");
-// 	} else {
-// 		_status.set_status_line(406, "Not Acceptable");
-// 		html(_server_data->common.errorPage.at(406), true);
-// 	}
-// 	header("content-length", get_body_size());
-// 	_response = WS_PROTOCOL + _status.status_line() + get_headers() + "\r\n" +
-// 				get_body() + "\r\n";
-// 	;
-// 	std::cout << GREEN400 "RESPONSE:\n" << _response << RESET << std::endl;
-// 	return _response;
-// }
 
 std::string ServerResponse::generate_response() {
 	bool found = false;
@@ -92,8 +77,8 @@ std::string ServerResponse::generate_response() {
 				 _server_data->location[i].common.methods.postMethod) ||
 				(_req_data->method == "DELETE" &&
 				 _server_data->location[i].common.methods.deleteMethod)) {
-				return serve_static_page(_server_data->location[i],
-										 _req_data->uri_path);
+				serve_static_page(_server_data->location[i],
+								  _req_data->uri_path);
 			} else {
 				send_error_page(405, "Method Not Allowed");
 				break;
@@ -101,7 +86,7 @@ std::string ServerResponse::generate_response() {
 		}
 	}
 	if (!found) send_error_page(404, "Not Found");
-	header("server", _server_data->server_name[0]);
+	header("server", _server_data->server_name[0]); // looping through dif names?
 	header("content-length", get_body_size());
 	_response = WS_PROTOCOL + _status.status_line() + get_headers() + "\r\n" +
 				get_body();
