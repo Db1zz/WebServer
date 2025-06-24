@@ -18,13 +18,10 @@ ServerResponse& ServerResponse::header(const std::string& key,
 }
 
 ServerResponse& ServerResponse::serve_static_page() {
-	// loop through locations -> find matching uri path
-	// check if method is allowed for this location(write a separate function
-	// that will be passed in every function with different types of a request,
-	// set status to 405 Method Not Allowed or proceed)
-	// function to build the path
-	// build a function serve_static_page
-	// build a function serve dynamic_page
+	// build file path
+	// identify mime
+	// open and read the file
+	// send error
 	return *this;
 };
 
@@ -50,27 +47,56 @@ ServerResponse& ServerResponse::html(const std::string& path,
 	return *this;
 }
 
+// std::string ServerResponse::generate_response() {
+// 	_status.set_status_line(200, "OK");
+// 	_resp_content_type = identify_mime();
+// 	header("content-type", _resp_content_type);
+// 	header("server",
+// 		   _server_data->server_name[0]);  // looping through dif names?
+// 	if (_resp_content_type == "text/html") {
+// 		html(_server_data->location[0].common.index.at(0), false);
+// 	} else if (_resp_content_type == "application/json") {
+// 		json("json response");
+// 	} else {
+// 		_status.set_status_line(406, "Not Acceptable");
+// 		html(_server_data->common.errorPage.at(406), true);
+// 	}
+// 	header("content-length", get_body_size());
+// 	_response = WS_PROTOCOL + _status.status_line() + get_headers() + "\r\n" +
+// 				get_body() + "\r\n";
+// 	;
+// 	std::cout << GREEN400 "RESPONSE:\n" << _response << RESET << std::endl;
+// 	return _response;
+// }
+
 std::string ServerResponse::generate_response() {
-	_status.set_status_line(200, "OK");
-	_resp_content_type = identify_mime();
-	header("content-type", _resp_content_type);
-	header("server",
-		   _server_data->server_name[0]);  // looping through dif names?
-	if (_resp_content_type == "text/html") {
-		html(_server_data->location[0].common.index.at(0), false);
-	} else if (_resp_content_type == "application/json") {
-		json("json response");
-	} else {
-		_status.set_status_line(406, "Not Acceptable");
-		html(_server_data->common.errorPage.at(406), true);
+	bool found = false;
+	for (size_t i = 0; i < _server_data->location.size(); ++i) {
+		if (_req_data->uri_path.find(_server_data->location[i].path) == 0) {
+			found = true;
+			if (_server_data->location[i].common.methods.count(
+					_req_data->method)) {
+				return serve_static_page(_server_data->location[i],
+										 _req_data->uri_path);
+			} else {
+				send_error_page(405, "Method Not Allowed");
+				break;
+			}
+		}
 	}
+	if (!found) send_error_page(404, "Not Found");
+	header("server", _server_data->server_name[0]);
 	header("content-length", get_body_size());
 	_response = WS_PROTOCOL + _status.status_line() + get_headers() + "\r\n" +
-				get_body() + "\r\n";
-	;
-	std::cout << GREEN400 "RESPONSE:\n" << _response << RESET << std::endl;
+				get_body();
 	return _response;
 }
+
+/*void send_error_page(int code, std::string error_msg) {
+header("content-type", "text/html");
+_status.set_status_line(code, error_msg);
+check if error pages exists in pages, if not, send html error page directly, add
+codes and messages, xonstruct the html body to send }*/
 
 ServerResponse& ServerResponse::json(const std::string& data) {
 	_body = data;
