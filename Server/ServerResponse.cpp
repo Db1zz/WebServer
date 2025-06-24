@@ -17,19 +17,22 @@ ServerResponse& ServerResponse::header(const std::string& key,
 	return (*this);
 }
 
-ServerResponse& ServerResponse::serve_static_page(const t_location& loc,
-												  const std::string& uri) {
-	std::string file_path = loc.common.root + uri.substr(loc.path.length());
+//if root and index with root?
+
+ServerResponse& ServerResponse::serve_static_page(const t_location& loc,							  const std::string& uri) {
+	std::string file_path = loc.common.root;
+	std::cout << RED300 << file_path << RESET << std::endl;
+	if (!file_path.empty() && file_path[file_path.size() - 1] != '/')
+		file_path += "/";
+	file_path += uri.substr(loc.path.length());
 	if (!file_path.empty() && file_path[file_path.size() - 1] == '/') {
 		file_path +=
 			loc.common.index.empty() ? "index.html" : loc.common.index[0];
 	}
+	std::cout << PINK300 << file_path << RESET << std::endl;
 	_resp_content_type = identify_mime();
 	header("content-type", _resp_content_type);
 	html(file_path, false);
-	header("content-length", get_body_size());
-	_response = WS_PROTOCOL + _status.status_line() + get_headers() + "\r\n" +
-				get_body();
 	return *this;
 }
 
@@ -47,12 +50,14 @@ bool ServerResponse::html(const std::string& path, bool is_error_page) {
 		_status.set_status_line(404, "Not Found");
 		html(_server_data->common.errorPage.at(404), true);
 	} else {
+		std::cout << CYAN300 << "error check 3" << RESET << std::endl;
 		send_error_page(404, "Not Found");
 	}
 	return false;
 }
 
 void ServerResponse::send_error_page(int code, std::string error_msg) {
+	_status.set_status_line(code, error_msg);
 	std::stringstream code_str;
 	code_str << code;
 	header("content-type", "text/html");
@@ -67,6 +72,7 @@ void ServerResponse::send_error_page(int code, std::string error_msg) {
 }
 
 std::string ServerResponse::generate_response() {
+	_status.set_status_line(200, "OK");
 	bool found = false;
 	for (size_t i = 0; i < _server_data->location.size(); ++i) {
 		if (_req_data->uri_path.find(_server_data->location[i].path) == 0) {
@@ -80,16 +86,22 @@ std::string ServerResponse::generate_response() {
 				serve_static_page(_server_data->location[i],
 								  _req_data->uri_path);
 			} else {
+				std::cout << CYAN300 << "error check 2" << RESET << std::endl;
 				send_error_page(405, "Method Not Allowed");
 				break;
 			}
 		}
 	}
-	if (!found) send_error_page(404, "Not Found");
-	header("server", _server_data->server_name[0]); // looping through dif names?
+	if (!found) {
+		std::cout << CYAN300 << "error check 1" << RESET << std::endl;
+		send_error_page(404, "Not Found");
+	}
+	header("server",
+		   _server_data->server_name[0]);  // looping through dif names?
 	header("content-length", get_body_size());
 	_response = WS_PROTOCOL + _status.status_line() + get_headers() + "\r\n" +
 				get_body();
+	std::cout << GREEN400 "RESPONSE:\n" << _response << RESET << std::endl;
 	return _response;
 }
 
