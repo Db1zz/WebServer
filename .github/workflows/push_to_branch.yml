@@ -19,4 +19,4 @@ jobs:
               run: make
 
             - name: Run webserv
-              run: ./webserv
+              run: sudo ./webserv
