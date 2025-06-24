@@ -38,15 +38,14 @@ ServerResponse& ServerResponse::html(const std::string& path,
 			_body += temp;
 		}
 		html_file.close();
-	} else if (is_error_page) {
+	} else if (!is_error_page) {
 		_status.set_status_line(404, "Not Found");
-		html(_server_data->common.errorPage.at(404), false);
+		html(_server_data->common.errorPage.at(404), true);
 	} else {
-		/*modify this part later, add default page to serve if config files
-		 * fail*/
 		_status.set_status_line(404, "Not Found");
-		_body = "<h1>404 Not Found</h1>";  // need this for debugging purposes
-										   // for now
+		_body =
+			"<!DOCTYPE html><html><head><title>404 Not Found</title></head>"
+			"<body><h1>404 Not Found</h1></body></html>";
 	}
 	return *this;
 }
