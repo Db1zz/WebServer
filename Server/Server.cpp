@@ -38,6 +38,37 @@ void Server::init() {
 			   sizeof(yes));
 }
 
+t_request Server::request_parser(std::string request)
+{
+	std::cout << request << "\n";
+	t_request requestStruct;
+	std::stringstream iss (request);
+	std::string extract;
+	iss >> extract;
+	requestStruct.method = extract;
+	iss >> extract;
+	requestStruct.uri_path = extract;
+	iss >> extract; // we ignore HTTP/1.1 for now
+	while (std::getline(iss, extract) || extract != "\r")
+	{
+		if (extract.empty() || extract == "\r\n")
+			break;
+		if (extract.find("Host: ", 0) != std::string::npos)
+			requestStruct.host = extract.substr(6); // remove the trailing
+		else if (extract.find("User-Agent: ", 0) != std::string::npos)
+			requestStruct.user_agent = extract.substr(12);
+		else if (extract.find("Accept: ", 0) != std::string::npos)
+			requestStruct.mime_type = extract.substr(8);
+		else if (extract.find("Accept-Language: ", 0) != std::string::npos)
+			requestStruct.language = extract.substr(17);
+		else if (extract.find("Connection: ", 0) != std::string::npos)
+			requestStruct.connection = extract.substr(12);
+		// need to figure out what is conent type
+		// std::cout << BG_AMBER400 << extract << RESET << std::endl;
+	}
+	return requestStruct;
+}
+
 void Server::handle_event(int amount_of_events) {
 	for (int i = 0; i < amount_of_events; ++i) {
 		const epoll_event &request_event = *_event[i];
@@ -47,10 +78,10 @@ void Server::handle_event(int amount_of_events) {
 			accept_new_connection(request_event.data.fd);
 		} else {
 			// handle request and generate response
-			std::vector<std::string> request;
+			std::string request;
 
 			request = request_handler(request_event);
-			request.size();	 // suppress unused variable err
+			request_parser(request);
 
 			/*hardcoding the request for now, this filled struct should be
 			 * received from parser later*/
@@ -70,7 +101,7 @@ void Server::handle_event(int amount_of_events) {
 	}
 }
 
-std::vector<std::string> Server::read_request(
+std::string Server::read_request(
 	const epoll_event &request_event) {
 	const size_t read_buff_size = 1024;
 	char read_buff[read_buff_size];	 // TODO: read about what size of the header
@@ -82,14 +113,13 @@ std::vector<std::string> Server::read_request(
 		std::runtime_error("read() failed!");
 		close(request_event.data.fd);
 	}
-	// TODO: add loop in which we're going to fill std::vector<std::string>
-	std::cout << CYAN300 << "REQUEST:\n" << read_buff << RESET << std::endl;
-	return std::vector<std::string>();	// return empty arr
+	read_buff[rd_bytes] = '\0';
+	return read_buff;
 }
 
-std::vector<std::string> Server::request_handler(
+std::string Server::request_handler(
 	const epoll_event &request_event) {
-	std::vector<std::string> request = read_request(request_event);
+	std::string request = read_request(request_event);
 
 	/*
 		Goshan41k
@@ -142,7 +172,7 @@ void Server::announce_new_connection(const struct sockaddr &cl_sockaddr,
 		getnameinfo(&cl_sockaddr, sizeof(cl_sockaddr), sbuff, sizeof(sbuff),
 					hbuff, sizeof(hbuff), NI_NUMERICHOST | NI_NUMERICSERV);
 	if (status != 0) {
-		std::runtime_error("genameinfo() failed");
+		std::runtime_error("getnameinfo() failed");
 	}
 	printf(
 		"Accepted new connection on descriptor %d\n"
