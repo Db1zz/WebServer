@@ -22,22 +22,6 @@
 #define PAGE_404 "Pages/404.html"
 #define STYLESHEET "Pages/styles.css"
 
-typedef struct s_request {
-	std::string method;
-	std::string uri_path;
-	std::string host;
-	std::string user_agent;	 // dont need for now
-	std::string mime_type;	   // format that client can accept in response // to vector instead
-	std::string language;  // dont need for now
-	std::string connection;
-	std::string path_extension;  // format of data sent to the server
-
-} t_request;
-/*add function:
-request_validator
--> check each variable of the request struct and generate (andor should return
-empty string)*/
-
 class ServerResponse {
    public:
 	ServerResponse(const t_request& request, const t_config& server_data);
