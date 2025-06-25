@@ -81,6 +81,7 @@ std::vector<std::string> Server::read_request(
 		std::runtime_error("read() failed!");
 		close(request_event.data.fd);
 	}
+	read_buff[rd_bytes] = 0;
 	// TODO: add loop in which we're going to fill std::vector<std::string>
 	std::cout << CYAN300 << "REQUEST:\n" << read_buff << RESET << std::endl;
 	return std::vector<std::string>();	// return empty arr

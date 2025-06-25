@@ -12,7 +12,6 @@ ServerSocket::ServerSocket(std::string address, std::string port)
 	_address.sin_family = AF_INET;
 	_address.sin_port = htons(atoi(port.c_str()));
 	_address.sin_addr.s_addr = inet_addr(address.c_str());
-
 	_socket_fd = socket(AF_INET, SOCK_STREAM, 0);
 	is_socket_created(_socket_fd);
 }

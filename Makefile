@@ -29,4 +29,10 @@ fclean: clean
 
 re: fclean all
 
-.PHONY: all clean fclean re
+docker_build:
+	docker compose up --build --yes -d
+
+run: docker_build
+	docker attach webserv
+
+.PHONY: all clean fclean re run docker_build 

@@ -6,7 +6,7 @@
 
 AccessLogger::AccessLogger(std::string path)
 {
-	Status<> status = open_log_file();
+	Status status = open_log_file();
 	if (status) {
 		throw std::runtime_error("AccessLogger Error: " + status);
 	}
@@ -19,6 +19,6 @@ AccessLogger::AccessLogger(std::string path)
 	https://en.wikipedia.org/wiki/Extended_Log_Format
 	https://www.w3.org/Daemon/User/Config/Logging.html
 */
-Status<> AccessLogger::write(/* connection data */) {
+Status AccessLogger::write(/* connection data */) {
 	// write connection data
 }

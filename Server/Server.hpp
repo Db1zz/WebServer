@@ -19,7 +19,7 @@
 
 #define SERVER_DEFAULT_ADDR LOCALHOST_ADDR
 #define SERVER_DEFAULT_PORT "80"
-#define LOCALHOST_ADDR "localhost"
+#define LOCALHOST_ADDR "127.0.0.1"
 #define WS_PROTOCOL "HTTP/1.1"
 class Server {
 public:
