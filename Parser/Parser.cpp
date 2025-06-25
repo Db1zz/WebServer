@@ -429,71 +429,71 @@ std::map<int, std::string> Parser::parseErrorPage() {
 }
 
 std::vector<t_config> Parser::getConfigStruct() {
-	std::cout << "-----------------------------\n";
-	for (size_t i = 0; i < _configVector.size(); i++) {
-		t_config temp = _configVector.at(i);
+	// std::cout << "-----------------------------\n";
+	// for (size_t i = 0; i < _configVector.size(); i++) {
+	// 	t_config temp = _configVector.at(i);
 
-		// Print hosts
-		for (size_t host_i = 0; host_i < temp.host.size(); host_i++)
-			std::cout << "Host: " << temp.host.at(host_i) << '\n';
+	// 	// Print hosts
+	// 	for (size_t host_i = 0; host_i < temp.host.size(); host_i++)
+	// 		std::cout << "Host: " << temp.host.at(host_i) << '\n';
 
-		// Print ports
-		for (size_t port_i = 0; port_i < temp.port.size(); port_i++)
-			std::cout << "Port: " << temp.port.at(port_i) << '\n';
+	// 	// Print ports
+	// 	for (size_t port_i = 0; port_i < temp.port.size(); port_i++)
+	// 		std::cout << "Port: " << temp.port.at(port_i) << '\n';
 
-		// Print server names
-		for (size_t sn_i = 0; sn_i < temp.server_name.size(); sn_i++)
-			std::cout << "Server Name: " << temp.server_name.at(sn_i) << '\n';
+	// 	// Print server names
+	// 	for (size_t sn_i = 0; sn_i < temp.server_name.size(); sn_i++)
+	// 		std::cout << "Server Name: " << temp.server_name.at(sn_i) << '\n';
 
-		// Print max client body size
-		std::cout << "Max Client Body Size: " << temp.common.max_client_body << '\n';
+	// 	// Print max client body size
+	// 	std::cout << "Max Client Body Size: " << temp.common.max_client_body << '\n';
 
-		// Print common config
-		std::cout << "Root: " << temp.common.root << '\n';
-		std::cout << "Auto Index: " << (temp.common.auto_index ? "on" : "off") << '\n';
-		std::cout << "Return Code: " << temp.common.returnCode << '\n';
-		std::cout << "Return Path: " << temp.common.returnPath << '\n';
+	// 	// Print common config
+	// 	std::cout << "Root: " << temp.common.root << '\n';
+	// 	std::cout << "Auto Index: " << (temp.common.auto_index ? "on" : "off") << '\n';
+	// 	std::cout << "Return Code: " << temp.common.returnCode << '\n';
+	// 	std::cout << "Return Path: " << temp.common.returnPath << '\n';
 
-		// Print index files
-		for (size_t idx = 0; idx < temp.common.index.size(); idx++)
-			std::cout << "Index: " << temp.common.index.at(idx) << '\n';
+	// 	// Print index files
+	// 	for (size_t idx = 0; idx < temp.common.index.size(); idx++)
+	// 		std::cout << "Index: " << temp.common.index.at(idx) << '\n';
 
-		// Print error pages
-		for (std::map<int, std::string>::iterator it = temp.common.errorPage.begin(); it != temp.common.errorPage.end(); ++it)
-			std::cout << "Error Page: " << it->first << " -> " << it->second << '\n';
+	// 	// Print error pages
+	// 	for (std::map<int, std::string>::iterator it = temp.common.errorPage.begin(); it != temp.common.errorPage.end(); ++it)
+	// 		std::cout << "Error Page: " << it->first << " -> " << it->second << '\n';
 
-		// Print allowed methods
-		std::cout << "Methods: "
-				  << (temp.common.methods.getMethod ? "GET " : "")
-				  << (temp.common.methods.postMethod ? "POST " : "")
-				  << (temp.common.methods.deleteMethod ? "DELETE " : "")
-				  << '\n';
+	// 	// Print allowed methods
+	// 	std::cout << "Methods: "
+	// 			  << (temp.common.methods.getMethod ? "GET " : "")
+	// 			  << (temp.common.methods.postMethod ? "POST " : "")
+	// 			  << (temp.common.methods.deleteMethod ? "DELETE " : "")
+	// 			  << '\n';
 
-		for (std::map<std::string, std::string>::const_iterator cgi_it = temp.common.cgi.begin(); cgi_it != temp.common.cgi.end(); cgi_it++)
-			std::cout << "CGI: " << cgi_it->first << " " << cgi_it->second << '\n';
-		// Print locations
-		for (size_t loc_i = 0; loc_i < temp.location.size(); loc_i++) {
-			const t_location &loc = temp.location.at(loc_i);
-			std::cout << "Location Path: " << loc.path << '\n';
-			std::cout << " Max Client Body Size: " << loc.common.max_client_body << '\n';
-			std::cout << "  Root: " << loc.common.root << '\n';
-			std::cout << "  Auto Index: " << (loc.common.auto_index ? "on" : "off") << '\n';
-			std::cout << "  Return Code: " << loc.common.returnCode << '\n';
-			std::cout << "  Return Path: " << loc.common.returnPath << '\n';
-			for (size_t idx = 0; idx < loc.common.index.size(); idx++)
-				std::cout << "  Index: " << loc.common.index.at(idx) << '\n';
-			for (std::map<int, std::string>::const_iterator it = loc.common.errorPage.begin(); it != loc.common.errorPage.end(); ++it)
-				std::cout << "  Error Page: " << it->first << " -> " << it->second << '\n';
-			std::cout << "  Methods: "
-					  << (loc.common.methods.getMethod ? "GET " : "")
-					  << (loc.common.methods.postMethod ? "POST " : "")
-					  << (loc.common.methods.deleteMethod ? "DELETE " : "")
-					  << '\n';
-			for (std::map<std::string, std::string>::const_iterator cgi_it = loc.common.cgi.begin(); cgi_it != loc.common.cgi.end(); cgi_it++)
-				std::cout << "  CGI: " << cgi_it->first << " " << cgi_it->second << '\n';
-		}
-		std::cout << "-----------------------------\n";
-	}
+	// 	for (std::map<std::string, std::string>::const_iterator cgi_it = temp.common.cgi.begin(); cgi_it != temp.common.cgi.end(); cgi_it++)
+	// 		std::cout << "CGI: " << cgi_it->first << " " << cgi_it->second << '\n';
+	// 	// Print locations
+	// 	for (size_t loc_i = 0; loc_i < temp.location.size(); loc_i++) {
+	// 		const t_location &loc = temp.location.at(loc_i);
+	// 		std::cout << "Location Path: " << loc.path << '\n';
+	// 		std::cout << " Max Client Body Size: " << loc.common.max_client_body << '\n';
+	// 		std::cout << "  Root: " << loc.common.root << '\n';
+	// 		std::cout << "  Auto Index: " << (loc.common.auto_index ? "on" : "off") << '\n';
+	// 		std::cout << "  Return Code: " << loc.common.returnCode << '\n';
+	// 		std::cout << "  Return Path: " << loc.common.returnPath << '\n';
+	// 		for (size_t idx = 0; idx < loc.common.index.size(); idx++)
+	// 			std::cout << "  Index: " << loc.common.index.at(idx) << '\n';
+	// 		for (std::map<int, std::string>::const_iterator it = loc.common.errorPage.begin(); it != loc.common.errorPage.end(); ++it)
+	// 			std::cout << "  Error Page: " << it->first << " -> " << it->second << '\n';
+	// 		std::cout << "  Methods: "
+	// 				  << (loc.common.methods.getMethod ? "GET " : "")
+	// 				  << (loc.common.methods.postMethod ? "POST " : "")
+	// 				  << (loc.common.methods.deleteMethod ? "DELETE " : "")
+	// 				  << '\n';
+	// 		for (std::map<std::string, std::string>::const_iterator cgi_it = loc.common.cgi.begin(); cgi_it != loc.common.cgi.end(); cgi_it++)
+	// 			std::cout << "  CGI: " << cgi_it->first << " " << cgi_it->second << '\n';
+	// 	}
+	// 	std::cout << "-----------------------------\n";
+	// }
 	return _configVector;
 }
 

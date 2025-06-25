@@ -6,7 +6,9 @@
 
 #include <cstdio>
 
-Server::Server() : IServer(AF_INET, SOCK_STREAM, 0, 80, INADDR_ANY, 10) {
+Server::Server(std::vector<t_config> configs)
+	: IServer(AF_INET, SOCK_STREAM, 0, 80, INADDR_ANY, 10), _configs(configs)
+{
 	init();
 }
 
@@ -58,7 +60,13 @@ t_request Server::request_parser(std::string request)
 		else if (extract.find("User-Agent: ", 0) != std::string::npos)
 			requestStruct.user_agent = extract.substr(12);
 		else if (extract.find("Accept: ", 0) != std::string::npos)
-			requestStruct.mime_type = extract.substr(8);
+		{
+			std::string temp;
+			iss << extract.substr(8);
+			iss >> temp;
+			std::cout << BG_AMBER400 << temp << RESET << std::endl;
+			// requestStruct.mime_type = ; // vector
+		}
 		else if (extract.find("Accept-Language: ", 0) != std::string::npos)
 			requestStruct.language = extract.substr(17);
 		else if (extract.find("Connection: ", 0) != std::string::npos)
@@ -138,7 +146,7 @@ std::string Server::request_handler(
 
 void Server::response_handler(const epoll_event &request_event,
 							  const t_request &request) {
-	ServerResponse resp(request);
+	ServerResponse resp(request, _configs[0]);
 	std::string res = resp.generate_response();
 	write(request_event.data.fd, res.c_str(), res.size());
 }

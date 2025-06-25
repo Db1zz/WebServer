@@ -11,7 +11,7 @@
 #include <sstream>
 
 #include "Token.hpp"
-#include "../Webserv.hpp"
+#include "ServerConfig.hpp"
 
 class Parser {
    private:
