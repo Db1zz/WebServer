@@ -17,8 +17,6 @@ ServerResponse& ServerResponse::header(const std::string& key,
 	return (*this);
 }
 
-// if root and index with root?
-
 ServerResponse& ServerResponse::serve_static_page(const t_location& loc,
 												  const std::string& uri) {
 	std::string file_path =
@@ -49,10 +47,8 @@ bool ServerResponse::html(const std::string& path, bool is_error_page) {
 	} else if (!is_error_page) {
 		_status.set_status_line(404, "Not Found");
 		html(_server_data->common.errorPage.at(404), true);
-	} else {
-		std::cout << CYAN300 << "error check 3" << RESET << std::endl;
+	} else
 		send_error_page(404, "Not Found");
-	}
 	return false;
 }
 
@@ -86,7 +82,6 @@ std::string ServerResponse::generate_response() {
 				serve_static_page(_server_data->location[i],
 								  _req_data->uri_path);
 			} else {
-				std::cout << CYAN300 << "error check 2" << RESET << std::endl;
 				send_error_page(405, "Method Not Allowed");
 				break;
 			}
