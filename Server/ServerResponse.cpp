@@ -17,11 +17,12 @@ ServerResponse& ServerResponse::header(const std::string& key,
 	return (*this);
 }
 
-//if root and index with root?
+// if root and index with root?
 
-ServerResponse& ServerResponse::serve_static_page(const t_location& loc,							  const std::string& uri) {
-	std::string file_path = loc.common.root;
-	std::cout << RED300 << file_path << RESET << std::endl;
+ServerResponse& ServerResponse::serve_static_page(const t_location& loc,
+												  const std::string& uri) {
+	std::string file_path =
+		loc.common.root.empty() ? _server_data->common.root : loc.common.root;
 	if (!file_path.empty() && file_path[file_path.size() - 1] != '/')
 		file_path += "/";
 	file_path += uri.substr(loc.path.length());
@@ -29,7 +30,6 @@ ServerResponse& ServerResponse::serve_static_page(const t_location& loc,							 
 		file_path +=
 			loc.common.index.empty() ? "index.html" : loc.common.index[0];
 	}
-	std::cout << PINK300 << file_path << RESET << std::endl;
 	_resp_content_type = identify_mime();
 	header("content-type", _resp_content_type);
 	html(file_path, false);
@@ -92,12 +92,9 @@ std::string ServerResponse::generate_response() {
 			}
 		}
 	}
-	if (!found) {
-		std::cout << CYAN300 << "error check 1" << RESET << std::endl;
-		send_error_page(404, "Not Found");
-	}
+	if (!found) serve_default_root();
 	header("server",
-		   _server_data->server_name[0]);  // looping through dif names?
+		   _server_data->server_name[0]);  // looping through dif names? index?
 	header("content-length", get_body_size());
 	_response = WS_PROTOCOL + _status.status_line() + get_headers() + "\r\n" +
 				get_body();
@@ -108,6 +105,18 @@ std::string ServerResponse::generate_response() {
 ServerResponse& ServerResponse::json(const std::string& data) {
 	_body = data;
 	return *this;
+}
+
+void ServerResponse::serve_default_root() {
+	if (_req_data->uri_path == "/") {
+		t_location default_loc;
+		default_loc.common.root = _server_data->common.root;
+		default_loc.common.index = _server_data->common.index;
+		default_loc.path = "/";
+		serve_static_page(default_loc, "/");
+	} else {
+		send_error_page(404, "Not Found");
+	}
 }
 
 std::string ServerResponse::identify_mime() {

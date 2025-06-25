@@ -41,6 +41,7 @@ class ServerResponse {
 	std::string identify_mime();
 	bool html(const std::string& path, bool is_error_page);
 	void send_error_page(int code, std::string error_msg);
+	void serve_default_root();
 
 	/*getters*/
 	const std::string get_body_size() const;
