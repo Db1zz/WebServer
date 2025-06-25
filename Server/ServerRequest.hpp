@@ -1,5 +1,5 @@
-#ifndef SERVERREQUEST_HPP
-#define SERVERREQUEST_HPP
+#ifndef SERVER_SERVERREQUEST_HPP
+#define SERVER_SERVERREQUEST_HPP
 #include <iostream>
 
 typedef struct s_request {
