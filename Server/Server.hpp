@@ -10,6 +10,7 @@
 #include "ServerResponse.hpp"
 #include "ServerConfig.hpp"
 #include "ServerSocket.hpp"
+#include "ServerRequest.hpp"
 
 #include <iostream>
 #include <unistd.h>

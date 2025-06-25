@@ -1,12 +1,8 @@
 #include "ServerResponse.hpp"
 
-#include <sstream>
-
-#include "Server.hpp"
-
-ServerResponse::ServerResponse(const t_request& request) : _req_data(&request) {
-	_status_line = "200";
-}
+ServerResponse::ServerResponse(const t_request& request,
+							   const t_config& server_data)
+	: _req_data(&request), _server_data(&server_data) {}
 
 ServerResponse::~ServerResponse() {}
 
@@ -21,46 +17,82 @@ ServerResponse& ServerResponse::header(const std::string& key,
 	return (*this);
 }
 
-ServerResponse& ServerResponse::status_line(const int code) {
-	std::stringstream code_str;
-	code_str << code;
-	std::string msg = _status_msg.msg();
-	_status_line = " " + code_str.str() + " " + msg + "\r\n";
-	return (*this);
+ServerResponse& ServerResponse::serve_static_page(const t_location& loc,
+												  const std::string& uri) {
+	std::string file_path =
+		loc.common.root.empty() ? _server_data->common.root : loc.common.root;
+	if (!file_path.empty() && file_path[file_path.size() - 1] != '/')
+		file_path += "/";
+	file_path += uri.substr(loc.path.length());
+	if (!file_path.empty() && file_path[file_path.size() - 1] == '/') {
+		file_path +=
+			loc.common.index.empty() ? "index.html" : loc.common.index[0];
+	}
+	_resp_content_type = identify_mime();
+	header("content-type", _resp_content_type);
+	html(file_path, false);
+	return *this;
 }
 
-ServerResponse& ServerResponse::html(const std::string& path) {
+bool ServerResponse::html(const std::string& path, bool is_error_page) {
 	std::fstream html_file;
-	_status_msg = fs::open_file(html_file, path, std::ios::in);
-	if (_status_msg.ok()) {
+	_status = fs::open_file(html_file, path, std::ios::in);
+	if (_status.ok()) {
 		std::string temp;
 		while (getline(html_file, temp)) {
 			_body += temp;
 		}
 		html_file.close();
-	} else {
-		status_line(404);
-		html(PAGE_404);
+		return true;
+	} else if (!is_error_page) {
+		_status.set_status_line(404, "Not Found");
+		html(_server_data->common.errorPage.at(404), true);
+	} else
+		send_error_page(404, "Not Found");
+	return false;
+}
+
+void ServerResponse::send_error_page(int code, std::string error_msg) {
+	_status.set_status_line(code, error_msg);
+	std::stringstream code_str;
+	code_str << code;
+	header("content-type", "text/html");
+	if (!html(_server_data->common.errorPage.at(code), true)) {
+		_status.set_status_line(code, error_msg);
+		std::string err_msg = code_str.str() + " " + error_msg + " ";
+		_body = "<!DOCTYPE html><html><head><title>" + err_msg +
+				"</title></head>"
+				"<body><h1>" +
+				err_msg + "</h1></body></html>";
 	}
-	return *this;
 }
 
 std::string ServerResponse::generate_response() {
-	status_line(200);
-	_resp_content_type = identify_mime();
-	header("content-type", _resp_content_type);
-	header("server", "comrades_webserv");
-	if (_resp_content_type == "text/html")
-		html(PAGE_INITIAL);
-	else if (_resp_content_type == "application/json") {
-		json("json response");
-	} else {
-		status_line(406);
-		(*this) << " not acceptable\r\n";
+	_status.set_status_line(200, "OK");
+	bool found = false;
+	for (size_t i = 0; i < _server_data->location.size(); ++i) {
+		if (_req_data->uri_path.find(_server_data->location[i].path) == 0) {
+			found = true;
+			if ((_req_data->method == "GET" &&
+				 _server_data->location[i].common.methods.getMethod) ||
+				(_req_data->method == "POST" &&
+				 _server_data->location[i].common.methods.postMethod) ||
+				(_req_data->method == "DELETE" &&
+				 _server_data->location[i].common.methods.deleteMethod)) {
+				serve_static_page(_server_data->location[i],
+								  _req_data->uri_path);
+			} else {
+				send_error_page(405, "Method Not Allowed");
+				break;
+			}
+		}
 	}
+	if (!found) serve_default_root();
+	header("server",
+		   _server_data->server_name[0]);  // looping through dif names? index?
 	header("content-length", get_body_size());
-	_response =
-		WS_PROTOCOL + get_status() + get_headers() + "\r\n" + get_body() + "\r\n";;
+	_response = WS_PROTOCOL + _status.status_line() + get_headers() + "\r\n" +
+				get_body();
 	std::cout << GREEN400 "RESPONSE:\n" << _response << RESET << std::endl;
 	return _response;
 }
@@ -68,6 +100,18 @@ std::string ServerResponse::generate_response() {
 ServerResponse& ServerResponse::json(const std::string& data) {
 	_body = data;
 	return *this;
+}
+
+void ServerResponse::serve_default_root() {
+	if (_req_data->uri_path == "/") {
+		t_location default_loc;
+		default_loc.common.root = _server_data->common.root;
+		default_loc.common.index = _server_data->common.index;
+		default_loc.path = "/";
+		serve_static_page(default_loc, "/");
+	} else {
+		send_error_page(404, "Not Found");
+	}
 }
 
 std::string ServerResponse::identify_mime() {
@@ -87,7 +131,7 @@ std::string ServerResponse::identify_mime() {
 	} else if (_req_data->mime_type == "gif") {
 		_resp_content_type = "image/gif";
 	} else {
-		_resp_content_type = "application/octet-stream";
+		_resp_content_type = "text/html";
 	}
 	return _resp_content_type;
 }
@@ -97,8 +141,6 @@ const std::string ServerResponse::get_body_size() const {
 	ss << _body.size();
 	return ss.str();
 }
-
-const std::string& ServerResponse::get_status() const { return _status_line; }
 
 const std::string& ServerResponse::get_headers() const { return _headers; }
 

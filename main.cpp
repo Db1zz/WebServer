@@ -26,6 +26,6 @@ int main(int argc, char** argv) {
 		return 1;
 	}
 
-	Server server(config);
+  Server server(config);
 	server.launch();
 }
