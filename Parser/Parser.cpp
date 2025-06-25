@@ -1,5 +1,7 @@
 #include "Parser.hpp"
 
+#include "../Utilities/colors.hpp"
+
 Parser::Parser(std::string fileName) : m_fileName(fileName) {
 	_start = 0;
 	_current = 0;
@@ -22,11 +24,11 @@ Parser::Parser(std::string fileName) : m_fileName(fileName) {
 	}
 	addKeywords();
 	std::vector<Token> temp = scanTokens();
-	/* for (size_t i = 0; i < temp.size(); i++) {
+	for (size_t i = 0; i < temp.size(); i++) {
 		if (temp[i].getType() != END_OF_FILE)
 			std::cout << temp[i].getAll() << "\n";
 	}
-	std::cout << "--------------------------------\n"; */
+	std::cout << "--------------------------------\n";
 	parseConfig();
 }
 
@@ -197,57 +199,60 @@ Token Parser::consume(t_TokenType type, std::string message) {
 }
 
 bool Parser::isSpaceBetween(Token curr, Token next) {
-	if (curr.getLength() + curr.getColon() + 1 == next.getColon()) {
+	if (curr.getLength() + curr.getColumn() + 1 == next.getColumn()) {
 		return true;
 	}
 	return false;
 }
 
 void Parser::parseListen() {
-	while (!check(SEMICOLON)) {
-		std::stringstream str;
-		bool is_ip = false;
+	// maybe later add support for multiple listen its just a while loop
+	std::string temp = "";
+	std::string port = "";
+	int convertedPort = -1;
+	std::string checkRange = "";
+	int lastDot = 0;
+	temp = consume(IDENTIFIER, "expected format: address[:port]").getAll();	 // can be just port
+	if (temp.find('.') != std::string::npos) {
 		int dotCount = 0;
-		if (match(IDENTIFIER)) {
-			std::string first = previous().getAll();
-			str << first;
-			while (check(DOT) && dotCount < 3) {
-				is_ip = true;
-				consume(DOT, "expected dot between IP address numbers");
-				str << ".";
-				consume(IDENTIFIER, "expected number after dot");
-				str << previous().getAll();
+		for (size_t i = 0; i < temp.size(); i++) {
+			if (!std::isdigit(temp.at(i)) && temp.at(i) != '.')
+				throw std::runtime_error("Not a number");
+			if (temp.at(i) == '.') {
+				if (dotCount > 4)
+					throw std::runtime_error("Incorrect IP format, correct format is: [0-255].[0-255].[0-255].[0-255]");
 				dotCount++;
+				if (dotCount == 0)
+					checkRange = temp.substr(lastDot, i);  // this will skip the last number
+				else
+					checkRange = temp.substr(lastDot, i - lastDot);
+				lastDot = i + 1;
+				if (atoi(checkRange.c_str()) < 0 || atoi(checkRange.c_str()) > 255)	 // DRY
+					throw std::runtime_error("Ip address has to be in the range of 0 to 255");
+				std::cout << BG_AMBER400 << checkRange << RESET << '\n';
 			}
-			if (check(COLON)) {
-				consume(COLON, "expected ':' for the port part");
-				consume(IDENTIFIER, "expected port after colon");
-				str << ":" << previous().getAll();
-				for (size_t i = 0; i < tempConfig.host.size(); i++) {
-					if (tempConfig.host.at(i) == str.str()) {
-						throw std::runtime_error("Duplicate listen");
-					}
-				}
-				tempConfig.host.push_back(str.str());
-			} else if (is_ip) {
-				for (size_t i = 0; i < tempConfig.host.size(); i++) {
-					if (tempConfig.host.at(i) == str.str()) {
-						throw std::runtime_error("Duplicate listen");
-					}
-				}
-				tempConfig.host.push_back(str.str());
-			} else {
-				for (size_t i = 0; i < tempConfig.port.size(); i++) {
-					if (tempConfig.port.at(i) == str.str()) {
-						throw std::runtime_error("Duplicate listen");
-					}
-				}
-				tempConfig.port.push_back(str.str());
-			}
-		} else {
-			throw std::runtime_error("Expected identifier in listen directive");
 		}
+		if (dotCount != 3)
+			throw std::runtime_error("Incorrect IP format, correct format is: [0-255].[0-255].[0-255].[0-255]");
+		checkRange = temp.substr(lastDot);
+		if (atoi(checkRange.c_str()) < 0 || atoi(checkRange.c_str()) > 255)	 // DRY
+			throw std::runtime_error("Incorrect IP format, correct format is: [0-255].[0-255].[0-255].[0-255]");
+		// check for the last number range
+	} else {
+		port = temp;  // treat it as a port
 	}
+	if (check(COLON)) {
+		consume(COLON, "");
+		port = consume(IDENTIFIER, "expected port after colon").getAll();
+	}
+	if (port != "") {
+		convertedPort = atoi(port.c_str());
+		if (convertedPort < 0 || convertedPort > 65535)
+			throw std::runtime_error("Port should be in range of 0 to 65535");
+	}
+	// can be host:port or host or port;
+	// check if its consist of correct number ip address can range from 0 to 255
+	// port can range from  0 to 65535
 	consume(SEMICOLON, "expected ';' after the statement");
 }
 
@@ -259,22 +264,22 @@ std::vector<std::string> Parser::parseIndex() {
 		if (check(DOT)) {
 			Token firstDot = consume(DOT, "expected dot at start of filename");
 			temp << firstDot.getAll();
-			lastEnd = firstDot.getColon() + firstDot.getAll().length();
+			lastEnd = firstDot.getColumn() + firstDot.getAll().length();
 			Token first = consume(IDENTIFIER, "expected an identifier");
 			temp << first.getAll();
-			lastEnd = first.getColon() + first.getAll().length();
+			lastEnd = first.getColumn() + first.getAll().length();
 		} else {
 			Token first = consume(IDENTIFIER, "expected an identifier");
 			temp << first.getAll();
-			lastEnd = first.getColon() + first.getAll().length();
+			lastEnd = first.getColumn() + first.getAll().length();
 		}
 		while (check(DOT)) {
 			Token dot = tokenPeek();
-			if (dot.getColon() != lastEnd) break;
+			if (dot.getColumn() != lastEnd) break;
 			temp << consume(DOT, "expected dot").getAll();
 			Token next = consume(IDENTIFIER, "expected identifier after dot");
 			temp << next.getAll();
-			lastEnd = next.getColon() + next.getAll().length();
+			lastEnd = next.getColumn() + next.getAll().length();
 		}
 		tempVector.push_back(temp.str());
 	}
@@ -422,7 +427,10 @@ std::map<int, std::string> Parser::parseErrorPage() {
 	}
 	std::string path = tempString + parsePath();
 	for (size_t i = 0; i < codes.size(); i++) {
-		tempMap.insert(std::pair<int, std::string>(atoi(codes.at(i).c_str()), path));  // later maybe check if its correct error code
+		int errorCode = atoi(codes.at(i).c_str());
+		if (errorCode > 599 || errorCode < 400)
+			throw std::runtime_error("Error codes can only range from 400 to 599");
+		tempMap.insert(std::pair<int, std::string>(errorCode, path));
 	}
 	consume(SEMICOLON, "expected ';' after error_page");
 	return tempMap;
@@ -500,9 +508,8 @@ std::vector<t_config> Parser::getConfigStruct() {
 void Parser::fillDefaultValues() {
 	tempConfig.common.max_client_body = 0;
 	tempConfig.common.auto_index = false;
-	tempConfig.host.clear();
+	tempConfig.listen.clear();
 	tempConfig.location.clear();
-	tempConfig.port.clear();
 	tempConfig.server_name.clear();
 	tempConfig.common.cgi.clear();
 	tempConfig.common.errorPage.clear();
