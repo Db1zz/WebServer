@@ -2,9 +2,10 @@
 #define WEBSERVER_UTILITIES_STATUS_HPP
 
 #include <string>
+#include <sstream>
 
 class Status {
-public:
+   public:
 	Status();
 	Status(std::string error);
 	Status(std::string error, int code);
@@ -19,16 +20,19 @@ public:
 	void set_ok(bool ok) { _ok = ok; }
 	void set_msg(std::string msg) { _msg = msg; }
 	void set_code(int code) { _code = code; }
+	void set_status_line(int code, std::string msg);
 
 	bool ok() { return _ok; }
 	int code() const { return _code; }
 	std::string &msg() { return _msg; }
 	const std::string &msg() const { return _msg; }
+	const std::string &status_line() const { return _status_line; }
 
-protected:
+   protected:
 	bool _ok;
 	int _code;
 	std::string _msg;
+	std::string _status_line;
 };
 
-#endif  // WEBSERVER_UTILITIES_STATUS_HPP
+#endif	// WEBSERVER_UTILITIES_STATUS_HPP

@@ -9,6 +9,8 @@
 #include "IServer.hpp"
 #include "ServerEvent.hpp"
 #include "ServerResponse.hpp"
+#include "ServerRequest.hpp"
+#include "ServerConfig.hpp"
 
 #include <iostream>
 #include <unistd.h>
@@ -19,7 +21,7 @@
 #define WS_PROTOCOL "HTTP/1.1"
 class Server: public IServer {
 public:
-	Server();
+	Server(std::vector<t_config> configs);
 	~Server();
 	void launch();
 
@@ -33,6 +35,7 @@ private:
 	void response_handler(const epoll_event &request_event, const t_request &request);
 	std::string response_generator(/* TODO: add args*/);
 
+	std::vector<t_config> _configs;
 	ServerEvent _event;
 };
 
