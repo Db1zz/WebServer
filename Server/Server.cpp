@@ -7,8 +7,7 @@
 #include <cstdio>
 
 Server::Server(std::vector<t_config> configs)
-	: IServer(AF_INET, SOCK_STREAM, 0, 80, INADDR_ANY, 10), _configs(configs)
-{
+	: IServer(AF_INET, SOCK_STREAM, 0, 80, INADDR_ANY, 10), _configs(configs) {
 	init();
 }
 
@@ -40,39 +39,32 @@ void Server::init() {
 			   sizeof(yes));
 }
 
-t_request Server::request_parser(std::string request)
-{
+t_request Server::request_parser(std::string request) {
 	std::cout << request << "\n";
 	t_request requestStruct;
-	std::stringstream iss (request);
+	requestStruct.mime_type = "";  // if there no mime found -> empty string
+	std::stringstream iss(request);
 	std::string extract;
 	iss >> extract;
 	requestStruct.method = extract;
 	iss >> extract;
 	requestStruct.uri_path = extract;
-	iss >> extract; // we ignore HTTP/1.1 for now
-	while (std::getline(iss, extract) || extract != "\r")
-	{
+	if (extract.find('.') != std::string::npos)
+		requestStruct.mime_type = extract.substr(extract.find('.'));
+	iss >> extract;	 // we ignore HTTP/1.1 for now
+	while (std::getline(iss, extract) || extract != "\r") {
 		if (extract.empty() || extract == "\r\n")
 			break;
 		if (extract.find("Host: ", 0) != std::string::npos)
-			requestStruct.host = extract.substr(6); // remove the trailing
+			requestStruct.host = extract.substr(6);
 		else if (extract.find("User-Agent: ", 0) != std::string::npos)
 			requestStruct.user_agent = extract.substr(12);
 		else if (extract.find("Accept: ", 0) != std::string::npos)
-		{
-			std::string temp;
-			iss << extract.substr(8);
-			iss >> temp;
-			std::cout << BG_AMBER400 << temp << RESET << std::endl;
-			// requestStruct.mime_type = ; // vector
-		}
+			requestStruct.accept = extract.substr(8);
 		else if (extract.find("Accept-Language: ", 0) != std::string::npos)
 			requestStruct.language = extract.substr(17);
 		else if (extract.find("Connection: ", 0) != std::string::npos)
 			requestStruct.connection = extract.substr(12);
-		// need to figure out what is conent type
-		// std::cout << BG_AMBER400 << extract << RESET << std::endl;
 	}
 	return requestStruct;
 }
@@ -86,23 +78,8 @@ void Server::handle_event(int amount_of_events) {
 			accept_new_connection(request_event.data.fd);
 		} else {
 			// handle request and generate response
-			std::string request;
 
-			request = request_handler(request_event);
-			request_parser(request);
-
-			/*hardcoding the request for now, this filled struct should be
-			 * received from parser later*/
-			t_request req;
-			req.method = "GET";
-			req.uri_path = "/";
-			req.user_agent = "";
-			req.host = "localhost";
-			req.language = "";
-			req.connection = "keep-alive";
-			req.mime_type = "html";
-			req.content_type = "text/html";
-
+			t_request req = request_handler(request_event);
 			response_handler(request_event, req);
 			close(request_event.data.fd);
 		}
@@ -111,9 +88,8 @@ void Server::handle_event(int amount_of_events) {
 
 std::string Server::read_request(
 	const epoll_event &request_event) {
-	const size_t read_buff_size = 1024;
-	char read_buff[read_buff_size];	 // TODO: read about what size of the header
-									 // we can get
+	const size_t read_buff_size = 4096;
+	char read_buff[read_buff_size];
 	ssize_t rd_bytes;
 
 	rd_bytes = read(request_event.data.fd, read_buff, read_buff_size);
@@ -125,23 +101,12 @@ std::string Server::read_request(
 	return read_buff;
 }
 
-std::string Server::request_handler(
+t_request Server::request_handler(
 	const epoll_event &request_event) {
 	std::string request = read_request(request_event);
-
-	/*
-		Goshan41k
-
-		We can validate request during parsing or before/after it,
-		depends on our implementation.
-
-		Parser should return struct, which will be used later in
-	   response_handler(), right now I'm returning std::vector<std::string> cuz
-	   nothing is implemented and i'm not sure how this struct will look like.
-	*/
-	// parse_request()
+	t_request req = request_parser(request);
 	// request_validator();
-	return request;
+	return req;
 }
 
 void Server::response_handler(const epoll_event &request_event,
