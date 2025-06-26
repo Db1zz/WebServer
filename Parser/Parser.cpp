@@ -24,11 +24,11 @@ Parser::Parser(std::string fileName) : m_fileName(fileName) {
 	}
 	addKeywords();
 	std::vector<Token> temp = scanTokens();
-	for (size_t i = 0; i < temp.size(); i++) {
-		if (temp[i].getType() != END_OF_FILE)
-			std::cout << temp[i].getAll() << "\n";
-	}
-	std::cout << "--------------------------------\n";
+	/* 	for (size_t i = 0; i < temp.size(); i++) {
+			if (temp[i].getType() != END_OF_FILE)
+				std::cout << temp[i].getAll() << "\n";
+		}
+		std::cout << "--------------------------------\n"; */
 	parseConfig();
 }
 
@@ -206,53 +206,57 @@ bool Parser::isSpaceBetween(Token curr, Token next) {
 }
 
 void Parser::parseListen() {
-	// maybe later add support for multiple listen its just a while loop
-	std::string temp = "";
-	std::string port = "";
-	int convertedPort = -1;
-	std::string checkRange = "";
-	int lastDot = 0;
-	temp = consume(IDENTIFIER, "expected format: address[:port]").getAll();	 // can be just port
-	if (temp.find('.') != std::string::npos) {
-		int dotCount = 0;
-		for (size_t i = 0; i < temp.size(); i++) {
-			if (!std::isdigit(temp.at(i)) && temp.at(i) != '.')
-				throw std::runtime_error("Not a number");
-			if (temp.at(i) == '.') {
-				if (dotCount > 4)
-					throw std::runtime_error("Incorrect IP format, correct format is: [0-255].[0-255].[0-255].[0-255]");
-				dotCount++;
-				if (dotCount == 0)
-					checkRange = temp.substr(lastDot, i);  // this will skip the last number
-				else
-					checkRange = temp.substr(lastDot, i - lastDot);
-				lastDot = i + 1;
-				if (atoi(checkRange.c_str()) < 0 || atoi(checkRange.c_str()) > 255)	 // DRY
-					throw std::runtime_error("Ip address has to be in the range of 0 to 255");
-				std::cout << BG_AMBER400 << checkRange << RESET << '\n';
+	while (check(IDENTIFIER)) {
+		std::string temp = "";
+		std::string port = "";
+		int convertedPort = -1;	 // we can use default 80 here
+		std::string checkRange = "";
+		int lastDot = 0;
+		t_listen listen_conf;
+		temp = consume(IDENTIFIER, "expected format: address[:port]").getAll();
+		if (temp.find('.') != std::string::npos || check(COLON)) {
+			int dotCount = 0;
+			for (size_t i = 0; i < temp.size(); i++) {
+				if (!std::isdigit(temp.at(i)) && temp.at(i) != '.')
+					throw std::runtime_error("Not a number");
+				if (temp.at(i) == '.') {
+					if (dotCount > 4)
+						throw std::runtime_error("Incorrect IP format, correct format is: [0-255].[0-255].[0-255].[0-255]");
+					dotCount++;
+					if (dotCount == 0)
+						checkRange = temp.substr(lastDot, i);
+					else
+						checkRange = temp.substr(lastDot, i - lastDot);
+					lastDot = i + 1;
+					if (atoi(checkRange.c_str()) < 0 || atoi(checkRange.c_str()) > 255)	 // DRY
+						throw std::runtime_error("Incorrect IP format, correct format is: [0-255].[0-255].[0-255].[0-255]");
+				}
 			}
+			if (dotCount != 3)
+				throw std::runtime_error("Incorrect IP format, correct format is: [0-255].[0-255].[0-255].[0-255]");
+			checkRange = temp.substr(lastDot);
+			if (atoi(checkRange.c_str()) < 0 || atoi(checkRange.c_str()) > 255)	 // DRY
+				throw std::runtime_error("Incorrect IP format, correct format is: [0-255].[0-255].[0-255].[0-255]");
+		} else {
+			port = temp;
 		}
-		if (dotCount != 3)
-			throw std::runtime_error("Incorrect IP format, correct format is: [0-255].[0-255].[0-255].[0-255]");
-		checkRange = temp.substr(lastDot);
-		if (atoi(checkRange.c_str()) < 0 || atoi(checkRange.c_str()) > 255)	 // DRY
-			throw std::runtime_error("Incorrect IP format, correct format is: [0-255].[0-255].[0-255].[0-255]");
-		// check for the last number range
-	} else {
-		port = temp;  // treat it as a port
+		if (check(COLON)) {
+			consume(COLON, "");
+			port = consume(IDENTIFIER, "expected port after colon").getAll();
+		}
+		if (port != "") {
+			convertedPort = atoi(port.c_str());
+			if (convertedPort < 0 || convertedPort > 65535)
+				throw std::runtime_error("Port should be in range of 0 to 65535");
+		}
+		if (temp == port)
+			listen_conf.host = "0.0.0.0";
+		else
+			listen_conf.host = temp;
+		listen_conf.port = convertedPort;
+		checkDuplicateListen(listen_conf);
+		tempConfig.listen.push_back(listen_conf);  // check for duplicate
 	}
-	if (check(COLON)) {
-		consume(COLON, "");
-		port = consume(IDENTIFIER, "expected port after colon").getAll();
-	}
-	if (port != "") {
-		convertedPort = atoi(port.c_str());
-		if (convertedPort < 0 || convertedPort > 65535)
-			throw std::runtime_error("Port should be in range of 0 to 65535");
-	}
-	// can be host:port or host or port;
-	// check if its consist of correct number ip address can range from 0 to 255
-	// port can range from  0 to 65535
 	consume(SEMICOLON, "expected ';' after the statement");
 }
 
@@ -560,6 +564,18 @@ size_t Parser::parseMaxClientBody() {
 			throw std::runtime_error("Unrecognizeable unit found in one of the max_client_body_size directive");
 	}
 	return 0;
+}
+
+void Parser::checkDuplicateListen(t_listen check) {
+	std::stringstream compare;
+	std::stringstream temp;
+	compare << check.host << ":" << check.port;
+	for (size_t i = 0; i < tempConfig.listen.size(); i++) {
+		temp << tempConfig.listen.at(i).host << ":" << tempConfig.listen.at(i).port;
+		if (temp.str() == compare.str())
+			throw std::runtime_error("Duplicate listen in the same server block");
+		temp.str("");
+	}
 }
 
 void Parser::parseConfig() {
