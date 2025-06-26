@@ -7,11 +7,12 @@
 #include <string.h>
 #include <arpa/inet.h>
 
-ServerSocket::ServerSocket(std::string address, std::string port)
+ServerSocket::ServerSocket(std::string host, int port)
+	: _host(host), _port(port)
 {
-	_address.sin_family = AF_INET;
-	_address.sin_port = htons(atoi(port.c_str()));
-	_address.sin_addr.s_addr = inet_addr(address.c_str());
+	_address_conf.sin_family = AF_INET;
+	_address_conf.sin_port = htons(port);
+	_address_conf.sin_addr.s_addr = inet_addr(_host.c_str());
 	_socket_fd = socket(AF_INET, SOCK_STREAM, 0);
 	is_socket_created(_socket_fd);
 }
@@ -22,6 +23,7 @@ ServerSocket::ServerSocket(ServerSocket &other) {
 
 ServerSocket::~ServerSocket() {
 	if (_socket_fd >= 0) {
+		std::cout << "[ServerSocket] Destroying socket - " << _host << ":" << _port << std::endl;
 		close_socket();
 	}
 }
@@ -32,7 +34,9 @@ ServerSocket &ServerSocket::operator=(ServerSocket &other) {
 			close_socket();
 		}
 		_socket_fd = other._socket_fd;
-		_address = other._address;
+		_address_conf = other._address_conf;
+		_port = other._port;
+		_host = other._host;
 		other._socket_fd = -1;
 	}
 	return (*this);
@@ -44,7 +48,7 @@ int ServerSocket::get_fd() const {
 }
 
 struct sockaddr_in ServerSocket::get_address() {
-	return _address;
+	return _address_conf;
 }
 
 /* setters */
@@ -52,8 +56,8 @@ void ServerSocket::set_socket(int socket) {
 	_socket_fd = socket;
 }
 
-void ServerSocket::set_address(sockaddr_in address) {
-	_address = address;
+void ServerSocket::set_address_conf(sockaddr_in addres_conf) {
+	_address_conf = addres_conf;
 }
 
 void ServerSocket::set_opt(int opt, bool to_set, int level) {
@@ -74,7 +78,7 @@ void ServerSocket::is_socket_created(int socket_fd) {
 
 int ServerSocket::start_connection() {
 	int status;
-	status = bind(_socket_fd, (struct sockaddr*)&_address, sizeof(_address));
+	status = bind(_socket_fd, (struct sockaddr*)&_address_conf, sizeof(_address_conf));
 	is_binded(status);
 	status = listen(_socket_fd, SOCKET_DEFAULT_MAX_CONNECTIONS);
 	is_listening(status);

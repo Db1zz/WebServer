@@ -1,7 +1,7 @@
 NAME = ./webserv
 INCLUDE_DIR = -I Sockets -I Server -I Parser -I Utilities -I Logger
 CXX = c++ -std=c++98
-CXXFLAGS = -Wall -Wextra -g $(INCLUDE_DIR) #-Werror
+CXXFLAGS = -Wall -Wextra -Werror $(INCLUDE_DIR)
 
 SRC = \
 	Server/ServerSocket.cpp \

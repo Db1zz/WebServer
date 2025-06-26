@@ -10,7 +10,7 @@
 
 class ServerSocket {
 public:
-	ServerSocket(std::string address, std::string port);
+	ServerSocket(std::string host, int port);
 	ServerSocket(ServerSocket &other);
 	~ServerSocket();
 	ServerSocket &operator=(ServerSocket &other);
@@ -20,7 +20,7 @@ public:
 
 	/* setters */
 	void set_socket(int socket);
-	void set_address(struct sockaddr_in address);
+	void set_address_conf(struct sockaddr_in address);
 	void set_opt(int opt, bool to_set, int level = SOL_SOCKET);
 
 	/* general functions */
@@ -34,8 +34,10 @@ protected:
 	void is_listening(int status);
 
 	/* private variables */
+	std::string _host;
+	int _port;
 	int _socket_fd;
-	struct sockaddr_in _address;
+	struct sockaddr_in _address_conf;
 	// const int _max_connections = 1024;
 };
 
