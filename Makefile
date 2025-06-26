@@ -1,5 +1,5 @@
 NAME = ./webserv
-INCLUDE_DIR = -I Sockets -I Server -I Parser -fsanitize=address
+INCLUDE_DIR = -I Sockets -I Server -I Parser
 CXX = c++ -std=c++98
 CXXFLAGS = -Wall -Werror -Wextra -g $(INCLUDE_DIR)
 
