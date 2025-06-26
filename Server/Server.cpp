@@ -48,10 +48,6 @@ void Server::init() {
 	create_sockets_from_configs();
 }
 
-/*
-	Notes:
-		1. request_event.data.fd == _sockets[j]->get_fd() means that there's a new signal
-*/
 Status Server::handle_event(int amount_of_events) {
 	Status status;
 
@@ -69,7 +65,8 @@ Status Server::handle_event(int amount_of_events) {
 				if (request_event.events & EPOLLIN) {
 					request = request_handler(request_event);
 					request.size(); // suppress unused variable err
-				} else if (request_event.events & EPOLLOUT) {
+				}
+				if (request_event.events & EPOLLOUT) {
 					t_request req;
 					req.method = "GET";
 					req.uri_path = "/";
@@ -112,7 +109,7 @@ std::vector<std::string> Server::read_request(const epoll_event &request_event) 
 	// 	throw std::runtime_error("read() failed!");
 	// }
 	read_buff[rd_bytes] = 0;
-	std::cout << CYAN300 << "REQUEST:\n" << read_buff << RESET << std::endl;
+	// std::cout << CYAN300 << "REQUEST:\n" << read_buff << RESET << std::endl;
 	return std::vector<std::string>();	// return empty arr
 }
 
@@ -168,8 +165,7 @@ Status Server::accept_new_connection(int socket_fd) {
 	return _event.add_event(EPOLLIN | EPOLLOUT, cl_fd);
 }
 
-Status Server::announce_new_connection(const struct sockaddr &cl_sockaddr,
-									 int cl_fd) {
+Status Server::announce_new_connection(const struct sockaddr &cl_sockaddr, int cl_fd) {
 	char hbuff[NI_MAXHOST];
 	char sbuff[NI_MAXSERV];
 	int err = getnameinfo(&cl_sockaddr, sizeof(cl_sockaddr), sbuff, sizeof(sbuff),
