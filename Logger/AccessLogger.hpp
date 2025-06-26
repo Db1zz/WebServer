@@ -11,7 +11,7 @@ class AccessLogger : public ALogger {
 public:
 	AccessLogger(std::string path);
 
-	Status<> write();
+	Status write();
 };
 
 #endif  // LOGGER_ACCESS_LOGGER_HPP

@@ -555,6 +555,35 @@ size_t Parser::parseMaxClientBody() {
 	return 0;
 }
 
+bool Parser::does_port_exist(const std::string &port, const std::vector<std::string> &ports) {
+	for (size_t i = 0; i < ports.size(); ++i) {
+		if (ports[i] == port) {
+			return true;
+		}
+	}
+	return false;
+}
+
+void Parser::split_host_and_address() {
+	t_config *config;
+	size_t pos;
+	std::string port;
+
+	for (size_t i = 0; i < _configVector.size(); ++i) {
+		config = &_configVector[i];
+		for (size_t j = 0; j < config->host.size(); ++j) {
+			pos = config->host[j].find(":");
+			if (pos != std::string::npos) {
+				port = config->host[j].substr(pos + 1);
+				if (!does_port_exist(port, config->port)) {
+					config->port.push_back(port);
+				}
+				config->host[j] = config->host[j].substr(0, pos);
+			}
+		}
+	}
+}
+
 void Parser::parseConfig() {
 	while (!tokenIsAtEnd()) {
 		if (match(SERVER)) {
@@ -601,4 +630,6 @@ void Parser::parseConfig() {
 			throw std::runtime_error("expected server block, got \"" + tokenPeek().getAll() + "\" instead");
 		}
 	}
+
+	split_host_and_address();
 }

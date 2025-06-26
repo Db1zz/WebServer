@@ -1,13 +1,10 @@
 #include "Parser/Parser.hpp"
-#include "Sockets/ClientSocket.hpp"
-#include "Sockets/ServerSocket.hpp"
-#include "Sockets/ASocket.hpp"
 #include "Server/Server.hpp"
 
 int main(int argc, char** argv) {
 	std::string fileName;
 
-	if (argc > 2) {
+	if (argc > 2 || argc <= 1) {
 		std::cerr << "Incorrect use!\nCorrect use is: " << argv[0]
 				  << " [optional: config.conf]\n";
 		return 2;
@@ -28,7 +25,7 @@ int main(int argc, char** argv) {
 		std::cerr << e.what() << '\n';
 		return 1;
 	}
-	Server server(config);
-	server.get_socket()->set_opt(SO_REUSEADDR, true);
+
+  Server server(config);
 	server.launch();
 }
