@@ -26,18 +26,18 @@ class Server {
 public:
 	Server(std::vector<t_config> configs);
 	~Server();
-	void launch();
+	Status launch();
 
 private:
 	void init();
-	void handle_event(int amount_of_events);
-	void accept_new_connection(int new_connection_fd);
-	void announce_new_connection(const struct sockaddr &cl_sockaddr, int cl_fd);
+	Status handle_event(int amount_of_events);
+	Status accept_new_connection(int new_connection_fd);
+	Status announce_new_connection(const struct sockaddr &cl_sockaddr, int cl_fd);
 	std::vector<std::string> read_request(const epoll_event &request_event);
 	std::vector<std::string> request_handler(const epoll_event &request_event);
-	void response_handler(const epoll_event &request_event, const t_request &request);
+	Status response_handler(const epoll_event &request_event, const t_request &request);
 	std::string response_generator(/* TODO: add args*/);
-	void create_sockets_from_configs();
+	Status create_sockets_from_configs();
 	void destroy_sockets();
 	void print_debug_addr(const std::string &address, const std::string &port);
 	void set_default_host_and_port_if_needed(t_config &config);

@@ -24,7 +24,7 @@ ServerEvent::~ServerEvent() {
     }
 }
 
-void ServerEvent::add_event(uint32_t events, int event_fd) {
+Status ServerEvent::add_event(uint32_t events, int event_fd) {
     epoll_event new_event;
 
     new_event.data.fd = event_fd;
@@ -34,8 +34,23 @@ void ServerEvent::add_event(uint32_t events, int event_fd) {
         resize_events_arr(_events_capacity * 2);
     }
 
-    epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, event_fd, &new_event);
+    if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, event_fd, &new_event) < 0) {
+        return Status(strerror(errno));
+    }
     ++_events_size;
+    return Status();
+}
+
+Status ServerEvent::remove_event(uint32_t events, int event_fd) {
+    epoll_event event_to_remove;
+
+    event_to_remove.data.fd = event_fd;
+    event_to_remove.events = events;
+    if (epoll_ctl(_epoll_fd, EPOLL_CTL_DEL, event_fd, &event_to_remove) < 0) {
+        return Status(strerror(errno));
+    }
+    /* README: should _events_size to grow? */
+    return Status();
 }
 
 /*
@@ -43,32 +58,50 @@ void ServerEvent::add_event(uint32_t events, int event_fd) {
 
     read about it: man epoll_wait
 */
-int ServerEvent::wait_event(int timeout) {
-    int nfds = epoll_wait(_epoll_fd, _events_arr, _events_capacity, timeout);
-    if (nfds < 0) {
-        std::runtime_error("epoll_wait() failed: " + std::string(strerror(errno)));
+Status ServerEvent::wait_event(int timeout, int *nfds) {
+    *nfds = epoll_wait(_epoll_fd, _events_arr, _events_capacity, timeout);
+    if (*nfds < 0) {
+        return Status(strerror(errno));
     }
-    return nfds;
+    return Status();
 }
 
 epoll_event *ServerEvent::operator[](size_t index) {
     if (index > _events_size) {
-        std::runtime_error("Error in ServerEvent::operator[]: index > _events_size");
+        throw std::runtime_error("Error in ServerEvent::operator[]: index > _events_size");
     }
     return &(_events_arr[index]);
 }
 
-void ServerEvent::init() {
+Status ServerEvent::init() {
     _epoll_fd = epoll_create(1);
-    _events_arr = new epoll_event[_events_capacity];
+    if (_epoll_fd < 0) {
+        return Status(strerror(errno));
+    }
+
+    try {
+        _events_arr = new epoll_event[_events_capacity];
+    } catch (const std::exception &e) {
+        return Status(e.what());
+    }
+
+    return Status();
 }
 
-void ServerEvent::resize_events_arr(size_t new_size) {
-    epoll_event *new_events_arr = new epoll_event[new_size];
-    copy_events_arr(_events_capacity, _events_arr, new_events_arr);
-    delete[] _events_arr;
-    _events_arr = new_events_arr;
-    _events_capacity = new_size;
+Status ServerEvent::resize_events_arr(size_t new_size) {
+    epoll_event *new_events_arr;
+
+    try {
+        new_events_arr = new epoll_event[new_size];
+        copy_events_arr(_events_capacity, _events_arr, new_events_arr);
+        delete[] _events_arr;
+        _events_arr = new_events_arr;
+        _events_capacity = new_size;    
+    } catch (const std::exception &e) {
+        return Status(e.what());
+    }
+
+    return Status();
 }
 
 void ServerEvent::copy_events_arr(size_t src_size, const epoll_event *src, epoll_event *dst) {

@@ -1,5 +1,6 @@
 #include "Parser/Parser.hpp"
 #include "Server/Server.hpp"
+#include "colors.hpp"
 
 #include <vector>
 #include <string>
@@ -16,6 +17,7 @@ int main(int argc, char** argv) {
 	} else if (argc == 2) {
 		fileName = argv[argc - 1];
 	}
+
 	std::vector<t_config> config;
 	try
 	{
@@ -29,6 +31,12 @@ int main(int argc, char** argv) {
 		return 1;
 	}
 
-  Server server(config);
-	server.launch();
+	try {
+		Server server(config);
+		server.launch();
+	} catch (const std::exception &e) {
+		std::cout << "[Server] " << RED300 << "Fatal Error: " << RESET << e.what() << std::endl;
+		return 1;
+	}
+	return 0;
 }

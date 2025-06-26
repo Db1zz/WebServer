@@ -60,13 +60,19 @@ void ServerSocket::set_address_conf(sockaddr_in addres_conf) {
 	_address_conf = addres_conf;
 }
 
-void ServerSocket::set_opt(int opt, bool to_set, int level) {
-	setsockopt(_socket_fd, level, opt, &to_set, sizeof(to_set));
+Status ServerSocket::set_opt(int opt, bool to_set, int level) {
+	if (setsockopt(_socket_fd, level, opt, &to_set, sizeof(to_set)) < 0) {
+		return Status("setsockopt() ", strerror(errno));
+	}
+	return Status();
 }
 
 /* general functions */
-void ServerSocket::close_socket() {
-	close(_socket_fd);
+Status ServerSocket::close_socket() {
+	if (close(_socket_fd) < 0) {
+		return Status("close() ", strerror(errno));
+	}
+	return Status();
 }
 
 /* private functions */
@@ -76,23 +82,12 @@ void ServerSocket::is_socket_created(int socket_fd) {
 	}
 }
 
-int ServerSocket::start_connection() {
-	int status;
-	status = bind(_socket_fd, (struct sockaddr*)&_address_conf, sizeof(_address_conf));
-	is_binded(status);
-	status = listen(_socket_fd, SOCKET_DEFAULT_MAX_CONNECTIONS);
-	is_listening(status);
-	return 0;
-}
-
-void ServerSocket::is_listening(int status) {
-	if (status < 0) {
-		throw std::runtime_error("listen() failed: " + std::string(strerror(errno)));
+Status ServerSocket::start_connection() {
+	if (bind(_socket_fd, (struct sockaddr*)&_address_conf, sizeof(_address_conf)) < 0) {
+		return Status("bind() ", strerror(errno));
 	}
-}
-
-void ServerSocket::is_binded(int status) {
-	if (status < 0) {
-		throw std::runtime_error("bind() failed: " + std::string(strerror(errno)));
+	if (listen(_socket_fd, SOCKET_DEFAULT_MAX_CONNECTIONS)) {
+		return Status("listen() ", strerror(errno));
 	}
+	return Status();
 }

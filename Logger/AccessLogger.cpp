@@ -7,7 +7,7 @@
 AccessLogger::AccessLogger(std::string path)
 {
 	Status status = open_log_file();
-	if (status) {
+	if (!status) {
 		throw std::runtime_error("AccessLogger Error: " + status);
 	}
 }

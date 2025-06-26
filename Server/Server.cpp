@@ -24,15 +24,24 @@ void Server::destroy_sockets() {
 	}
 }
 
-void Server::launch() {
+Status Server::launch() {
+	Status status;
 	int amount_of_events = 0;
 
 	while (true) {
-		amount_of_events = _event.wait_event(-1);
+		status = _event.wait_event(-1, &amount_of_events);
+		if (!status) {
+			throw std::runtime_error("wait_event() failed in Server::Launch(): " + status.msg());
+		}
+
 		if (amount_of_events > 0) {
-			handle_event(amount_of_events);
+			status = handle_event(amount_of_events);
+			if (!status) {
+				throw std::runtime_error("handle_event() failed in Server::Launch(): " + status.msg());
+			}
 		}
 	}
+	return Status();
 }
 
 void Server::init() {
@@ -43,18 +52,20 @@ void Server::init() {
 	Notes:
 		1. request_event.data.fd == _sockets[j]->get_fd() means that there's a new signal
 */
-void Server::handle_event(int amount_of_events) {
+Status Server::handle_event(int amount_of_events) {
+	Status status;
+
 	for (int i = 0; i < amount_of_events; ++i) {
 		const epoll_event &request_event = *_event[i];
 		for (size_t j = 0; j < _sockets.size(); ++j) {
 			if (request_event.data.fd == _sockets[j]->get_fd()) {
-				accept_new_connection(request_event.data.fd);
+				status = accept_new_connection(request_event.data.fd);
+				if (!status) {
+					return Status("accept_new_connection() failed in Server::handle_event(): " + status.msg());
+				}
 			} else {
 				// handle request and generate response
 				std::vector<std::string> request;
-				
-				std::cout << "EPOLLIN: " << (request_event.events & EPOLLIN) << std::endl;
-				std::cout << "EPOLLOUT: " << (request_event.events & EPOLLOUT) << std::endl;
 				if (request_event.events & EPOLLIN) {
 					request = request_handler(request_event);
 					request.size(); // suppress unused variable err
@@ -69,12 +80,15 @@ void Server::handle_event(int amount_of_events) {
 					req.mime_type = "html";
 					req.content_type = "text/html";
 	
-					response_handler(request_event, req);
-					close(request_event.data.fd);
+					status = response_handler(request_event, req);
+					if (!status) {
+						return Status("response_handler() failed in Server::handle_event(): " + status.msg());
+					}
 				}
 			}
 		}
 	}
+	return Status();
 }
 
 std::vector<std::string> Server::read_request(const epoll_event &request_event) {
@@ -121,13 +135,14 @@ std::vector<std::string> Server::request_handler(
 	return request;
 }
 
-void Server::response_handler(const epoll_event &request_event,
-							  const t_request &request) {
+Status Server::response_handler(const epoll_event &request_event, const t_request &request)
+{
 	ServerResponse resp(request, _configs[0]);
 	std::string res = resp.generate_response();
 	if (write(request_event.data.fd, res.c_str(), res.size()) < 0) {
-		perror("write");
+		return Status("write() ", strerror(errno));
 	}
+	return Status();
 }
 
 std::string Server::response_generator(/* TODO: add args*/) {
@@ -136,37 +151,37 @@ std::string Server::response_generator(/* TODO: add args*/) {
 	return response_str;
 }
 
-void Server::accept_new_connection(int socket_fd) {
+Status Server::accept_new_connection(int socket_fd) {
 	struct sockaddr cl_sockaddr;
 	socklen_t cl_len = sizeof(cl_sockaddr);
 	int cl_fd;
 
 	cl_fd = accept(socket_fd, &cl_sockaddr, &cl_len);
 	if (cl_fd < 0) {
-		std::runtime_error("accept() failed: " + std::string(strerror(errno)));
+		return Status(strerror(errno));
 	}
 
-	// fcntl(cl_fd, F_SETFL, O_NONBLOCK);
-	_event.add_event(EPOLLIN | EPOLLOUT, cl_fd);
+	if (fcntl(cl_fd, F_SETFL, O_NONBLOCK) < 0) {
+		return Status(strerror(errno));
+	}
 	announce_new_connection(cl_sockaddr, cl_fd);
+	return _event.add_event(EPOLLIN | EPOLLOUT, cl_fd);
 }
 
-void Server::announce_new_connection(const struct sockaddr &cl_sockaddr,
+Status Server::announce_new_connection(const struct sockaddr &cl_sockaddr,
 									 int cl_fd) {
 	char hbuff[NI_MAXHOST];
 	char sbuff[NI_MAXSERV];
-	int status = 0;
-
-	status =
-		getnameinfo(&cl_sockaddr, sizeof(cl_sockaddr), sbuff, sizeof(sbuff),
+	int err = getnameinfo(&cl_sockaddr, sizeof(cl_sockaddr), sbuff, sizeof(sbuff),
 					hbuff, sizeof(hbuff), NI_NUMERICHOST | NI_NUMERICSERV);
-	if (status != 0) {
-		std::runtime_error("genameinfo() failed");
+	if (err < 0) {
+		return Status("getnameinfo() ", strerror(errno));
 	}
 	printf(
 		"Accepted new connection on descriptor %d\n"
 		"(host: %s, addr: %s)\n",
 		cl_fd, hbuff, sbuff);
+	return Status();
 }
 
 void Server::set_default_host_and_port_if_needed(t_config &config)
@@ -179,7 +194,8 @@ void Server::set_default_host_and_port_if_needed(t_config &config)
 	}
 }
 
-void Server::create_sockets_from_configs() {
+Status Server::create_sockets_from_configs() {
+	Status status;
 	int yes = 1;
 
 	_sockets.reserve(_configs.size());
@@ -193,7 +209,9 @@ void Server::create_sockets_from_configs() {
 
 				print_debug_addr(config.host[j], config.port[k]); // REMOVEME
 
-				setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes));
+				if (setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes))) {
+					return Status(strerror(errno));
+				}
 				new_socket->start_connection();
 				
 				_event.add_event(EPOLLIN | EPOLLOUT, socket_fd);
@@ -201,6 +219,7 @@ void Server::create_sockets_from_configs() {
 			}
 		}
 	}
+	return Status();
 }
 
 void Server::print_debug_addr(const std::string &address, const std::string &port) {

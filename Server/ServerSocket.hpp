@@ -1,6 +1,8 @@
 #ifndef SERVER_SERVER_SOCKET_HPP
 #define SERVER_SERVER_SOCKET_HPP
 
+#include "status.hpp"
+
 #include <iostream>
 #include <string.h>
 #include <sys/socket.h>
@@ -21,17 +23,15 @@ public:
 	/* setters */
 	void set_socket(int socket);
 	void set_address_conf(struct sockaddr_in address);
-	void set_opt(int opt, bool to_set, int level = SOL_SOCKET);
+	Status set_opt(int opt, bool to_set, int level = SOL_SOCKET);
 
 	/* general functions */
-	void close_socket();
-	int start_connection();
+	Status close_socket();
+	Status start_connection();
 
 protected:
 	/* private functions */
 	void is_socket_created(int socket_fd);
-	void is_binded(int status);
-	void is_listening(int status);
 
 	/* private variables */
 	std::string _host;
