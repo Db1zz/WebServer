@@ -1,10 +1,13 @@
 #include "Parser/Parser.hpp"
 #include "Server/Server.hpp"
 
+#include <vector>
+#include <string>
+
 int main(int argc, char** argv) {
 	std::string fileName;
 
-	if (argc > 2 || argc <= 1) {
+	if (argc > 2) {
 		std::cerr << "Incorrect use!\nCorrect use is: " << argv[0]
 				  << " [optional: config.conf]\n";
 		return 2;
