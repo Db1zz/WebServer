@@ -79,7 +79,8 @@ void Server::handle_event(int amount_of_events) {
 		} else {
 			// handle request and generate response
 
-			t_request req = request_handler(request_event);
+			t_request req;
+			request_handler(request_event, req);
 			response_handler(request_event, req);
 			close(request_event.data.fd);
 		}
@@ -101,12 +102,12 @@ std::string Server::read_request(
 	return read_buff;
 }
 
-t_request Server::request_handler(
-	const epoll_event &request_event) {
+Status Server::request_handler(
+	const epoll_event &request_event, t_request &req) {
 	std::string request = read_request(request_event);
-	t_request req = request_parser(request);
+	req = request_parser(request);
 	// request_validator();
-	return req;
+	return Status();
 }
 
 void Server::response_handler(const epoll_event &request_event,
