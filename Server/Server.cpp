@@ -96,7 +96,7 @@ Status Server::read_request(const epoll_event &request_event) {
 	const size_t read_buff_size = 10024;
 	char read_buff[read_buff_size];	 // TODO: read about what size of the header
 	ssize_t rd_bytes = 0;
-
+	read_buff[0] = 0;
 	/*
 		Checking the value of errno is strictly forbidden after performing a read or write operation. :(
 	*/
