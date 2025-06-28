@@ -1,16 +1,10 @@
-FROM ubuntu:20.04
-
-ENV DEBIAN_FRONTEND=noninteractive
+FROM ubuntu:latest
 
 RUN apt-get update && apt-get install -y \
 	build-essential \
 	g++ \
-	make \
-	&& rm -rf /var/lib/apt/lists/*
+	make
 
 WORKDIR /app
-COPY . .
 
-RUN make re
-
-CMD ["./webserv"]
+CMD ["bash"]

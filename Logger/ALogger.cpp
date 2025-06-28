@@ -12,7 +12,7 @@ ALogger::~ALogger() {
 	}
 }
 
-Status<> ALogger::open_log_file() {
+Status ALogger::open_log_file() {
 	std::fstream file;
 	return fs::open_file(file, _path, std::ios::out);
 }

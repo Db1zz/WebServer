@@ -2,13 +2,16 @@
 
 Status::Status() : _ok(true), _code(200), _msg("OK") {}
 
-Status::Status(std::string error) : _ok(false), _code(1), _msg(error) {}
+Status::Status(std::string error) : _ok(false), _code(200), _msg(error) {}
 
 Status::Status(std::string error, int code)
 	: _ok(false), _code(code), _msg(error) {}
 
 Status::Status(std::string error, int code, bool ok)
 	: _ok(ok), _code(code), _msg(error) {}
+
+Status::Status(std::string func_name, const char *errmsg)
+	: _ok(false), _code(200), _msg(func_name + errmsg) {}
 
 Status::Status(const Status &to_copy) { *this = to_copy; }
 

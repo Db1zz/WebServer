@@ -59,6 +59,8 @@ class Parser {
 	void fillDefaultValues();
 	void parseReturn(std::string &path, int *code);
 	size_t	parseMaxClientBody();
+	void split_host_and_address();
+	bool does_port_exist(const std::string &port, const std::vector<std::string> &ports);
 
 	t_config tempConfig;
 };

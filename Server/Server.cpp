@@ -1,97 +1,117 @@
 #include "Server.hpp"
 
 #include <errno.h>
-#include <netdb.h> /* getnameinfo() */
 #include <string.h>
 
 #include <cstdio>
+#include <signal.h>
 
 Server::Server(std::vector<t_config> configs)
-	: IServer(AF_INET, SOCK_STREAM, 0, 80, INADDR_ANY, 10), _configs(configs)
+	: _configs(configs)
 {
+	signal(SIGPIPE, SIG_IGN);
 	init();
 }
 
 Server::~Server() {
-	// nothing to destroy :< living in peace <3
+	destroy_sockets();
 }
 
-void Server::launch() {
-	int amount_of_events = 0;
-
-	/*
-		TODO:
-			Port shouldn't be static, modify cout later.
-	*/
-	get_socket()->start_connection();
-	std::cout << GREEN400 << "----LISTENING AT PORT 80----" << RESET
-			  << std::endl;
-	while (true) {
-		amount_of_events = _event.wait_event(2.5);
-		handle_event(amount_of_events);
-	}
-}
-
-void Server::init() {
-	int yes = 1;
-
-	_event.add_event(EPOLLIN | EPOLLOUT, get_socket()->get_fd());
-	setsockopt(get_socket()->get_fd(), SOL_SOCKET, SO_REUSEADDR, &yes,
-			   sizeof(yes));
-}
-
-void Server::handle_event(int amount_of_events) {
-	for (int i = 0; i < amount_of_events; ++i) {
-		const epoll_event &request_event = *_event[i];
-
-		if (request_event.data.fd == get_socket()->get_fd()) {
-			// Accept connection and add new event
-			accept_new_connection(request_event.data.fd);
-		} else {
-			// handle request and generate response
-			std::vector<std::string> request;
-
-			request = request_handler(request_event);
-			request.size();	 // suppress unused variable err
-
-			/*hardcoding the request for now, this filled struct should be
-			 * received from parser later*/
-			t_request req;
-			req.method = "GET";
-			req.uri_path = "/";
-			req.user_agent = "";
-			req.host = "localhost";
-			req.language = "";
-			req.connection = "keep-alive";
-			req.mime_type = "html";
-			req.content_type = "text/html";
-
-			response_handler(request_event, req);
-			close(request_event.data.fd);
+void Server::destroy_sockets() {
+	for (size_t i = 0; i < _sockets.size(); ++i) {
+		if (_sockets[i]) {
+			delete _sockets[i];
 		}
 	}
 }
 
-std::vector<std::string> Server::read_request(
-	const epoll_event &request_event) {
-	const size_t read_buff_size = 1024;
-	char read_buff[read_buff_size];	 // TODO: read about what size of the header
-									 // we can get
-	ssize_t rd_bytes;
+Status Server::launch() {
+	Status status;
+	int amount_of_events = 0;
 
-	rd_bytes = read(request_event.data.fd, read_buff, read_buff_size);
-	if (rd_bytes < 0) {
-		std::runtime_error("read() failed!");
-		close(request_event.data.fd);
+	while (true) {
+		status = _event.wait_event(-1, &amount_of_events);
+		if (!status) {
+			throw std::runtime_error("wait_event() failed in Server::Launch(): " + status.msg());
+		}
+
+		if (amount_of_events > 0) {
+			status = handle_event(amount_of_events);
+			if (!status) {
+				throw std::runtime_error("handle_event() failed in Server::Launch(): " + status.msg());
+			}
+		}
 	}
-	// TODO: add loop in which we're going to fill std::vector<std::string>
-	std::cout << CYAN300 << "REQUEST:\n" << read_buff << RESET << std::endl;
-	return std::vector<std::string>();	// return empty arr
+	return Status();
 }
 
-std::vector<std::string> Server::request_handler(
+void Server::init() {
+	create_sockets_from_configs();
+}
+
+Status Server::handle_event(int amount_of_events) {
+	Status status;
+
+	for (int i = 0; i < amount_of_events; ++i) {
+		const epoll_event &request_event = *_event[i];
+		for (size_t j = 0; j < _sockets.size(); ++j) {
+			if (request_event.data.fd == _sockets[j]->get_fd()) {
+				status = accept_new_connection(request_event.data.fd);
+				if (!status) {
+					return Status("accept_new_connection() failed in Server::handle_event(): " + status.msg());
+				}
+			} else {
+				if (request_event.events & EPOLLRDHUP) {
+					std::cout << "[Server] Connection with the FD " << request_event.data.fd << " is closed\n";
+					close(request_event.data.fd);
+					continue;
+				}
+				if (!request_handler(request_event)) {
+					continue;
+				}
+				if (request_event.events & EPOLLOUT) {
+					t_request req;
+					req.method = "GET";
+					req.uri_path = "/";
+					req.user_agent = "";
+					req.host = "localhost";
+					req.language = "";
+					req.connection = "keep-alive";
+					req.mime_type = "html";
+					req.content_type = "text/html";
+	
+					status = response_handler(request_event, req);
+					if (!status) {
+						return Status("response_handler() failed in Server::handle_event(): " + status.msg());
+					}
+				}
+				_event.event_mod(SERVER_EVENT_CLIENT_EVENTS, request_event.data.fd);
+			}
+		}
+	}
+	return Status();
+}
+
+Status Server::read_request(const epoll_event &request_event) {
+	const size_t read_buff_size = 10024;
+	char read_buff[read_buff_size];	 // TODO: read about what size of the header
+	ssize_t rd_bytes = 0;
+	read_buff[0] = 0;
+	/*
+		Checking the value of errno is strictly forbidden after performing a read or write operation. :(
+	*/
+	rd_bytes = read(request_event.data.fd, read_buff, read_buff_size);
+	read_buff[rd_bytes] = 0;
+	if (rd_bytes == 0) {
+		return Status("EOF");
+	}
+	std::cout << CYAN300 << "REQUEST:\n" << read_buff << RESET << std::endl;
+	return Status();
+}
+
+Status Server::request_handler(
 	const epoll_event &request_event) {
-	std::vector<std::string> request = read_request(request_event);
+		Status request = read_request(request_event);
 
 	/*
 		Goshan41k
@@ -108,11 +128,14 @@ std::vector<std::string> Server::request_handler(
 	return request;
 }
 
-void Server::response_handler(const epoll_event &request_event,
-							  const t_request &request) {
+Status Server::response_handler(const epoll_event &request_event, const t_request &request)
+{
 	ServerResponse resp(request, _configs[0]);
 	std::string res = resp.generate_response();
+
 	write(request_event.data.fd, res.c_str(), res.size());
+
+	return Status();
 }
 
 std::string Server::response_generator(/* TODO: add args*/) {
@@ -121,33 +144,76 @@ std::string Server::response_generator(/* TODO: add args*/) {
 	return response_str;
 }
 
-void Server::accept_new_connection(int new_connection_fd) {
+Status Server::accept_new_connection(int socket_fd) {
 	struct sockaddr cl_sockaddr;
 	socklen_t cl_len = sizeof(cl_sockaddr);
 	int cl_fd;
 
-	cl_fd = accept(new_connection_fd, &cl_sockaddr, &cl_len);
+	cl_fd = accept(socket_fd, &cl_sockaddr, &cl_len);
 	if (cl_fd < 0) {
-		std::runtime_error("accept() failed: " + std::string(strerror(errno)));
+		return Status(strerror(errno));
 	}
-	_event.add_event(EPOLLIN, cl_fd);
+	if (fcntl(cl_fd, F_SETFL, O_NONBLOCK) < 0) {
+		return Status(strerror(errno));
+	}
+
 	announce_new_connection(cl_sockaddr, cl_fd);
+	return _event.add_event(SERVER_EVENT_CLIENT_EVENTS, cl_fd);
 }
 
-void Server::announce_new_connection(const struct sockaddr &cl_sockaddr,
-									 int cl_fd) {
+Status Server::announce_new_connection(const struct sockaddr &cl_sockaddr, int cl_fd) {
 	char hbuff[NI_MAXHOST];
 	char sbuff[NI_MAXSERV];
-	int status = 0;
-
-	status =
-		getnameinfo(&cl_sockaddr, sizeof(cl_sockaddr), sbuff, sizeof(sbuff),
+	int err = getnameinfo(&cl_sockaddr, sizeof(cl_sockaddr), sbuff, sizeof(sbuff),
 					hbuff, sizeof(hbuff), NI_NUMERICHOST | NI_NUMERICSERV);
-	if (status != 0) {
-		std::runtime_error("genameinfo() failed");
+	if (err < 0) {
+		return Status("getnameinfo() ", strerror(errno));
 	}
 	printf(
 		"Accepted new connection on descriptor %d\n"
 		"(host: %s, addr: %s)\n",
 		cl_fd, hbuff, sbuff);
+	return Status();
+}
+
+void Server::set_default_host_and_port_if_needed(t_config &config)
+{
+	if (config.host.size() == 0) {
+		config.host.push_back(SERVER_DEFAULT_ADDR);
+	}
+	if (config.port.size() == 0) {
+		config.port.push_back(SERVER_DEFAULT_PORT);
+	}
+}
+
+Status Server::create_sockets_from_configs() {
+	Status status;
+	int yes = 1;
+
+	_sockets.reserve(_configs.size());
+	for (size_t i = 0; i < _configs.size(); ++i) {
+		t_config &config = _configs[i];
+		set_default_host_and_port_if_needed(config);
+		for (size_t j = 0; j < config.host.size(); ++j) {
+			for (size_t k = 0; k < config.port.size(); ++k) {
+				ServerSocket* new_socket = new ServerSocket(config.host[j], atoi(config.port[k].c_str()));
+				int socket_fd = new_socket->get_fd();
+
+				print_debug_addr(config.host[j], config.port[k]); // REMOVEME
+
+				if (setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes))) {
+					return Status(strerror(errno));
+				}
+				new_socket->start_connection();
+				
+				_event.add_event(SERVER_EVENT_SERVER_EVENTS, socket_fd);
+				_sockets.push_back(new_socket);
+			}
+		}
+	}
+	return Status();
+}
+
+void Server::print_debug_addr(const std::string &address, const std::string &port) {
+	std::cout << GREEN400 << "Listening at: " << address << ":" << port << RESET << std::endl;
 }
