@@ -41,15 +41,17 @@ Status ServerEvent::add_event(uint32_t events, int event_fd) {
     return Status();
 }
 
-Status ServerEvent::remove_event(uint32_t events, int event_fd) {
-    epoll_event event_to_remove;
-
-    event_to_remove.data.fd = event_fd;
-    event_to_remove.events = events;
-    if (epoll_ctl(_epoll_fd, EPOLL_CTL_DEL, event_fd, &event_to_remove) < 0) {
+Status ServerEvent::remove_event(int event_fd) {
+    /*
+        EPOLL_CTL_DEL
+            Remove (deregister) the target file descriptor fd from the
+            interest list.  The event argument is ignored and can be
+            NULL (but see BUGS below).
+    */
+    if (epoll_ctl(_epoll_fd, EPOLL_CTL_DEL, event_fd, NULL) < 0) {
         return Status(strerror(errno));
     }
-    /* README: should _events_size to grow? */
+    --_events_size;
     return Status();
 }
 
@@ -108,4 +110,19 @@ void ServerEvent::copy_events_arr(size_t src_size, const epoll_event *src, epoll
     for (size_t i = 0; i < src_size; ++i) {
         dst[i] = src[i];
     }
+}
+
+Status ServerEvent::event_mod(uint32_t events, int event_fd) {
+    int error;
+    epoll_event event;
+
+    event.data.fd = event_fd;
+    event.events = events;
+
+    error = epoll_ctl(_epoll_fd, EPOLL_CTL_MOD, event_fd, &event);
+    if (error < 0) {
+        return Status(strerror(errno));
+    }
+
+    return Status();
 }

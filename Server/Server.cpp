@@ -1,14 +1,15 @@
 #include "Server.hpp"
 
 #include <errno.h>
-#include <netdb.h> /* getnameinfo() */
 #include <string.h>
 
 #include <cstdio>
+#include <signal.h>
 
 Server::Server(std::vector<t_config> configs)
 	: _configs(configs)
 {
+	signal(SIGPIPE, SIG_IGN);
 	init();
 }
 
@@ -60,11 +61,13 @@ Status Server::handle_event(int amount_of_events) {
 					return Status("accept_new_connection() failed in Server::handle_event(): " + status.msg());
 				}
 			} else {
-				// handle request and generate response
-				std::vector<std::string> request;
-				if (request_event.events & EPOLLIN) {
-					request = request_handler(request_event);
-					request.size(); // suppress unused variable err
+				if (request_event.events & EPOLLRDHUP) {
+					std::cout << "[Server] Connection with the FD " << request_event.data.fd << " is closed\n";
+					close(request_event.data.fd);
+					continue;
+				}
+				if (!request_handler(request_event)) {
+					continue;
 				}
 				if (request_event.events & EPOLLOUT) {
 					t_request req;
@@ -82,40 +85,33 @@ Status Server::handle_event(int amount_of_events) {
 						return Status("response_handler() failed in Server::handle_event(): " + status.msg());
 					}
 				}
+				_event.event_mod(SERVER_EVENT_CLIENT_EVENTS, request_event.data.fd);
 			}
 		}
 	}
 	return Status();
 }
 
-std::vector<std::string> Server::read_request(const epoll_event &request_event) {
+Status Server::read_request(const epoll_event &request_event) {
 	const size_t read_buff_size = 10024;
 	char read_buff[read_buff_size];	 // TODO: read about what size of the header
 	ssize_t rd_bytes = 0;
+
 	/*
 		Checking the value of errno is strictly forbidden after performing a read or write operation. :(
 	*/
 	rd_bytes = read(request_event.data.fd, read_buff, read_buff_size);
-
-	/*
-		This block of code will be commented out due to the non-blocking socket behavior.
-		This may cause random characters to appear in read_buff:
-		https://www.scottklement.com/rpg/socktut/nonblocking.html
-	*/
-	// if (rd_bytes < 0 && ) {
-
-	// } eles {
-	// 	close(request_event.data.fd);
-	// 	throw std::runtime_error("read() failed!");
-	// }
 	read_buff[rd_bytes] = 0;
-	// std::cout << CYAN300 << "REQUEST:\n" << read_buff << RESET << std::endl;
-	return std::vector<std::string>();	// return empty arr
+	if (rd_bytes == 0) {
+		return Status("EOF");
+	}
+	std::cout << CYAN300 << "REQUEST:\n" << read_buff << RESET << std::endl;
+	return Status();
 }
 
-std::vector<std::string> Server::request_handler(
+Status Server::request_handler(
 	const epoll_event &request_event) {
-	std::vector<std::string> request = read_request(request_event);
+		Status request = read_request(request_event);
 
 	/*
 		Goshan41k
@@ -136,9 +132,9 @@ Status Server::response_handler(const epoll_event &request_event, const t_reques
 {
 	ServerResponse resp(request, _configs[0]);
 	std::string res = resp.generate_response();
-	if (write(request_event.data.fd, res.c_str(), res.size()) < 0) {
-		return Status("write() ", strerror(errno));
-	}
+
+	write(request_event.data.fd, res.c_str(), res.size());
+
 	return Status();
 }
 
@@ -157,12 +153,12 @@ Status Server::accept_new_connection(int socket_fd) {
 	if (cl_fd < 0) {
 		return Status(strerror(errno));
 	}
-
 	if (fcntl(cl_fd, F_SETFL, O_NONBLOCK) < 0) {
 		return Status(strerror(errno));
 	}
+
 	announce_new_connection(cl_sockaddr, cl_fd);
-	return _event.add_event(EPOLLIN | EPOLLOUT, cl_fd);
+	return _event.add_event(SERVER_EVENT_CLIENT_EVENTS, cl_fd);
 }
 
 Status Server::announce_new_connection(const struct sockaddr &cl_sockaddr, int cl_fd) {
@@ -210,7 +206,7 @@ Status Server::create_sockets_from_configs() {
 				}
 				new_socket->start_connection();
 				
-				_event.add_event(EPOLLIN | EPOLLOUT, socket_fd);
+				_event.add_event(SERVER_EVENT_SERVER_EVENTS, socket_fd);
 				_sockets.push_back(new_socket);
 			}
 		}
