@@ -28,10 +28,15 @@ typedef struct s_location {
 	t_commonConfig common;
 } t_location;
 
+typedef struct s_listen {
+	std::string host;
+	int port;
+} t_listen;
+
 typedef struct s_config {
 	std::vector<std::string> server_name;
-	std::vector<std::string> host;
-	std::vector<std::string> port;
+
+	std::vector<t_listen> listen;
 	t_commonConfig common;
 	std::vector<t_location> location;
 } t_config;

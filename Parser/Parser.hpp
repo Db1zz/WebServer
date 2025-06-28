@@ -10,8 +10,8 @@
 #include <iostream>
 #include <sstream>
 
-#include "Token.hpp"
 #include "ServerConfig.hpp"
+#include "Token.hpp"
 
 class Parser {
    private:
@@ -58,9 +58,8 @@ class Parser {
 	std::vector<t_config> getConfigStruct();
 	void fillDefaultValues();
 	void parseReturn(std::string &path, int *code);
-	size_t	parseMaxClientBody();
-	void split_host_and_address();
-	bool does_port_exist(const std::string &port, const std::vector<std::string> &ports);
+	size_t parseMaxClientBody();
+	void checkDuplicateListen(t_listen check);
 
 	t_config tempConfig;
 };

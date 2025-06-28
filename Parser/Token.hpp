@@ -40,14 +40,14 @@ class Token {
 	e_TokenType _type;
 	std::string _lexeme;
 	int _line;
-	int _colon;
+	int _column;
 
    public:
 	Token(e_TokenType type, std::string lexeme, int line, int colon);
 	std::string getAll();
 	t_TokenType getType();
 	int getLine();
-	int getColon();
+	int getColumn();
 	int getLength();
 };
 
