@@ -115,20 +115,20 @@ void ServerResponse::serve_default_root() {
 }
 
 std::string ServerResponse::identify_mime() {
-	if (_req_data->mime_type == "html") {
+	if (_req_data->mime_type == ".html") {
 		_resp_content_type = "text/html";
-	} else if (_req_data->mime_type == "css") {
+	} else if (_req_data->mime_type == ".css") {
 		_resp_content_type = "text/css";
-	} else if (_req_data->mime_type == "js") {
+	} else if (_req_data->mime_type == ".js") {
 		_resp_content_type = "application/javascript";
 	} else if (_req_data->mime_type == "json") {
 		_resp_content_type = "application/json";
-	} else if (_req_data->mime_type == "jpg" ||
+	} else if (_req_data->mime_type == ".jpg" ||
 			   _req_data->mime_type == "jpeg") {
 		_resp_content_type = "image/jpeg";
-	} else if (_req_data->mime_type == "png") {
+	} else if (_req_data->mime_type == ".png") {
 		_resp_content_type = "image/png";
-	} else if (_req_data->mime_type == "gif") {
+	} else if (_req_data->mime_type == ".gif") {
 		_resp_content_type = "image/gif";
 	} else {
 		_resp_content_type = "text/html";

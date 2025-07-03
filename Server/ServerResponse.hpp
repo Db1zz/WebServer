@@ -22,11 +22,6 @@
 #define PAGE_404 "Pages/404.html"
 #define STYLESHEET "Pages/styles.css"
 
-/*add function:
-request_validator
--> check each variable of the request struct and generate (andor should return
-empty string)*/
-
 class ServerResponse {
    public:
 	ServerResponse(const t_request& request, const t_config& server_data);
