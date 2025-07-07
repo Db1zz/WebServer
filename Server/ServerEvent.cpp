@@ -24,6 +24,23 @@ ServerEvent::~ServerEvent() {
     }
 }
 
+Status ServerEvent::add_event(uint32_t events, int event_fd, void *event_data) {
+    epoll_event new_event;
+
+    new_event.data.ptr = event_data;
+    new_event.events = events;
+
+    if (_events_size == _events_capacity) {
+        resize_events_arr(_events_capacity * 2);
+    }
+
+    if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, event_fd, &new_event) < 0) {
+        return Status(strerror(errno));
+    }
+    ++_events_size;
+    return Status();
+}
+
 Status ServerEvent::add_event(uint32_t events, int event_fd) {
     epoll_event new_event;
 

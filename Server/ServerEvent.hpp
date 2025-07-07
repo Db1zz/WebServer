@@ -6,12 +6,12 @@
 #include <sys/epoll.h>
 
 #ifndef SERVER_EVENT_CLIENT_EVENTS
-#define SERVER_EVENT_CLIENT_EVENTS (EPOLLIN | EPOLLOUT | EPOLLONESHOT | EPOLLRDHUP)
+#define SERVER_EVENT_CLIENT_EVENTS (EPOLLIN | EPOLLOUT | EPOLLRDHUP)
 #endif // SERVER_EVENT_CLIENT_EVENTS
 
 #ifndef SERVER_EVENT_SERVER_EVENTS
-#define SERVER_EVENT_SERVER_EVENTS (EPOLLIN | EPOLLOUT | EPOLLRDHUP)
-#endif // SERVER_EVENT_SERVER_EVENTS 
+#define SERVER_EVENT_SERVER_EVENTS (EPOLLIN | EPOLLOUT)
+#endif // SERVER_EVENT_SERVER_EVENTS
 
 class ServerEvent {
 public:
@@ -19,6 +19,7 @@ public:
     ServerEvent(uint32_t events, int event_fd);
     ~ServerEvent();
 
+    Status add_event(uint32_t events, int event_fd, void *event_data);
 	Status add_event(uint32_t events, int event_fd);
     Status remove_event(int event_fd);
     Status wait_event(int timeout, int *nfds);

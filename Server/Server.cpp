@@ -1,16 +1,22 @@
 #include "Server.hpp"
 
-#include <errno.h>
 #include <string.h>
+#include <sstream>
 
+#include <errno.h>
 #include <cstdio>
 #include <signal.h>
 
-Server::Server(std::vector<t_config> configs)
-	: _configs(configs)
+Server::Server(const std::vector<t_config> &configs)
+	: _configs(configs), _server_max_fd_limit(SERVER_DEFAULT_MAX_CONNECTIONS), _server_amount_of_used_fds(0)
 {
-	signal(SIGPIPE, SIG_IGN);
-	init();
+	Status status;
+
+	_fd_data.resize(_server_max_fd_limit);
+	status = create_multiple_servers();
+	if (!status) {
+		throw std::runtime_error(status.msg());
+	}
 }
 
 Server::~Server() {
@@ -29,6 +35,11 @@ Status Server::launch() {
 	Status status;
 	int amount_of_events = 0;
 
+	status = start_servers();
+	if (!status) {
+		return status;
+	}
+
 	while (true) {
 		status = _event.wait_event(-1, &amount_of_events);
 		if (!status) {
@@ -42,11 +53,101 @@ Status Server::launch() {
 			}
 		}
 	}
+	return status;
+}
+
+bool Server::is_a_new_connection(const epoll_event &event) {
+	t_event_ctx *event_ctx;
+
+	for (size_t i = 0; i < _sockets.size(); ++i) {
+		event_ctx = static_cast<t_event_ctx *>(event.data.ptr);
+		if (event_ctx->socket->get_fd() == _sockets[i]->get_fd()) {
+			return true;
+		}
+	}
+	return false;
+}
+
+Status Server::register_connection_server_event(Socket &new_connection_socket, const t_event_ctx *server_event_ctx) {
+	Status status;
+	t_event_ctx *new_event_ctx;
+	int new_connection_fd;
+
+	new_connection_fd = new_connection_socket.get_fd();
+	new_event_ctx = new t_event_ctx(&new_connection_socket, server_event_ctx->data);
+	_fd_data[new_connection_fd] = new_event_ctx;
+
+	++_server_amount_of_used_fds;
+	status = _event.add_event(SERVER_EVENT_CLIENT_EVENTS, new_connection_fd, &new_event_ctx);
+	return status;
+}
+
+Status Server::unregister_connection_server_event(int connection_fd) {
+	Status status;
+
+	delete _fd_data[connection_fd];
+	_fd_data[connection_fd] = NULL;
+
+	--_server_amount_of_used_fds;
+	status = _event.remove_event(connection_fd);
+	return status;
+}
+
+Status Server::set_connection_socket_nonblocking(Socket &socket) {
+	if (fcntl(socket.get_fd(), F_SETFL, O_NONBLOCK) < 0) {
+		return Status(strerror(errno));
+	}
 	return Status();
 }
 
-void Server::init() {
-	create_sockets_from_configs();
+Status Server::accept_connection(const epoll_event &request_event) {
+	Status status;
+	Socket *new_socket;
+	t_event_ctx *server_event_ctx;
+	ServerSocket *server_socket;
+
+	/*
+		This error is not fatal, so server shouldn't exit.
+	*/
+	if (_server_amount_of_used_fds + 1 <= _server_max_fd_limit) {
+		return Status("The maximum number of connections to the server has been exceeded", -1, true);
+	}
+
+	server_event_ctx = static_cast<t_event_ctx *>(request_event.data.ptr);
+	server_socket = dynamic_cast<ServerSocket *>(server_event_ctx->socket);
+
+	new_socket = new Socket;
+	status = server_socket->accept_connection(*new_socket);
+	if (!status) {
+		return Status("Cannot accept new connection: " + status.msg());
+	}
+
+	printf(
+		"Accepted new connection on descriptor %d\n"
+		"[%d,%s,%d]\n",
+		server_socket->get_fd(), 
+		new_socket->get_fd(), new_socket->get_host()->c_str(), new_socket->get_port());
+
+	set_connection_socket_nonblocking(*new_socket);
+	status = register_connection_server_event(*new_socket, server_event_ctx);
+	return status;
+}
+
+Status Server::close_connection(const epoll_event &request_event) {
+	Status status;
+	int connection_fd;
+	t_event_ctx *connection_event_ctx;
+
+	connection_event_ctx = static_cast<t_event_ctx *>(request_event.data.ptr);
+
+	connection_fd = connection_event_ctx->socket->get_fd();
+	close(connection_fd);
+	delete connection_event_ctx->socket;
+	status = unregister_connection_server_event(connection_fd);
+
+	std::cout << "[Server] Connection with the host " 
+	<< connection_event_ctx->socket->get_host() << ":" << connection_event_ctx->socket->get_port() << " is closed\n";
+	return status;
 }
 
 Status Server::handle_event(int amount_of_events) {
@@ -54,42 +155,37 @@ Status Server::handle_event(int amount_of_events) {
 
 	for (int i = 0; i < amount_of_events; ++i) {
 		const epoll_event &request_event = *_event[i];
-		for (size_t j = 0; j < _sockets.size(); ++j) {
-			if (request_event.data.fd == _sockets[j]->get_fd()) {
-				status = accept_new_connection(request_event.data.fd);
-				if (!status) {
-					return Status("accept_new_connection() failed in Server::handle_event(): " + status.msg());
-				}
-			} else {
-				if (request_event.events & EPOLLRDHUP) {
-					std::cout << "[Server] Connection with the FD " << request_event.data.fd << " is closed\n";
-					close(request_event.data.fd);
-					continue;
-				}
-				if (!request_handler(request_event)) {
-					continue;
-				}
-				if (request_event.events & EPOLLOUT) {
-					t_request req;
-					req.method = "GET";
-					req.uri_path = "/";
-					req.user_agent = "";
-					req.host = "localhost";
-					req.language = "";
-					req.connection = "keep-alive";
-					req.mime_type = "html";
-					req.content_type = "text/html";
-	
-					status = response_handler(request_event, req);
-					if (!status) {
-						return Status("response_handler() failed in Server::handle_event(): " + status.msg());
-					}
-				}
-				_event.event_mod(SERVER_EVENT_CLIENT_EVENTS, request_event.data.fd);
+		if (is_a_new_connection(request_event)) {
+			status = accept_connection(request_event);
+			if (!status) {
+				return Status("accept_new_connection() failed in Server::handle_event(): " + status.msg());
+			}
+		} else {
+			if (request_event.events & (EPOLLRDHUP)) {
+				close_connection(request_event);
+				continue;
+			}
+			status = request_handler(request_event);
+			if (!status) {
+				continue;
+			}
+			t_request req;
+			req.method = "GET";
+			req.uri_path = "/";
+			req.user_agent = "";
+			req.host = "localhost";
+			req.language = "";
+			req.connection = "keep-alive";
+			req.mime_type = "html";
+			req.content_type = "text/html";
+
+			status = response_handler(request_event, req);
+			if (!status) {
+				return Status("response_handler() failed in Server::handle_event(): " + status.msg());
 			}
 		}
 	}
-	return Status();
+	return status;
 }
 
 Status Server::read_request(const epoll_event &request_event) {
@@ -101,9 +197,13 @@ Status Server::read_request(const epoll_event &request_event) {
 		Checking the value of errno is strictly forbidden after performing a read or write operation. :(
 	*/
 	rd_bytes = read(request_event.data.fd, read_buff, read_buff_size);
+	if (rd_bytes < 0) {
+		return Status("Read() failed in Server::read_request()", rd_bytes);
+	}
+
 	read_buff[rd_bytes] = 0;
 	if (rd_bytes == 0) {
-		return Status("EOF");
+		return Status("EOF", rd_bytes);
 	}
 	std::cout << CYAN300 << "REQUEST:\n" << read_buff << RESET << std::endl;
 	return Status();
@@ -144,76 +244,72 @@ std::string Server::response_generator(/* TODO: add args*/) {
 	return response_str;
 }
 
-Status Server::accept_new_connection(int socket_fd) {
-	struct sockaddr cl_sockaddr;
-	socklen_t cl_len = sizeof(cl_sockaddr);
-	int cl_fd;
+Status Server::create_single_server(t_config &server_config, const std::string &host, int port) {
+	const int yes = 1;
+	ServerSocket *new_server_socket;
+	int new_server_fd;
+	t_event_ctx *new_event_ctx;
 
-	cl_fd = accept(socket_fd, &cl_sockaddr, &cl_len);
-	if (cl_fd < 0) {
-		return Status(strerror(errno));
-	}
-	if (fcntl(cl_fd, F_SETFL, O_NONBLOCK) < 0) {
-		return Status(strerror(errno));
-	}
+	new_server_socket = new ServerSocket(host, port);
+	new_server_fd = new_server_socket->get_fd();
+	new_event_ctx = new t_event_ctx(new_server_socket, &server_config);
 
-	announce_new_connection(cl_sockaddr, cl_fd);
-	return _event.add_event(SERVER_EVENT_CLIENT_EVENTS, cl_fd);
+	setsockopt(new_server_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes));
+
+	_fd_data[new_server_fd] = new_event_ctx;
+	_sockets.push_back(new_server_socket);
+	++_server_amount_of_used_fds;
+	return _event.add_event(SERVER_EVENT_SERVER_EVENTS, new_server_fd, new_event_ctx);
 }
 
-Status Server::announce_new_connection(const struct sockaddr &cl_sockaddr, int cl_fd) {
-	char hbuff[NI_MAXHOST];
-	char sbuff[NI_MAXSERV];
-	int err = getnameinfo(&cl_sockaddr, sizeof(cl_sockaddr), sbuff, sizeof(sbuff),
-					hbuff, sizeof(hbuff), NI_NUMERICHOST | NI_NUMERICSERV);
-	if (err < 0) {
-		return Status("getnameinfo() ", strerror(errno));
-	}
-	printf(
-		"Accepted new connection on descriptor %d\n"
-		"(host: %s, addr: %s)\n",
-		cl_fd, hbuff, sbuff);
-	return Status();
-}
-
-void Server::set_default_host_and_port_if_needed(t_config &config)
-{
-	if (config.host.size() == 0) {
-		config.host.push_back(SERVER_DEFAULT_ADDR);
-	}
-	if (config.port.size() == 0) {
-		config.port.push_back(SERVER_DEFAULT_PORT);
-	}
-}
-
-Status Server::create_sockets_from_configs() {
+Status Server::create_single_server_with_multiple_addresses(t_config &server_config) {
+	const size_t amount_of_addresses = server_config.listen.size();
 	Status status;
-	int yes = 1;
 
-	_sockets.reserve(_configs.size());
+	for (size_t i = 0; i < amount_of_addresses; ++i) {
+		const std::string &host = server_config.listen[i].host;
+		int port = server_config.listen[i].port;
+
+		status = create_single_server(server_config, host, port);
+		if (!status) {
+			break;
+		}
+
+		print_debug_addr(host, port);
+	}
+	return status;
+}
+
+Status Server::create_multiple_servers() {
+	Status status;
+
 	for (size_t i = 0; i < _configs.size(); ++i) {
 		t_config &config = _configs[i];
-		set_default_host_and_port_if_needed(config);
-		for (size_t j = 0; j < config.host.size(); ++j) {
-			for (size_t k = 0; k < config.port.size(); ++k) {
-				ServerSocket* new_socket = new ServerSocket(config.host[j], atoi(config.port[k].c_str()));
-				int socket_fd = new_socket->get_fd();
-
-				print_debug_addr(config.host[j], config.port[k]); // REMOVEME
-
-				if (setsockopt(socket_fd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes))) {
-					return Status(strerror(errno));
-				}
-				new_socket->start_connection();
-				
-				_event.add_event(SERVER_EVENT_SERVER_EVENTS, socket_fd);
-				_sockets.push_back(new_socket);
+		try {
+			status = create_single_server_with_multiple_addresses(config);
+			if (!status) {
+				return status;
 			}
+		} catch (const std::exception &e) {
+			return Status(std::string("error in Server::create_sockets_from_configs(): ") + e.what());
 		}
 	}
-	return Status();
+	return status;
 }
 
-void Server::print_debug_addr(const std::string &address, const std::string &port) {
+Status Server::start_servers() {
+	const size_t amount_of_servers = _sockets.size();
+	Status status;
+
+	for (size_t i = 0; i < amount_of_servers; ++i) {
+		status = _sockets[i]->listen_for_connections();
+		if (!status) {
+			return Status("Failed to start servers: " + status.msg());
+		}
+	}
+	return status;
+}
+
+void Server::print_debug_addr(const std::string &address, int port) {
 	std::cout << GREEN400 << "Listening at: " << address << ":" << port << RESET << std::endl;
 }

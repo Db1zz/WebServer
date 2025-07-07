@@ -624,6 +624,4 @@ void Parser::parseConfig() {
 			throw std::runtime_error("expected server block, got \"" + tokenPeek().getAll() + "\" instead");
 		}
 	}
-
-	split_host_and_address();
 }
