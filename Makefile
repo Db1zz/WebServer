@@ -1,6 +1,6 @@
 NAME = ./webserv
 INCLUDE_DIR = -I Sockets -I Server -I Parser -I Utilities -I Logger
-CXX = c++ -std=c++98
+CXX = c++ -std=c++98 -g -static-libasan
 CXXFLAGS = -Wall -Wextra $(INCLUDE_DIR)
 
 SRC = \

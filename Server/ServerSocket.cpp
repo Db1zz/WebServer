@@ -37,15 +37,12 @@ void ServerSocket::is_socket_created(int socket_fd) {
 
 Status ServerSocket::accept_connection(Socket &empty_socket) {
 	struct sockaddr sockaddr;
-	socklen_t socklen;
-	int fd;
+	socklen_t socklen = sizeof(sockaddr);
 
-	fd = accept(_socket_fd, &sockaddr, &socklen);
-	if (fd < 0) {
+	empty_socket.set_socket(accept(_socket_fd, &sockaddr, &socklen), &sockaddr, socklen);
+	if (empty_socket.get_fd() < 0) {
 		return Status(strerror(errno));
 	}
-
-	empty_socket.set_sockaddr(&sockaddr, socklen);
 
 	return Status();
 }

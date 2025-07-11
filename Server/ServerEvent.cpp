@@ -80,7 +80,7 @@ Status ServerEvent::remove_event(int event_fd) {
 Status ServerEvent::wait_event(int timeout, int *nfds) {
     *nfds = epoll_wait(_epoll_fd, _events_arr, _events_capacity, timeout);
     if (*nfds < 0) {
-        return Status(strerror(errno));
+        return Status(strerror(errno), errno);
     }
     return Status();
 }

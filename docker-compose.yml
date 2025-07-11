@@ -4,6 +4,8 @@ services:
     build: ./
     ports:
       - "90:90"
+      - "80:80"
+      - "81:81"
     volumes: 
       - webserv_volume:/app
     tty: true

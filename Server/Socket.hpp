@@ -16,14 +16,19 @@ public:
 
 	int get_fd() const;
 	const struct sockaddr *get_address() const;
+	socklen_t get_socklen() const;
 	const std::string *get_host() const;
 	int get_port() const;
-	socklen_t get_socklen() const;
 
-	void set_socket(int socket);
-	void set_sockaddr(const struct sockaddr *sockaddr, socklen_t socklen);
+	void set_socket(int socket, const struct sockaddr *sockaddr, socklen_t socklen);
 	Status set_opt(int opt, bool to_set, int level = SOL_SOCKET);
+
+	Status is_connected() const;
 	Status close_socket();
+
+private:
+	Status set_host_ipv4_address_from_sockaddr();
+	void set_port_ipv4_from_sockaddr();
 
 protected:
 	std::string _host;

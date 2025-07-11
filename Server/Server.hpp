@@ -47,6 +47,7 @@ private:
 	Status set_connection_socket_nonblocking(Socket &socket);
 	Status accept_connection(const epoll_event &request_event);
 	Status close_connection(const epoll_event &request_event);
+	Status close_connection(t_event_ctx *connection_event_ctx);
 	Status handle_event(int amount_of_events);
 	Status read_request(const epoll_event &request_event);
 	Status request_handler(const epoll_event &request_event);
@@ -55,9 +56,11 @@ private:
 	Status create_single_server(t_config &server_config, const std::string &host, int port);
 	Status create_single_server_with_multiple_addresses(t_config &server_config);
 	Status create_multiple_servers();
-	void destroy_sockets();
 	void print_debug_addr(const std::string &address, int port);
 	Status start_servers();
+
+	void destructor_destroy_sockets();
+	void destructor_close_all_connections_and_destroy_fd_data();
 
 	std::vector<t_config> _configs;
 	std::vector<ServerSocket *> _sockets;

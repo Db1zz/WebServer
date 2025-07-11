@@ -5,7 +5,16 @@
 
 #include <errno.h>
 #include <cstdio>
-#include <signal.h>
+#include <csignal>
+
+namespace
+{
+	volatile std::sig_atomic_t g_signal_status = 0;
+}
+
+void sigint_handler(int signal) {
+	g_signal_status = signal;
+}
 
 Server::Server(const std::vector<t_config> &configs)
 	: _configs(configs), _server_max_fd_limit(SERVER_DEFAULT_MAX_CONNECTIONS), _server_amount_of_used_fds(0)
@@ -20,14 +29,28 @@ Server::Server(const std::vector<t_config> &configs)
 }
 
 Server::~Server() {
-	destroy_sockets();
+	destructor_destroy_sockets();
+	destructor_close_all_connections_and_destroy_fd_data();
 }
 
-void Server::destroy_sockets() {
+void Server::destructor_destroy_sockets() {
 	for (size_t i = 0; i < _sockets.size(); ++i) {
-		if (_sockets[i]) {
-			delete _sockets[i];
+		if (_sockets[i] == NULL) {
+			continue;
 		}
+		delete _fd_data[_sockets[i]->get_fd()];
+		_fd_data[_sockets[i]->get_fd()] = NULL;
+		_event.remove_event(_sockets[i]->get_fd());
+		delete _sockets[i];
+	}
+}
+
+void Server::destructor_close_all_connections_and_destroy_fd_data() {
+	for (size_t i = 0; i < _fd_data.size(); ++i) {
+		if (_fd_data[i] == NULL) {
+			continue;
+		}
+		close_connection(_fd_data[i]);
 	}
 }
 
@@ -35,14 +58,15 @@ Status Server::launch() {
 	Status status;
 	int amount_of_events = 0;
 
+	std::signal(SIGINT, sigint_handler);
 	status = start_servers();
 	if (!status) {
 		return status;
 	}
 
-	while (true) {
+	while (g_signal_status != SIGINT) {
 		status = _event.wait_event(-1, &amount_of_events);
-		if (!status) {
+		if (!status && status.code() != EINTR) {
 			throw std::runtime_error("wait_event() failed in Server::Launch(): " + status.msg());
 		}
 
@@ -53,15 +77,16 @@ Status Server::launch() {
 			}
 		}
 	}
+	std::cout << "[Server] shutdown..." << std::endl;
 	return status;
 }
 
 bool Server::is_a_new_connection(const epoll_event &event) {
-	t_event_ctx *event_ctx;
+	t_event_ctx *event_ctx = static_cast<t_event_ctx *>(event.data.ptr);
+	int event_fd = event_ctx->socket->get_fd();
 
 	for (size_t i = 0; i < _sockets.size(); ++i) {
-		event_ctx = static_cast<t_event_ctx *>(event.data.ptr);
-		if (event_ctx->socket->get_fd() == _sockets[i]->get_fd()) {
+		if (event_fd == _sockets[i]->get_fd()) {
 			return true;
 		}
 	}
@@ -78,7 +103,7 @@ Status Server::register_connection_server_event(Socket &new_connection_socket, c
 	_fd_data[new_connection_fd] = new_event_ctx;
 
 	++_server_amount_of_used_fds;
-	status = _event.add_event(SERVER_EVENT_CLIENT_EVENTS, new_connection_fd, &new_event_ctx);
+	status = _event.add_event(SERVER_EVENT_CLIENT_EVENTS, new_connection_fd, new_event_ctx);
 	return status;
 }
 
@@ -109,7 +134,7 @@ Status Server::accept_connection(const epoll_event &request_event) {
 	/*
 		This error is not fatal, so server shouldn't exit.
 	*/
-	if (_server_amount_of_used_fds + 1 <= _server_max_fd_limit) {
+	if (_server_amount_of_used_fds + 1 >= _server_max_fd_limit) {
 		return Status("The maximum number of connections to the server has been exceeded", -1, true);
 	}
 
@@ -121,12 +146,7 @@ Status Server::accept_connection(const epoll_event &request_event) {
 	if (!status) {
 		return Status("Cannot accept new connection: " + status.msg());
 	}
-
-	printf(
-		"Accepted new connection on descriptor %d\n"
-		"[%d,%s,%d]\n",
-		server_socket->get_fd(), 
-		new_socket->get_fd(), new_socket->get_host()->c_str(), new_socket->get_port());
+	printf("Accepted new connection on descriptor %d\n", server_socket->get_fd());
 
 	set_connection_socket_nonblocking(*new_socket);
 	status = register_connection_server_event(*new_socket, server_event_ctx);
@@ -134,19 +154,22 @@ Status Server::accept_connection(const epoll_event &request_event) {
 }
 
 Status Server::close_connection(const epoll_event &request_event) {
+	t_event_ctx *connection_event_ctx = static_cast<t_event_ctx *>(request_event.data.ptr);
+	return close_connection(connection_event_ctx);
+}
+
+Status Server::close_connection(t_event_ctx *connection_event_ctx) {
 	Status status;
 	int connection_fd;
-	t_event_ctx *connection_event_ctx;
 
-	connection_event_ctx = static_cast<t_event_ctx *>(request_event.data.ptr);
+	std::cout << "[Server] Connection with the host " 
+	<< *connection_event_ctx->socket->get_host() << ":" << connection_event_ctx->socket->get_port() << " has been closed\n";
 
 	connection_fd = connection_event_ctx->socket->get_fd();
-	close(connection_fd);
+	// std::cout << "[Server] Socket[" << connection_fd << "] has been closed" << std::endl;
 	delete connection_event_ctx->socket;
 	status = unregister_connection_server_event(connection_fd);
 
-	std::cout << "[Server] Connection with the host " 
-	<< connection_event_ctx->socket->get_host() << ":" << connection_event_ctx->socket->get_port() << " is closed\n";
 	return status;
 }
 
@@ -161,34 +184,34 @@ Status Server::handle_event(int amount_of_events) {
 				return Status("accept_new_connection() failed in Server::handle_event(): " + status.msg());
 			}
 		} else {
-			if (request_event.events & (EPOLLRDHUP)) {
+			if (request_event.events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP)) {
 				close_connection(request_event);
 				continue;
 			}
-			status = request_handler(request_event);
-			if (!status) {
-				continue;
-			}
-			t_request req;
-			req.method = "GET";
-			req.uri_path = "/";
-			req.user_agent = "";
-			req.host = "localhost";
-			req.language = "";
-			req.connection = "keep-alive";
-			req.mime_type = "html";
-			req.content_type = "text/html";
-
-			status = response_handler(request_event, req);
-			if (!status) {
-				return Status("response_handler() failed in Server::handle_event(): " + status.msg());
-			}
+			if (request_event.events & EPOLLIN) {
+				status = request_handler(request_event);
+				t_request req;
+				req.method = "GET";
+				req.uri_path = "/";
+				req.user_agent = "";
+				req.host = "localhost";
+				req.language = "";
+				req.connection = "keep-alive";
+				req.mime_type = "html";
+				req.content_type = "text/html";
+	
+				status = response_handler(request_event, req);
+				if (!status) {
+					return Status("response_handler() failed in Server::handle_event(): " + status.msg());
+				}
+			} 
 		}
 	}
-	return status;
+	return Status();
 }
 
 Status Server::read_request(const epoll_event &request_event) {
+	const t_event_ctx *event_ctx = static_cast<t_event_ctx *>(request_event.data.ptr);
 	const size_t read_buff_size = 10024;
 	char read_buff[read_buff_size];	 // TODO: read about what size of the header
 	ssize_t rd_bytes = 0;
@@ -196,15 +219,14 @@ Status Server::read_request(const epoll_event &request_event) {
 	/*
 		Checking the value of errno is strictly forbidden after performing a read or write operation. :(
 	*/
-	rd_bytes = read(request_event.data.fd, read_buff, read_buff_size);
+	rd_bytes = read(event_ctx->socket->get_fd(), read_buff, read_buff_size);
 	if (rd_bytes < 0) {
-		return Status("Read() failed in Server::read_request()", rd_bytes);
+		return Status(std::string("read() failed"), rd_bytes);
 	}
-
-	read_buff[rd_bytes] = 0;
 	if (rd_bytes == 0) {
 		return Status("EOF", rd_bytes);
 	}
+	read_buff[rd_bytes] = 0;
 	std::cout << CYAN300 << "REQUEST:\n" << read_buff << RESET << std::endl;
 	return Status();
 }
@@ -230,10 +252,13 @@ Status Server::request_handler(
 
 Status Server::response_handler(const epoll_event &request_event, const t_request &request)
 {
+	const t_event_ctx *event_ctx = static_cast<t_event_ctx *>(request_event.data.ptr);
 	ServerResponse resp(request, _configs[0]);
 	std::string res = resp.generate_response();
 
-	write(request_event.data.fd, res.c_str(), res.size());
+	if (write(event_ctx->socket->get_fd(), res.c_str(), res.size()) < 0) {
+		return Status(strerror(errno));
+	}
 
 	return Status();
 }

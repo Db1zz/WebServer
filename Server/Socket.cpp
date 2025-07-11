@@ -15,15 +15,14 @@ Socket::Socket(Socket &other) {
 }
 
 Socket::~Socket() {
-	if (_socket_fd >= 0) {
-		std::cout << "[Socket] Destroying socket - " << _host << ":" << _port << std::endl;
+	if (is_connected()) {
 		close_socket();
 	}
 }
 
 Socket &Socket::operator=(Socket &other) {
 	if (this != &other) {
-		if (_socket_fd >= 0) {
+		if (is_connected()) {
 			close_socket();
 		}
 		_socket_fd = other._socket_fd;
@@ -57,13 +56,13 @@ socklen_t Socket::get_socklen() const {
 }
 
 /* setters */
-void Socket::set_socket(int socket) {
-	_socket_fd = socket;
-}
-
-void Socket::set_sockaddr(const struct sockaddr *sockaddr, socklen_t socklen) {
+void Socket::set_socket(int socket, const struct sockaddr *sockaddr, socklen_t socklen) {
 	_sockaddr = *sockaddr;
 	_socklen = socklen;
+	_socket_fd = socket;
+
+	set_host_ipv4_address_from_sockaddr();
+	set_port_ipv4_from_sockaddr();
 }
 
 Status Socket::set_opt(int opt, bool to_set, int level) {
@@ -73,10 +72,44 @@ Status Socket::set_opt(int opt, bool to_set, int level) {
 	return Status();
 }
 
+Status Socket::is_connected() const {
+	if (_socket_fd < 0) {
+		return Status("Socket fd is < 0");
+	}
+	return Status();
+}
+
 /* general functions */
 Status Socket::close_socket() {
 	if (close(_socket_fd) < 0) {
 		return Status("close() ", strerror(errno));
 	}
+	_socket_fd = -1;
 	return Status();
+}
+
+Status Socket::set_host_ipv4_address_from_sockaddr() {
+	const struct sockaddr_in *ipv4_address = reinterpret_cast<const struct sockaddr_in *>(&_sockaddr);
+	const unsigned char* octets = reinterpret_cast<const unsigned char *>(&ipv4_address->sin_addr.s_addr);
+	const size_t amount_of_octets = sizeof(ipv4_address->sin_addr.s_addr);
+	std::stringstream ss;
+
+	for (size_t i = 0; i < amount_of_octets - 1; ++i) {
+		ss << static_cast<int>(octets[i]) << '.';
+	}
+	ss << static_cast<int>(octets[amount_of_octets - 1]);
+
+	try {
+		_host = ss.str();
+	} catch (const std::exception &e) {
+		return Status(e.what());
+	}
+
+	return Status();
+}
+
+void Socket::set_port_ipv4_from_sockaddr() {
+	const struct sockaddr_in *ipv4_address = reinterpret_cast<const struct sockaddr_in *>(&_sockaddr);
+
+	_port = ipv4_address->sin_port;
 }
