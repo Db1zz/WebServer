@@ -189,37 +189,57 @@ Status Server::handle_event(int amount_of_events) {
 				continue;
 			}
 			if (request_event.events & EPOLLIN) {
-				status = request_handler(request_event);
-				t_request req;
-				req.method = "GET";
-				req.uri_path = "/";
-				req.user_agent = "";
-				req.host = "localhost";
-				req.language = "";
-				req.connection = "keep-alive";
-				req.mime_type = "html";
-				req.content_type = "text/html";
-	
-				status = response_handler(request_event, req);
+				t_request request;
+				status = request_handler(request_event, request);
+				if (!status) {
+					return Status("request_handler() failed in Server::handle_event(): " + status.msg());
+				}
+				status = response_handler(request_event, request);
 				if (!status) {
 					return Status("response_handler() failed in Server::handle_event(): " + status.msg());
 				}
-			} 
+			}
 		}
 	}
 	return Status();
 }
 
-Status Server::read_request(const epoll_event &request_event) {
-	const t_event_ctx *event_ctx = static_cast<t_event_ctx *>(request_event.data.ptr);
-	const size_t read_buff_size = 10024;
-	char read_buff[read_buff_size];	 // TODO: read about what size of the header
-	ssize_t rd_bytes = 0;
-	read_buff[0] = 0;
-	/*
-		Checking the value of errno is strictly forbidden after performing a read or write operation. :(
-	*/
-	rd_bytes = read(event_ctx->socket->get_fd(), read_buff, read_buff_size);
+t_request Server::request_parser(std::string request) {
+	std::cout << request << "\n";
+	t_request requestStruct;
+	requestStruct.mime_type = "";  // if there no mime found -> empty string
+	std::stringstream iss(request);
+	std::string extract;
+	iss >> extract;
+	requestStruct.method = extract;
+	iss >> extract;
+	requestStruct.uri_path = extract;
+	if (extract.find('.') != std::string::npos)
+		requestStruct.mime_type = extract.substr(extract.find('.'));
+	iss >> extract;	 // we ignore HTTP/1.1 for now
+	while (std::getline(iss, extract) || extract != "\r") {
+		if (extract.empty() || extract == "\r\n")
+			break;
+		if (extract.find("Host: ", 0) != std::string::npos)
+			requestStruct.host = extract.substr(6);
+		else if (extract.find("User-Agent: ", 0) != std::string::npos)
+			requestStruct.user_agent = extract.substr(12);
+		else if (extract.find("Accept: ", 0) != std::string::npos)
+			requestStruct.accept = extract.substr(8);
+		else if (extract.find("Accept-Language: ", 0) != std::string::npos)
+			requestStruct.language = extract.substr(17);
+		else if (extract.find("Connection: ", 0) != std::string::npos)
+			requestStruct.connection = extract.substr(12);
+	}
+	return requestStruct;
+}
+
+Status Server::read_request(const epoll_event &request_event, std::string &result) {
+	const size_t read_buff_size = 4096;
+	char read_buff[read_buff_size];
+	ssize_t rd_bytes;
+
+	rd_bytes = read(request_event.data.fd, read_buff, read_buff_size);
 	if (rd_bytes < 0) {
 		return Status(std::string("read() failed"), rd_bytes);
 	}
@@ -227,27 +247,21 @@ Status Server::read_request(const epoll_event &request_event) {
 		return Status("EOF", rd_bytes);
 	}
 	read_buff[rd_bytes] = 0;
+	result = std::string(read_buff);
 	std::cout << CYAN300 << "REQUEST:\n" << read_buff << RESET << std::endl;
 	return Status();
 }
 
-Status Server::request_handler(
-	const epoll_event &request_event) {
-		Status request = read_request(request_event);
+Status Server::request_handler(const epoll_event &request_event, t_request &req) {
+	Status status;
+	std::string request_string;
 
-	/*
-		Goshan41k
-
-		We can validate request during parsing or before/after it,
-		depends on our implementation.
-
-		Parser should return struct, which will be used later in
-	   response_handler(), right now I'm returning std::vector<std::string> cuz
-	   nothing is implemented and i'm not sure how this struct will look like.
-	*/
-	// parse_request()
-	// request_validator();
-	return request;
+	status = read_request(request_event, request_string);
+	if (!status) {
+		return Status("Error in Server::request_handler(): " + status.msg());
+	}
+	req = request_parser(request_string);
+	return Status();
 }
 
 Status Server::response_handler(const epoll_event &request_event, const t_request &request)

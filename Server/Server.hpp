@@ -48,9 +48,10 @@ private:
 	Status accept_connection(const epoll_event &request_event);
 	Status close_connection(const epoll_event &request_event);
 	Status close_connection(t_event_ctx *connection_event_ctx);
+	t_request request_parser(std::string request);
 	Status handle_event(int amount_of_events);
-	Status read_request(const epoll_event &request_event);
-	Status request_handler(const epoll_event &request_event);
+	Status read_request(const epoll_event &request_event, std::string &result);
+	Status request_handler(const epoll_event &request_event, t_request &req);
 	Status response_handler(const epoll_event &request_event, const t_request &request);
 	std::string response_generator(/* TODO: add args*/);
 	Status create_single_server(t_config &server_config, const std::string &host, int port);
