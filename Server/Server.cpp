@@ -235,11 +235,12 @@ t_request Server::request_parser(std::string request) {
 }
 
 Status Server::read_request(const epoll_event &request_event, std::string &result) {
+	const t_event_ctx *event_ctx = static_cast<t_event_ctx *>(request_event.data.ptr);
 	const size_t read_buff_size = 4096;
 	char read_buff[read_buff_size];
 	ssize_t rd_bytes;
 
-	rd_bytes = read(request_event.data.fd, read_buff, read_buff_size);
+	rd_bytes = read(event_ctx->socket->get_fd(), read_buff, read_buff_size);
 	if (rd_bytes < 0) {
 		return Status(std::string("read() failed"), rd_bytes);
 	}
