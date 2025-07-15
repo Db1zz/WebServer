@@ -30,14 +30,13 @@ class ServerResponse {
 	ServerResponse& header(const std::string& key, const std::string& value);
 	ServerResponse& serve_static_page(const t_location& loc,
 									  const std::string& uri);
-	// ServerResponse& serve_dynamic_page();
 	ServerResponse& json(const std::string& data);
 	std::string generate_response();
 	std::string identify_mime();
-	bool html(const std::string& path, bool is_error_page);
+	bool serve_file(const std::string& path, bool is_error_page);
+	bool is_binary();
 	void send_error_page(int code, std::string error_msg);
 	void serve_default_root();
-
 	/*getters*/
 	const std::string get_body_size() const;
 	const std::string& get_headers() const;

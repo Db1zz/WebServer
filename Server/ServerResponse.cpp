@@ -27,26 +27,39 @@ ServerResponse& ServerResponse::serve_static_page(const t_location& loc,
 	if (!file_path.empty() && file_path[file_path.size() - 1] == '/') {
 		file_path +=
 			loc.common.index.empty() ? "index.html" : loc.common.index[0];
+		const_cast<t_request*>(_req_data)->mime_type =
+			".html";  // maybe move it to parser?
 	}
 	_resp_content_type = identify_mime();
 	header("content-type", _resp_content_type);
-	html(file_path, false);
+	if (is_binary()) {
+		header("content-disposition", "inline");
+		header("cache-control", "public, max-age=3600");
+	}
+	serve_file(file_path, false);
 	return *this;
 }
 
-bool ServerResponse::html(const std::string& path, bool is_error_page) {
-	std::fstream html_file;
-	_status = fs::open_file(html_file, path, std::ios::in);
+bool ServerResponse::is_binary() {
+	return (_req_data->mime_type == ".jpg" || _req_data->mime_type == ".jpeg" ||
+			_req_data->mime_type == ".png" || _req_data->mime_type == ".gif" ||
+			_req_data->mime_type == ".ico" || _req_data->mime_type == ".webp");
+}
+
+bool ServerResponse::serve_file(const std::string& path, bool is_error_page) {
+	std::fstream file;
+	_status = fs::open_file(file, path, std::ios::in | std::ios::binary);
 	if (_status.ok()) {
-		std::string temp;
-		while (getline(html_file, temp)) {
-			_body += temp;
-		}
-		html_file.close();
+		file.seekg(0, std::ios::end);
+		size_t size = file.tellg();
+		file.seekg(0, std::ios::beg);
+		_body.resize(size);
+		file.read(&_body[0], size);
+		file.close();
 		return true;
 	} else if (!is_error_page) {
 		_status.set_status_line(404, "Not Found");
-		html(_server_data->common.errorPage.at(404), true);
+		serve_file(_server_data->common.errorPage.at(404), true);
 	} else
 		send_error_page(404, "Not Found");
 	return false;
@@ -57,7 +70,7 @@ void ServerResponse::send_error_page(int code, std::string error_msg) {
 	std::stringstream code_str;
 	code_str << code;
 	header("content-type", "text/html");
-	if (!html(_server_data->common.errorPage.at(code), true)) {
+	if (!serve_file(_server_data->common.errorPage.at(code), true)) {
 		_status.set_status_line(code, error_msg);
 		std::string err_msg = code_str.str() + " " + error_msg + " ";
 		_body = "<!DOCTYPE html><html><head><title>" + err_msg +
@@ -88,8 +101,7 @@ std::string ServerResponse::generate_response() {
 		}
 	}
 	if (!found) serve_default_root();
-	header("server",
-		   _server_data->server_name[0]);  // looping through dif names? index?
+	header("server", _server_data->server_name[0]);
 	header("content-length", get_body_size());
 	_response = WS_PROTOCOL + _status.status_line() + get_headers() + "\r\n" +
 				get_body();
@@ -121,17 +133,29 @@ std::string ServerResponse::identify_mime() {
 		_resp_content_type = "text/css";
 	} else if (_req_data->mime_type == ".js") {
 		_resp_content_type = "application/javascript";
-	} else if (_req_data->mime_type == "json") {
+	} else if (_req_data->mime_type == ".json") {
 		_resp_content_type = "application/json";
 	} else if (_req_data->mime_type == ".jpg" ||
-			   _req_data->mime_type == "jpeg") {
+			   _req_data->mime_type == ".jpeg") {
 		_resp_content_type = "image/jpeg";
 	} else if (_req_data->mime_type == ".png") {
 		_resp_content_type = "image/png";
 	} else if (_req_data->mime_type == ".gif") {
 		_resp_content_type = "image/gif";
+	} else if (_req_data->mime_type == ".svg") {
+		_resp_content_type = "image/svg+xml";
+	} else if (_req_data->mime_type == ".ico") {
+		_resp_content_type = "image/x-icon";
+	} else if (_req_data->mime_type == ".webp") {
+		_resp_content_type = "image/webp";
+	} else if (_req_data->mime_type == ".pdf") {
+		_resp_content_type = "application/pdf";
+	} else if (_req_data->mime_type == ".txt") {
+		_resp_content_type = "text/plain";
+	} else if (_req_data->mime_type == ".xml") {
+		_resp_content_type = "application/xml";
 	} else {
-		_resp_content_type = "text/html";
+		_resp_content_type = "application/octet-stream";
 	}
 	return _resp_content_type;
 }
