@@ -205,9 +205,8 @@ Status Server::handle_event(int amount_of_events) {
 }
 
 t_request Server::request_parser(std::string request) {
-	std::cout << request << "\n";
 	t_request requestStruct;
-	requestStruct.mime_type = "";  // if there no mime found -> empty string
+	requestStruct.mime_type = ".html";  // if there no mime found -> .html
 	std::stringstream iss(request);
 	std::string extract;
 	iss >> extract;
