@@ -1,7 +1,17 @@
 #ifndef SERVER_SERVER_EVENT_HPP
 #define SERVER_SERVER_EVENT_HPP
 
+#include "status.hpp"
+
 #include <sys/epoll.h>
+
+#ifndef SERVER_EVENT_CLIENT_EVENTS
+#define SERVER_EVENT_CLIENT_EVENTS (EPOLLIN | EPOLLRDHUP | EPOLLOUT | EPOLLERR | EPOLLHUP)
+#endif // SERVER_EVENT_CLIENT_EVENTS
+
+#ifndef SERVER_EVENT_SERVER_EVENTS
+#define SERVER_EVENT_SERVER_EVENTS (EPOLLIN | EPOLLOUT)
+#endif // SERVER_EVENT_SERVER_EVENTS
 
 class ServerEvent {
 public:
@@ -9,24 +19,22 @@ public:
     ServerEvent(uint32_t events, int event_fd);
     ~ServerEvent();
 
-	void add_event(uint32_t events, int event_fd);
-    int wait_event(int timeout);
+    Status add_event(uint32_t events, int event_fd, void *event_data);
+	Status add_event(uint32_t events, int event_fd);
+    Status remove_event(int event_fd);
+    Status wait_event(int timeout, int *nfds);
+    Status event_mod(uint32_t events, int event_fd);
 
     epoll_event *operator[](size_t index);
 
-    // TODO
-    // void remove_event();
-    // void modify_event();
-
 private:
-    void init();
-    void resize_events_arr(size_t new_size);
+    Status init();
+    Status resize_events_arr(size_t new_size);
     void copy_events_arr(size_t src_size, const epoll_event *src, epoll_event *dst);
 
     epoll_event *_events_arr;
     size_t _events_size;
     size_t _events_capacity;
-
     int _epoll_fd;
 };
 

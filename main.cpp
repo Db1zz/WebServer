@@ -1,34 +1,38 @@
+#include <string>
+#include <vector>
+
 #include "Parser/Parser.hpp"
-#include "Sockets/ClientSocket.hpp"
-#include "Sockets/ServerSocket.hpp"
-#include "Sockets/ASocket.hpp"
 #include "Server/Server.hpp"
+#include "colors.hpp"
 
 int main(int argc, char** argv) {
 	std::string fileName;
 
 	if (argc > 2) {
-		std::cerr << "Incorrect use!\nCorrect use is: " << argv[0]
-				  << " [optional: config.conf]\n";
+		std::cerr << "Incorrect use!\nCorrect use is: " << argv[0] << " [optional: config.conf]\n";
 		return 2;
 	} else if (argc == 1) {
 		fileName = "default.conf";
 	} else if (argc == 2) {
 		fileName = argv[argc - 1];
 	}
+
 	std::vector<t_config> config;
-	try
-	{
+	try {
 		Parser parser(fileName.c_str());
 		config = parser.getConfigStruct();
-		
-	}
-	catch(const std::exception& e)
-	{
+
+	} catch (const std::exception& e) {
 		std::cerr << e.what() << '\n';
 		return 1;
 	}
-	Server server(config);
-	server.get_socket()->set_opt(SO_REUSEADDR, true);
-	server.launch();
+
+	try {
+		Server server(config);
+		server.launch();
+	} catch (const std::exception& e) {
+		std::cout << "[Server] " << RED300 << "Fatal Error: " << RESET << e.what() << std::endl;
+		return 1;
+	}
+	return 0;
 }

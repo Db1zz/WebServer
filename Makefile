@@ -1,12 +1,11 @@
 NAME = ./webserv
-INCLUDE_DIR = -I Sockets -I Server -I Parser
-CXX = c++ -std=c++98
-CXXFLAGS = -Wall -Werror -Wextra -g $(INCLUDE_DIR)
+INCLUDE_DIR = -I Sockets -I Server -I Parser -I Utilities -I Logger
+CXX = c++ -std=c++98 -g -static-libasan
+CXXFLAGS = -Wall -Wextra -Werror $(INCLUDE_DIR)
 
-SRC = Sockets/ASocket.cpp \
-	Sockets/ClientSocket.cpp \
-	Sockets/ServerSocket.cpp \
-	Server/IServer.cpp \
+SRC = \
+	Server/ServerSocket.cpp \
+	Server/Socket.cpp \
 	Server/Server.cpp \
 	Server/ServerResponse.cpp \
 	Server/ServerEvent.cpp \
@@ -31,4 +30,10 @@ fclean: clean
 
 re: fclean all
 
-.PHONY: all clean fclean re
+docker_build:
+	docker compose up --build --yes -d
+
+run: docker_build
+	docker attach webserv
+
+.PHONY: all clean fclean re run docker_build
