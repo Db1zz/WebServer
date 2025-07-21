@@ -206,7 +206,7 @@ Status Server::handle_event(int amount_of_events) {
 
 t_request Server::request_parser(std::string request) {
 	t_request requestStruct;
-	requestStruct.mime_type = ".html";  // if there no mime found -> .html
+	requestStruct.mime_type = "";  // if there no mime found empty string
 	std::stringstream iss(request);
 	std::string extract;
 	iss >> extract;
@@ -215,6 +215,8 @@ t_request Server::request_parser(std::string request) {
 	requestStruct.uri_path = extract;
 	if (extract.find('.') != std::string::npos)
 		requestStruct.mime_type = extract.substr(extract.find('.'));
+	else if (extract == "/")
+		requestStruct.mime_type = ".html";
 	iss >> extract;	 // we ignore HTTP/1.1 for now
 	while (std::getline(iss, extract) || extract != "\r") {
 		if (extract.empty() || extract == "\r\n")
