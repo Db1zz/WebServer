@@ -249,7 +249,7 @@ Status Server::read_request(const epoll_event &request_event, std::string &resul
 	}
 	read_buff[rd_bytes] = 0;
 	result = std::string(read_buff);
-	//std::cout << CYAN300 << "REQUEST:\n" << read_buff << RESET << std::endl;
+	std::cout << CYAN300 << "REQUEST:\n" << read_buff << RESET << std::endl;
 	return Status();
 }
 
