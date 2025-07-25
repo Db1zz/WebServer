@@ -1,3 +1,18 @@
 body {
 	background-color: aquamarine;
 }
+button {
+	display: block;
+	margin: 40px auto;
+	padding: 20px 40px;
+	font-size: 2rem;
+	background: pink;
+	color: white;
+	border: none;
+	border-radius: 12px;
+	cursor: pointer;
+}
+
+button:hover {
+	background: red;
+}
