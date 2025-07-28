@@ -127,7 +127,8 @@ void ServerResponse::serve_default_root() {
 }
 
 std::string ServerResponse::identify_mime() {
-	if (_req_data->mime_type == ".html") {
+	std::cout << "mime-type: " << _req_data->mime_type << std::endl;
+	if (_req_data->mime_type == ".html" || _req_data->mime_type == "") {
 		_resp_content_type = "text/html";
 	} else if (_req_data->mime_type == ".css") {
 		_resp_content_type = "text/css";
