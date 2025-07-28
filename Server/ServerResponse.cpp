@@ -84,7 +84,7 @@ std::string ServerResponse::generate_response() {
 	_status.set_status_line(200, "OK");
 	bool found = false;
 	for (size_t i = 0; i < _server_data->location.size(); ++i) {
-		if (_req_data->uri_path.find(_server_data->location[i].path) == 0) {
+		if (_server_data->location[i].path.find(_req_data->uri_path) == 0) {
 			found = true;
 			if ((_req_data->method == "GET" &&
 				 _server_data->location[i].common.methods.getMethod) ||
@@ -103,7 +103,7 @@ std::string ServerResponse::generate_response() {
 	header("server", _server_data->server_name[0]);
 	header("content-length", get_body_size());
 	_response = WS_PROTOCOL + _status.status_line() + get_headers() + "\r\n" + get_body();
-	//std::cout << GREEN400 "RESPONSE:\n" << _response << RESET << std::endl;
+	std::cout << GREEN400 "RESPONSE:\n" << _response << RESET << std::endl;
 	return _response;
 }
 
