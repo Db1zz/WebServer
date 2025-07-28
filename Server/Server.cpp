@@ -215,21 +215,21 @@ t_request Server::request_parser(std::string request) {
 	iss >> extract;
 	requestStruct.uri_path = extract;
 	if (extract.find('.') != std::string::npos)
-		requestStruct.mime_type = extract.substr(extract.find('.'));
+	requestStruct.mime_type = extract.substr(extract.find('.'));
 	iss >> extract;	 // we ignore HTTP/1.1 for now
 	while (std::getline(iss, extract) || extract != "\r") {
 		if (extract.empty() || extract == "\r\n")
-			break;
+		break;
 		if (extract.find("Host: ", 0) != std::string::npos)
-			requestStruct.host = extract.substr(6);
+		requestStruct.host = extract.substr(6);
 		else if (extract.find("User-Agent: ", 0) != std::string::npos)
-			requestStruct.user_agent = extract.substr(12);
+		requestStruct.user_agent = extract.substr(12);
 		else if (extract.find("Accept: ", 0) != std::string::npos)
-			requestStruct.accept = extract.substr(8);
+		requestStruct.accept = extract.substr(8);
 		else if (extract.find("Accept-Language: ", 0) != std::string::npos)
-			requestStruct.language = extract.substr(17);
+		requestStruct.language = extract.substr(17);
 		else if (extract.find("Connection: ", 0) != std::string::npos)
-			requestStruct.connection = extract.substr(12);
+		requestStruct.connection = extract.substr(12);
 	}
 	return requestStruct;
 }
