@@ -74,3 +74,38 @@ button:hover {
 		float: none;
 	}
 }
+
+/*FORM*/
+
+.contact__container {
+  row-gap: 3rem;
+}
+
+.contact__information {
+  display: flex;
+}
+
+
+.contact__content {
+  border-radius: 0.5rem;
+  padding: 0.75rem 1rem 0.25rem;
+}
+.contact__error {
+  border: 1px solid #CE5A67;
+}
+.contact_star {
+  color: #CE5A67;
+}
+
+.contact__label {
+  font-size: 15px;
+}
+
+.contact__input {
+  width: 100%;
+  background-color: #F0E4D3;
+  color: black;
+  border: none;
+  outline: none;
+  padding: 0.25rem 0.5rem 0.5rem 0;
+}
