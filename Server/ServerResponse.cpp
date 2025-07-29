@@ -20,7 +20,9 @@ ServerResponse& ServerResponse::header(const std::string& key, const std::string
 ServerResponse& ServerResponse::serve_static_page(const t_location& loc, const std::string& uri) {
 	std::string file_path = loc.common.root.empty() ? _server_data->common.root : loc.common.root;
 	if (!file_path.empty() && file_path[file_path.size() - 1] != '/') file_path += "/";
-	file_path += uri.substr(loc.path.length());
+	if (uri.length() >= loc.path.length()) {
+		file_path += uri.substr(loc.path.length());
+	}
 	if (!file_path.empty() && file_path[file_path.size() - 1] == '/') {
 		file_path += loc.common.index.empty() ? "index.html" : loc.common.index[0];
 		const_cast<t_request*>(_req_data)->mime_type = ".html"; // maybe move it to parser?
@@ -84,7 +86,7 @@ std::string ServerResponse::generate_response() {
 	_status.set_status_line(200, "OK");
 	bool found = false;
 	for (size_t i = 0; i < _server_data->location.size(); ++i) {
-		if (_server_data->location[i].path.find(_req_data->uri_path) == 0) {
+		if (_req_data->uri_path.find(_server_data->location[i].path) == 0) {
 			found = true;
 			if ((_req_data->method == "GET" &&
 				 _server_data->location[i].common.methods.getMethod) ||
@@ -95,8 +97,8 @@ std::string ServerResponse::generate_response() {
 				serve_static_page(_server_data->location[i], _req_data->uri_path);
 			} else {
 				send_error_page(405, "Method Not Allowed");
-				break;
 			}
+			break;
 		}
 	}
 	if (!found) serve_default_root();
