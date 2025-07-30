@@ -31,6 +31,8 @@ class ServerResponse {
 	ServerResponse& serve_static_page(const t_location& loc,
 									  const std::string& uri);
 	ServerResponse& json(const std::string& data);
+	ServerResponse& post_method(const std::string& data);
+	ServerResponse& delete_method(const std::string& data);
 	std::string generate_response();
 	std::string identify_mime();
 	bool serve_file(const std::string& path, bool is_error_page);

@@ -2,7 +2,8 @@ body {
 	background-color: #D9A299;
 }
 
-button {
+button,
+.main_button {
 	display: block;
 	margin: 20px auto;
 	padding: 20px 40px;
@@ -14,7 +15,8 @@ button {
 	cursor: pointer;
 }
 
-button:hover {
+button:hover,
+.main_button:hover {
 	background: #F0E4D3;
 }
 

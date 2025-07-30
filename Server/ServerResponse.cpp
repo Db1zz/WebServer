@@ -61,6 +61,17 @@ bool ServerResponse::serve_file(const std::string& path, bool is_error_page) {
 		return false;
 	return false;
 }
+
+ServerResponse& ServerResponse::post_method(const std::string& data) {
+	(void) data;
+	return *this;
+}
+
+ServerResponse& ServerResponse::delete_method(const std::string& data) {
+	(void) data;
+	return *this;
+}
+
 void ServerResponse::send_error_page(int code, std::string error_msg) {
 	std::string path;
 	_status.set_status_line(code, error_msg);
@@ -105,7 +116,7 @@ std::string ServerResponse::generate_response() {
 	header("server", _server_data->server_name[0]);
 	header("content-length", get_body_size());
 	_response = WS_PROTOCOL + _status.status_line() + get_headers() + "\r\n" + get_body();
-	//std::cout << GREEN400 "RESPONSE:\n" << _response << RESET << std::endl;
+	if (!is_binary()) std::cout << GREEN400 "RESPONSE:\n" << _response << RESET << std::endl;
 	return _response;
 }
 
