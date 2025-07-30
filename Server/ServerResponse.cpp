@@ -62,13 +62,13 @@ bool ServerResponse::serve_file(const std::string& path, bool is_error_page) {
 	return false;
 }
 
-ServerResponse& ServerResponse::post_method(const std::string& data) {
-	(void) data;
+ServerResponse& ServerResponse::post_method() {
+	_body += "post test";
 	return *this;
 }
 
-ServerResponse& ServerResponse::delete_method(const std::string& data) {
-	(void) data;
+ServerResponse& ServerResponse::delete_method() {
+	_body += "delete test";
 	return *this;
 }
 
@@ -96,21 +96,28 @@ void ServerResponse::send_error_page(int code, std::string error_msg) {
 std::string ServerResponse::generate_response() {
 	_status.set_status_line(200, "OK");
 	bool found = false;
+	int index = -1;
+	size_t len = 0;
 	for (size_t i = 0; i < _server_data->location.size(); ++i) {
-		if (_req_data->uri_path.find(_server_data->location[i].path) == 0) {
-			found = true;
-			if ((_req_data->method == "GET" &&
-				 _server_data->location[i].common.methods.getMethod) ||
-				(_req_data->method == "POST" &&
-				 _server_data->location[i].common.methods.postMethod) ||
-				(_req_data->method == "DELETE" &&
-				 _server_data->location[i].common.methods.deleteMethod)) {
-				serve_static_page(_server_data->location[i], _req_data->uri_path);
-			} else {
-				send_error_page(405, "Method Not Allowed");
+		const std::string& location_path = _server_data->location[i].path;
+		if (_req_data->uri_path.substr(0, location_path.length()) == location_path) {
+			if (location_path.length() > len) {
+				index = i;
+				len = location_path.length();
+				found = true;
 			}
-			break;
 		}
+	}
+	if (found) {
+		const t_location& loc = _server_data->location[index];
+		if (_req_data->method == "POST" && loc.common.methods.postMethod)
+			post_method();
+		else if (_req_data->method == "GET" && loc.common.methods.getMethod)
+			serve_static_page(loc, _req_data->uri_path);
+		else if (_req_data->method == "DELETE" && loc.common.methods.deleteMethod)
+			delete_method();
+		else
+			send_error_page(405, "Method Not Allowed");
 	}
 	if (!found) serve_default_root();
 	header("server", _server_data->server_name[0]);
