@@ -3,7 +3,12 @@
 ServerResponse::ServerResponse(const t_request& request, const t_config& server_data)
 	: _req_data(&request), _server_data(&server_data) {
 }
+ServerResponse::ServerResponse(const t_request& request, const t_config& server_data)
+	: _req_data(&request), _server_data(&server_data) {
+}
 
+ServerResponse::~ServerResponse() {
+}
 ServerResponse::~ServerResponse() {
 }
 
@@ -12,6 +17,7 @@ ServerResponse& ServerResponse::operator<<(const std::string& data) {
 	return *this;
 }
 
+ServerResponse& ServerResponse::header(const std::string& key, const std::string& value) {
 ServerResponse& ServerResponse::header(const std::string& key, const std::string& value) {
 	_headers += key + ": " + value + "\r\n";
 	return (*this);
@@ -23,12 +29,25 @@ ServerResponse& ServerResponse::serve_static_page(const t_location& loc, const s
 	if (uri.length() >= loc.path.length()) {
 		file_path += uri.substr(loc.path.length());
 	}
+ServerResponse& ServerResponse::serve_static_page(const t_location& loc, const std::string& uri) {
+	std::string file_path = loc.common.root.empty() ? _server_data->common.root : loc.common.root;
+	if (!file_path.empty() && file_path[file_path.size() - 1] != '/') file_path += "/";
+	if (uri.length() >= loc.path.length()) {
+		file_path += uri.substr(loc.path.length());
+	}
 	if (!file_path.empty() && file_path[file_path.size() - 1] == '/') {
+		file_path += loc.common.index.empty() ? "index.html" : loc.common.index[0];
+		const_cast<t_request*>(_req_data)->mime_type = ".html"; // maybe move it to parser?
 		file_path += loc.common.index.empty() ? "index.html" : loc.common.index[0];
 		const_cast<t_request*>(_req_data)->mime_type = ".html"; // maybe move it to parser?
 	}
 	_resp_content_type = identify_mime();
 	header("content-type", _resp_content_type);
+	if (is_binary()) {
+		header("content-disposition", "inline");
+		header("cache-control", "public, max-age=3600");
+	}
+	serve_file(file_path, false);
 	if (is_binary()) {
 		header("content-disposition", "inline");
 		header("cache-control", "public, max-age=3600");
@@ -46,7 +65,22 @@ bool ServerResponse::is_binary() {
 bool ServerResponse::serve_file(const std::string& path, bool is_error_page) {
 	std::fstream file;
 	_status = fs::open_file(file, path, std::ios::in | std::ios::binary);
+bool ServerResponse::is_binary() {
+	return (_req_data->mime_type == ".jpg" || _req_data->mime_type == ".jpeg" ||
+			_req_data->mime_type == ".png" || _req_data->mime_type == ".gif" ||
+			_req_data->mime_type == ".ico" || _req_data->mime_type == ".webp");
+}
+
+bool ServerResponse::serve_file(const std::string& path, bool is_error_page) {
+	std::fstream file;
+	_status = fs::open_file(file, path, std::ios::in | std::ios::binary);
 	if (_status.ok()) {
+		file.seekg(0, std::ios::end);
+		size_t size = file.tellg();
+		file.seekg(0, std::ios::beg);
+		_body.resize(size);
+		file.read(&_body[0], size);
+		file.close();
 		file.seekg(0, std::ios::end);
 		size_t size = file.tellg();
 		file.seekg(0, std::ios::beg);
@@ -57,7 +91,9 @@ bool ServerResponse::serve_file(const std::string& path, bool is_error_page) {
 	} else if (!is_error_page) {
 		_status.set_status_line(404, "Not Found");
 		serve_file(_server_data->common.errorPage.at(404), true);
+		serve_file(_server_data->common.errorPage.at(404), true);
 	} else
+		return false;
 		return false;
 	return false;
 }
@@ -74,10 +110,17 @@ ServerResponse& ServerResponse::delete_method() {
 
 void ServerResponse::send_error_page(int code, std::string error_msg) {
 	std::string path;
+	std::string path;
 	_status.set_status_line(code, error_msg);
 	std::stringstream code_str;
 	code_str << code;
 	header("content-type", "text/html");
+	try {
+		path = _server_data->common.errorPage.at(code);
+	} catch (const std::out_of_range&) {
+		path = "";
+	}
+	if (!serve_file(path, true)) {
 	try {
 		path = _server_data->common.errorPage.at(code);
 	} catch (const std::out_of_range&) {
@@ -121,6 +164,7 @@ std::string ServerResponse::generate_response() {
 	}
 	if (!found) serve_default_root();
 	header("server", _server_data->server_name[0]);
+	header("server", _server_data->server_name[0]);
 	header("content-length", get_body_size());
 	_response = WS_PROTOCOL + _status.status_line() + get_headers() + "\r\n" + get_body();
 	if (!is_binary()) std::cout << GREEN400 "RESPONSE:\n" << _response << RESET << std::endl;
@@ -146,13 +190,16 @@ void ServerResponse::serve_default_root() {
 
 std::string ServerResponse::identify_mime() {
 	if (_req_data->mime_type == ".html" || _req_data->mime_type == "") {
+	if (_req_data->mime_type == ".html" || _req_data->mime_type == "") {
 		_resp_content_type = "text/html";
 	} else if (_req_data->mime_type == ".css") {
 		_resp_content_type = "text/css";
 	} else if (_req_data->mime_type == ".js") {
 		_resp_content_type = "application/javascript";
 	} else if (_req_data->mime_type == ".json") {
+	} else if (_req_data->mime_type == ".json") {
 		_resp_content_type = "application/json";
+	} else if (_req_data->mime_type == ".jpg" || _req_data->mime_type == ".jpeg") {
 	} else if (_req_data->mime_type == ".jpg" || _req_data->mime_type == ".jpeg") {
 		_resp_content_type = "image/jpeg";
 	} else if (_req_data->mime_type == ".png") {
@@ -171,7 +218,20 @@ std::string ServerResponse::identify_mime() {
 		_resp_content_type = "text/plain";
 	} else if (_req_data->mime_type == ".xml") {
 		_resp_content_type = "application/xml";
+	} else if (_req_data->mime_type == ".svg") {
+		_resp_content_type = "image/svg+xml";
+	} else if (_req_data->mime_type == ".ico") {
+		_resp_content_type = "image/x-icon";
+	} else if (_req_data->mime_type == ".webp") {
+		_resp_content_type = "image/webp";
+	} else if (_req_data->mime_type == ".pdf") {
+		_resp_content_type = "application/pdf";
+	} else if (_req_data->mime_type == ".txt") {
+		_resp_content_type = "text/plain";
+	} else if (_req_data->mime_type == ".xml") {
+		_resp_content_type = "application/xml";
 	} else {
+		_resp_content_type = "application/octet-stream";
 		_resp_content_type = "application/octet-stream";
 	}
 	return _resp_content_type;
@@ -186,7 +246,13 @@ const std::string ServerResponse::get_body_size() const {
 const std::string& ServerResponse::get_headers() const {
 	return _headers;
 }
+const std::string& ServerResponse::get_headers() const {
+	return _headers;
+}
 
+const std::string& ServerResponse::get_body() const {
+	return _body;
+}
 const std::string& ServerResponse::get_body() const {
 	return _body;
 }
