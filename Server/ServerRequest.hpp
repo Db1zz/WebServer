@@ -5,7 +5,7 @@
 typedef struct s_request {
 	std::string method;
 	std::string uri_path;
-	std::string user_agent;	 // dont need for now
+	std::string user_agent;
 	std::string accept;
 	std::string host;
 	std::string language;  // dont need for now

@@ -15,8 +15,9 @@ void sigint_handler(int signal) {
 	g_signal_status = signal;
 }
 
-Server::Server(const std::vector<t_config>& configs)
+Server::Server(const std::vector<t_config>& configs, ServerLogger& server_logger)
 	: _configs(configs),
+	  _server_logger(server_logger),
 	  _server_max_fd_limit(SERVER_DEFAULT_MAX_CONNECTIONS),
 	  _server_amount_of_used_fds(0) {
 	Status status;
@@ -50,7 +51,7 @@ void Server::destructor_close_all_connections_and_destroy_fd_data() {
 		if (_fd_data[i] == NULL) {
 			continue;
 		}
-		close_connection(_fd_data[i]);
+		close_connection(*_fd_data[i]);
 	}
 }
 
@@ -82,9 +83,8 @@ Status Server::launch() {
 	return status;
 }
 
-bool Server::is_a_new_connection(const epoll_event& event) {
-	t_event_ctx* event_ctx = static_cast<t_event_ctx*>(event.data.ptr);
-	int event_fd = event_ctx->socket->get_fd();
+bool Server::is_a_new_connection(const t_event_ctx& event_ctx) {
+	int event_fd = event_ctx.socket->get_fd();
 
 	for (size_t i = 0; i < _sockets.size(); ++i) {
 		if (event_fd == _sockets[i]->get_fd()) {
@@ -95,13 +95,13 @@ bool Server::is_a_new_connection(const epoll_event& event) {
 }
 
 Status Server::register_connection_server_event(Socket& new_connection_socket,
-												const t_event_ctx* server_event_ctx) {
+												const t_event_ctx& server_event_ctx) {
 	Status status;
 	t_event_ctx* new_event_ctx;
 	int new_connection_fd;
 
 	new_connection_fd = new_connection_socket.get_fd();
-	new_event_ctx = new t_event_ctx(&new_connection_socket, server_event_ctx->data);
+	new_event_ctx = new t_event_ctx(&new_connection_socket, server_event_ctx.data);
 	_fd_data[new_connection_fd] = new_event_ctx;
 
 	++_server_amount_of_used_fds;
@@ -127,10 +127,9 @@ Status Server::set_connection_socket_nonblocking(Socket& socket) {
 	return Status();
 }
 
-Status Server::accept_connection(const epoll_event& request_event) {
+Status Server::accept_connection(const t_event_ctx& event_ctx) {
 	Status status;
 	Socket* new_socket;
-	t_event_ctx* server_event_ctx;
 	ServerSocket* server_socket;
 
 	/*
@@ -140,9 +139,7 @@ Status Server::accept_connection(const epoll_event& request_event) {
 		return Status("The maximum number of connections to the server has been exceeded", -1,
 					  true);
 	}
-
-	server_event_ctx = static_cast<t_event_ctx*>(request_event.data.ptr);
-	server_socket = dynamic_cast<ServerSocket*>(server_event_ctx->socket);
+	server_socket = dynamic_cast<ServerSocket*>(event_ctx.socket);
 
 	new_socket = new Socket;
 	status = server_socket->accept_connection(*new_socket);
@@ -152,25 +149,20 @@ Status Server::accept_connection(const epoll_event& request_event) {
 	printf("Accepted new connection on descriptor %d\n", server_socket->get_fd());
 
 	set_connection_socket_nonblocking(*new_socket);
-	status = register_connection_server_event(*new_socket, server_event_ctx);
+	status = register_connection_server_event(*new_socket, event_ctx);
 	return status;
 }
 
-Status Server::close_connection(const epoll_event& request_event) {
-	t_event_ctx* connection_event_ctx = static_cast<t_event_ctx*>(request_event.data.ptr);
-	return close_connection(connection_event_ctx);
-}
-
-Status Server::close_connection(t_event_ctx* connection_event_ctx) {
+Status Server::close_connection(t_event_ctx& connection_event_ctx) {
 	Status status;
 	int connection_fd;
 
-	std::cout << "[Server] Connection with the host " << *connection_event_ctx->socket->get_host()
-			  << ":" << connection_event_ctx->socket->get_port() << " has been closed\n";
+	std::cout << "[Server] Connection with the host " << connection_event_ctx.socket->get_host()
+			  << ":" << connection_event_ctx.socket->get_port() << " has been closed\n";
 
-	connection_fd = connection_event_ctx->socket->get_fd();
+	connection_fd = connection_event_ctx.socket->get_fd();
 	// std::cout << "[Server] Socket[" << connection_fd << "] has been closed" << std::endl;
-	delete connection_event_ctx->socket;
+	delete connection_event_ctx.socket;
 	status = unregister_connection_server_event(connection_fd);
 
 	return status;
@@ -181,29 +173,30 @@ Status Server::handle_event(int amount_of_events) {
 
 	for (int i = 0; i < amount_of_events; ++i) {
 		const epoll_event& request_event = *_event[i];
-		if (is_a_new_connection(request_event)) {
-			status = accept_connection(request_event);
+		t_event_ctx& event_ctx = *static_cast<t_event_ctx*>(request_event.data.ptr);
+		if (is_a_new_connection(event_ctx)) {
+			status = accept_connection(event_ctx);
 			if (!status) {
-				return Status("accept_new_connection() failed in Server::handle_event(): " +
-							  status.msg());
+				_server_logger.log_error("Server::handle_event()", status.msg());
 			}
 		} else {
 			if (request_event.events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP)) {
-				close_connection(request_event);
+				close_connection(event_ctx);
 				continue;
 			}
 			if (request_event.events & EPOLLIN) {
 				t_request request;
-				status = request_handler(request_event, request);
+				status = request_handler(event_ctx, request);
 				if (!status) {
 					return Status("request_handler() failed in Server::handle_event(): " +
 								  status.msg());
 				}
-				status = response_handler(request_event, request);
+				status = response_handler(event_ctx, request);
 				if (!status) {
 					return Status("response_handler() failed in Server::handle_event(): " +
 								  status.msg());
 				}
+				_server_logger.log_access(*event_ctx.socket->get_host(), request.method, request.uri_path, 0);
 			}
 		}
 	}
@@ -238,13 +231,12 @@ t_request Server::request_parser(std::string request) {
 	return requestStruct;
 }
 
-Status Server::read_request(const epoll_event& request_event, std::string& result) {
-	const t_event_ctx* event_ctx = static_cast<t_event_ctx*>(request_event.data.ptr);
+Status Server::read_request(const t_event_ctx& event_ctx, std::string& result) {
 	const size_t read_buff_size = 4096;
 	char read_buff[read_buff_size];
 	ssize_t rd_bytes;
 
-	rd_bytes = read(event_ctx->socket->get_fd(), read_buff, read_buff_size);
+	rd_bytes = read(event_ctx.socket->get_fd(), read_buff, read_buff_size);
 	if (rd_bytes < 0) {
 		return Status(std::string("read() failed"), rd_bytes);
 	}
@@ -257,11 +249,11 @@ Status Server::read_request(const epoll_event& request_event, std::string& resul
 	return Status();
 }
 
-Status Server::request_handler(const epoll_event& request_event, t_request& req) {
+Status Server::request_handler(const t_event_ctx& event_ctx, t_request& req) {
 	Status status;
 	std::string request_string;
 
-	status = read_request(request_event, request_string);
+	status = read_request(event_ctx, request_string);
 	if (!status) {
 		return Status("Error in Server::request_handler(): " + status.msg());
 	}
@@ -269,12 +261,11 @@ Status Server::request_handler(const epoll_event& request_event, t_request& req)
 	return Status();
 }
 
-Status Server::response_handler(const epoll_event& request_event, const t_request& request) {
-	const t_event_ctx* event_ctx = static_cast<t_event_ctx*>(request_event.data.ptr);
+Status Server::response_handler(const t_event_ctx& event_ctx, const t_request& request) {
 	ServerResponse resp(request, _configs[0]);
 	std::string res = resp.generate_response();
 
-	if (write(event_ctx->socket->get_fd(), res.c_str(), res.size()) < 0) {
+	if (write(event_ctx.socket->get_fd(), res.c_str(), res.size()) < 0) {
 		return Status(strerror(errno));
 	}
 

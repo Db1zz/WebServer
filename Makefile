@@ -9,6 +9,10 @@ SRC = \
 	Server/Server.cpp \
 	Server/ServerResponse.cpp \
 	Server/ServerEvent.cpp \
+	Logger/ServerLogger.cpp \
+	Logger/ErrorLogger.cpp \
+	Logger/AccessLogger.cpp \
+	Logger/ALogger.cpp \
 	Utilities/fs.cpp \
 	Utilities/status.cpp \
 	Parser/Parser.cpp \
