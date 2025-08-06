@@ -8,7 +8,7 @@
 2. check the case when Ahan's webserver is exited by ctrl + c and then our webserv is starting s3gfaulting
 
 ## To implement - Aboba(Everyone)
-1. Logger - Gosha
+1. Logger - Gosha - Done
 2. CGI - Gosha(send to everyone info about CGI that Gosha will read)
 3. POST, DELETE methods - Marianna
 4. chuncked POST - Gosha

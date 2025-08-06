@@ -1,10 +1,12 @@
 NAME = ./webserv
 INCLUDE_DIR = -I Sockets -I Server -I Parser -I Utilities -I Logger
-CXX = c++ -std=c++98 -g -static-libasan -fsanitize=address
+CXX = c++ -std=c++98 -g -static-libasan
 CXXFLAGS = -Wall -Wextra -Werror $(INCLUDE_DIR)
 
 SRC = \
+	Server/ServerSocketManager.cpp \
 	Server/ServerSocket.cpp \
+	Server/ClientSocket.cpp \
 	Server/Socket.cpp \
 	Server/Server.cpp \
 	Server/ServerResponse.cpp \

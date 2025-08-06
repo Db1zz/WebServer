@@ -3,7 +3,8 @@ FROM ubuntu:latest
 RUN apt-get update && apt-get install -y \
 	build-essential \
 	g++ \
-	make
+	make \
+	valgrind
 
 WORKDIR /app
 
