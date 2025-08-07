@@ -1,11 +1,11 @@
 ## Errors - Gosha
-1. fix s3gfault when someone trying to upload a file
-2. if you run webserv with ports that are lower than: 1000
-3. if nginx is running in background then programm sudenly quits
+1. fix s3gfault when someone trying to upload a file - TODO: Andor
+2. if you run webserv with ports that are lower than: 1000 - TODO: Gosha IDK???
+3. if nginx is running in background then programm sudenly quits - FIXED
 
 ## To check - Gosha
 1. when i will fix s3gfault, try to upload multiple files from different ips at the same time.
-2. check the case when Ahan's webserver is exited by ctrl + c and then our webserv is starting s3gfaulting
+2. check the case when Ahan's webserver is exited by ctrl + c and then our webserv is starting s3gfaulting - TODO: Gosha
 
 ## To implement - Aboba(Everyone)
 1. Logger - Gosha - Done
