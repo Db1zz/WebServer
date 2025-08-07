@@ -38,7 +38,11 @@ int main(int argc, char** argv) {
 			return 1;
 		}
 		Server server(config, server_logger);
-		server.launch();
+		status = server.launch();
+		if (!status) {
+			std::cout << "[Server] " << RED300 << "Fatal Error: " << RESET << status.msg()
+					  << std::endl;
+		}
 	} catch (const std::exception& e) {
 		std::cout << "[Server] " << RED300 << "Fatal Error: " << RESET << e.what() << std::endl;
 		return 1;
