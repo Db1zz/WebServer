@@ -1,16 +1,16 @@
-## Errors - Gosha
-1. fix s3gfault when someone trying to upload a file - TODO: Andor
-2. if you run webserv with ports that are lower than: 1000 - TODO: Gosha IDK???
-3. if nginx is running in background then programm sudenly quits - FIXED
+## Bugs - Gosha
+1. Fix s3gfault error when trying to upload a file - TODO: Andor
+2. If the web server is running with ports below: 1000 - TODO: Gosha IDK???
+3. If nginx is running in the background, the program suddenly quits - FIXED
 
 ## To check - Gosha
-1. when i will fix s3gfault, try to upload multiple files from different ips at the same time.
-2. check the case when Ahan's webserver is exited by ctrl + c and then our webserv is starting s3gfaulting - TODO: Gosha
+1. When I fix the s3gfault error, try uploading multiple files from different IP addresses at the same time.
+2. Test the case when Ahan's web server closes with Ctrl+C, and then our web server starts s3gfaulting - TODO: Gosha
 
-## To implement - Aboba(Everyone)
+## Implement - Aboba (for everyone)
 1. Logger - Gosha - Done
-2. CGI - Gosha(send to everyone info about CGI that Gosha will read)
+2. CGI - Gosha (send everyone information about CGI, which Gosha can read)
 3. POST, DELETE methods - Marianna
-4. chuncked POST - Gosha
-5. do we need more http response codes? - Marianna
-6. tests(aboba) - EVERYONE
+4. Chunked POST - Marianna(sadly, but this part is about Request)
+5. Do we need more HTTP response codes? - Marianna
+6. tests(aboba) - for everyone
