@@ -13,13 +13,15 @@
 #define SERVER_EVENT_SERVER_EVENTS (EPOLLIN | EPOLLOUT)
 #endif // SERVER_EVENT_SERVER_EVENTS
 
+class Socket;
+
 class ServerEvent {
 public:
     ServerEvent();
     ServerEvent(uint32_t events, int event_fd);
     ~ServerEvent();
 
-    Status add_event(uint32_t events, int event_fd, void *event_data);
+	Status add_event(uint32_t events, Socket* socket);
 	Status add_event(uint32_t events, int event_fd);
     Status remove_event(int event_fd);
     Status wait_event(int timeout, int *nfds);

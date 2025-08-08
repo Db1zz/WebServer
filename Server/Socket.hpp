@@ -9,6 +9,16 @@
 
 class Socket {
 public:
+	enum SocketOption {
+		kReuseAddr
+		// KReusePort
+	};
+
+	enum SetMode {
+		kUnset,
+		kSet
+	};
+
 	Socket();
 	Socket(Socket &other);
 	virtual ~Socket();
@@ -21,7 +31,7 @@ public:
 	int get_port() const;
 
 	void set_socket(int socket, const struct sockaddr *sockaddr, socklen_t socklen);
-	Status set_opt(int opt, bool to_set, int level = SOL_SOCKET);
+	Status set_socket_option(SocketOption socket_option, SetMode mode);
 
 	Status is_connected() const;
 	Status close_socket();
