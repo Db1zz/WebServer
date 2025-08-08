@@ -3,7 +3,9 @@
 
 #include "Parser/Parser.hpp"
 #include "Server/Server.hpp"
+#include "ServerLogger.hpp"
 #include "colors.hpp"
+#include "fs.hpp"
 
 int main(int argc, char** argv) {
 	std::string fileName;
@@ -28,8 +30,19 @@ int main(int argc, char** argv) {
 	}
 
 	try {
-		Server server(config);
-		server.launch();
+		ServerLogger server_logger("./Logs/");
+		Status status = server_logger.init();
+		if (!status) {
+			std::cout << "[ServerLogger] " << RED300 << "Fatal Error: " << RESET << status.msg()
+					  << std::endl;
+			return 1;
+		}
+		Server server(config, server_logger);
+		status = server.launch();
+		if (!status) {
+			std::cout << "[Server] " << RED300 << "Fatal Error: " << RESET << status.msg()
+					  << std::endl;
+		}
 	} catch (const std::exception& e) {
 		std::cout << "[Server] " << RED300 << "Fatal Error: " << RESET << e.what() << std::endl;
 		return 1;
