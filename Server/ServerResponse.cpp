@@ -58,10 +58,8 @@ bool ServerResponse::serve_file(const std::string& path, bool is_error_page) {
 		file.close();
 		return true;
 	} else if (!is_error_page) {
-		_status.set_status_line(404, "Not Found");
-		serve_file(_server_data->common.errorPage.at(404), true);
-	} else
-		return false;
+		send_error_page(404, "Not Found");
+	}
 	return false;
 }
 
@@ -70,7 +68,9 @@ void ServerResponse::send_error_page(int code, std::string error_msg) {
 	_status.set_status_line(code, error_msg);
 	std::stringstream code_str;
 	code_str << code;
+	_headers.clear();
 	header("content-type", "text/html");
+	
 	try {
 		path = _server_data->common.errorPage.at(code);
 	} catch (const std::out_of_range&) {
