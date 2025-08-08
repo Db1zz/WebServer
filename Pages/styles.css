@@ -80,34 +80,94 @@ button:hover,
 /*FORM*/
 
 .contact__container {
-  row-gap: 3rem;
+	row-gap: 3rem;
 }
 
 .contact__information {
-  display: flex;
+	display: flex;
 }
 
 
 .contact__content {
-  border-radius: 0.5rem;
-  padding: 0.75rem 1rem 0.25rem;
+	border-radius: 0.5rem;
+	padding: 0.75rem 1rem 0.25rem;
 }
+
 .contact__error {
-  border: 1px solid #CE5A67;
+	border: 1px solid #CE5A67;
 }
+
 .contact_star {
-  color: #CE5A67;
+	color: #CE5A67;
 }
 
 .contact__label {
-  font-size: 15px;
+	font-size: 15px;
 }
 
 .contact__input {
-  width: 100%;
-  background-color: #F0E4D3;
-  color: black;
-  border: none;
-  outline: none;
-  padding: 0.25rem 0.5rem 0.5rem 0;
+	width: 100%;
+	background-color: #F0E4D3;
+	color: black;
+	border: none;
+	outline: none;
+	padding: 0.25rem 0.5rem 0.5rem 0;
+}
+
+.file-item {
+	margin: 15px auto;
+	padding: 20px;
+	border: 2px solid #DCC5B2;
+	border-radius: 12px;
+	background-color: #FAF7F3;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	max-width: 600px;
+	box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+.file-item:hover {
+	border-color: #F0E4D3;
+	background-color: #F0E4D3;
+}
+
+.file-info {
+	display: flex;
+	flex-direction: column;
+	flex-grow: 1;
+}
+
+.file-name {
+	font-size: 1.5rem;
+	font-weight: bold;
+	color: black;
+	margin-bottom: 5px;
+}
+
+.file-download-link {
+	text-decoration: none;
+	color: #666;
+	font-size: 0.9rem;
+}
+
+.file-download-link:hover {
+	color: #333;
+	text-decoration: underline;
+}
+
+.file-delete-button {
+	padding: 10px 20px;
+	font-size: 1rem;
+	background: #CE5A67;
+	color: white;
+	border: none;
+	border-radius: 12px;
+	cursor: pointer;
+	margin-left: 20px;
+	transition: background-color 0.2s;
+}
+
+.file-delete-button:hover {
+	background: #B54854;
 }

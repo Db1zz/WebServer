@@ -1,9 +1,12 @@
 #ifndef SERVER_SERVER_RESPONSE_HPP
 #define SERVER_SERVER_RESPONSE_HPP
+#include <dirent.h>
 #include <fcntl.h>
 #include <stdlib.h>
+#include <sys/stat.h>
 #include <unistd.h>
 
+#include <cstring>
 #include <fstream>
 #include <iostream>
 #include <map>
@@ -28,17 +31,18 @@ class ServerResponse {
 	~ServerResponse();
 	ServerResponse& operator<<(const std::string& data);
 	ServerResponse& header(const std::string& key, const std::string& value);
-	ServerResponse& serve_static_page(const t_location& loc,
-									  const std::string& uri);
+	ServerResponse& serve_static_page(const t_location& loc);
 	ServerResponse& json(const std::string& data);
 	ServerResponse& post_method();
-	ServerResponse& delete_method();
+	ServerResponse& delete_method(const t_location& loc);
+	ServerResponse& handle_api_files();
 	std::string generate_response();
 	std::string identify_mime();
 	bool serve_file(const std::string& path, bool is_error_page);
 	bool is_binary();
 	void send_error_page(int code, std::string error_msg);
 	void serve_default_root();
+	void resolve_file_path(const t_location& loc);
 	/*getters*/
 	const std::string get_body_size() const;
 	const std::string& get_headers() const;
@@ -49,6 +53,7 @@ class ServerResponse {
 	std::string _body;
 	std::string _headers;
 	std::string _response;
+	std::string _resolved_file_path;
 	const t_request* _req_data;
 	const t_config* _server_data;
 	Status _status;
@@ -56,4 +61,4 @@ class ServerResponse {
 	/*getters*/
 };
 
-#endif	// SERVER_SERVERRESPONSE_HPP
+#endif // SERVER_SERVERRESPONSE_HPP
