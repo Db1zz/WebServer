@@ -138,32 +138,49 @@ Status Server::handle_event(int amount_of_events) {
 	return Status();
 }
 
-t_request Server::request_parser(std::string request) {
-	t_request requestStruct;
-	requestStruct.mime_type = ""; // if there no mime found -> empty string
+Status Server::request_parser(std::string request, t_request& requestStruct) {
+	t_request newRequestStruct;
+	Status status;
+	newRequestStruct.mime_type = ""; // if there no mime found -> empty string
 	std::stringstream iss(request);
 	std::string extract;
 	iss >> extract;
-	requestStruct.method = extract;
+	newRequestStruct.method = extract; // if method is not GET DELETE POST -> error
+	if (newRequestStruct.method.compare("GET") != 0 &&
+		newRequestStruct.method.compare("DELETE") != 0 &&
+		newRequestStruct.method.compare("POST") != 0) {
+		std::cout << newRequestStruct.method << "\n\n";
+		status.set_status_line(405, "Method not allowed " + newRequestStruct.method);
+		status.set_ok(false);
+		return status;
+	}
 	iss >> extract;
-	requestStruct.uri_path = extract;
+	newRequestStruct.uri_path = extract;
 	if (extract.find('.') != std::string::npos)
-	requestStruct.mime_type = extract.substr(extract.find('.'));
-	iss >> extract;	 // we ignore HTTP/1.1 for now
+		newRequestStruct.mime_type = extract.substr(extract.find('.'));
+	iss >> extract; // if it's not HTTP/1.1 error
+	if (extract.compare("HTTP/1.1") != 0) {
+		status.set_status_line(400, "This server only supports HTTP/1.1");
+		status.set_ok(false);
+		return status;
+	}
 	while (std::getline(iss, extract) || extract != "\r") {
 		if (extract.empty() || extract == "\r\n") break;
 		if (extract.find("Host: ", 0) != std::string::npos)
-		requestStruct.host = extract.substr(6);
+			newRequestStruct.host = extract.substr(6);
 		else if (extract.find("User-Agent: ", 0) != std::string::npos)
-		requestStruct.user_agent = extract.substr(12);
+			newRequestStruct.user_agent = extract.substr(12);
 		else if (extract.find("Accept: ", 0) != std::string::npos)
-		requestStruct.accept = extract.substr(8);
+			newRequestStruct.accept = extract.substr(8);
 		else if (extract.find("Accept-Language: ", 0) != std::string::npos)
-		requestStruct.language = extract.substr(17);
+			newRequestStruct.language = extract.substr(17);
 		else if (extract.find("Connection: ", 0) != std::string::npos)
-		requestStruct.connection = extract.substr(12);
+			newRequestStruct.connection = extract.substr(12);
+		else if (extract.find("Content-Length: ") != std::string::npos)
+			newRequestStruct.contentLength = atoll(extract.substr(16).c_str());
 	}
-	return requestStruct;
+	requestStruct = newRequestStruct;
+	return Status();
 }
 
 Status Server::read_request(const ClientSocket* client_socket, std::string& result) {
@@ -186,13 +203,23 @@ Status Server::read_request(const ClientSocket* client_socket, std::string& resu
 
 Status Server::request_handler(const ClientSocket* client_socket, t_request& req) {
 	Status status;
+	Status parseStatus;
 	std::string request_string;
+	Status readStatus;
 
-	status = read_request(client_socket, request_string);
-	if (!status) {
-		return Status("Error in Server::request_handler(): " + status.msg());
+	readStatus = read_request(client_socket, request_string);
+	if (!readStatus) {
+		return Status("Error in Server::request_handler(): " + readStatus.msg());
 	}
-	req = request_parser(request_string);
+	parseStatus = request_parser(request_string, req);
+	if (!parseStatus) {
+		std::cout << "Continue with the next request\n";
+	}
+	if (req.method.compare("DELETE") == 0 || req.method.compare("POST") == 0)
+	{
+		// we except more data, we need to read until the content length is 0
+		// req.
+	}
 	return Status();
 }
 
