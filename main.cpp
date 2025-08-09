@@ -42,6 +42,7 @@ int main(int argc, char** argv) {
 		if (!status) {
 			std::cout << "[Server] " << RED300 << "Fatal Error: " << RESET << status.msg()
 					  << std::endl;
+			return 1;
 		}
 	} catch (const std::exception& e) {
 		std::cout << "[Server] " << RED300 << "Fatal Error: " << RESET << e.what() << std::endl;
