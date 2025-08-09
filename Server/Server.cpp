@@ -59,7 +59,7 @@ Status Server::launch() {
 		}
 	}
 	std::cout << "[Server] shutdown..." << std::endl;
-	return status;
+	return Status();
 }
 
 bool Server::is_a_new_connection(const epoll_event& event) {
