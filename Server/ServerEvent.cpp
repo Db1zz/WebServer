@@ -5,6 +5,8 @@
 #include <string.h>
 #include <errno.h>
 
+#include "Socket.hpp"
+
 ServerEvent::ServerEvent()
     : _events_arr(NULL), _events_size(0), _events_capacity(5)
 {
@@ -24,20 +26,20 @@ ServerEvent::~ServerEvent() {
     }
 }
 
-Status ServerEvent::add_event(uint32_t events, int event_fd, void *event_data) {
+Status ServerEvent::add_event(uint32_t events, Socket *socket) {
     epoll_event new_event;
 
-    new_event.data.ptr = event_data;
-    new_event.events = events;
+	new_event.data.ptr = socket;
+	new_event.events = events;
 
     if (_events_size == _events_capacity) {
         resize_events_arr(_events_capacity * 2);
     }
 
-    if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, event_fd, &new_event) < 0) {
-        return Status(strerror(errno));
-    }
-    ++_events_size;
+	if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, socket->get_fd(), &new_event) < 0) {
+		return Status(strerror(errno));
+	}
+	++_events_size;
     return Status();
 }
 

@@ -14,6 +14,7 @@ Status is_dir_exist(const std::string &dirname);
 Status is_file_exist(const std::string &filename);
 Status open_file(std::fstream &file, const std::string &path, std::ios::openmode mode);
 Status extract_filename_from_a_path(std::string &filename, const std::string &path);
+Status normalize_path(std::string& out, const std::string &path_to_normalize);
 
 }  // namespace fs
 
