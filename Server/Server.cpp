@@ -109,8 +109,10 @@ Status Server::handle_request_event(const epoll_event& request_event) {
 		if (!status) {
 			return Status("response_handler() failed in Server::handle_event(): " + status.msg());
 		}
+
+		find_server_socket_manager(client_socket->get_server_fd(), search);
 		_server_logger.log_access(*client_socket->get_host(), request.method, request.uri_path,
-								  client_socket->get_server_fd());
+								  search->second->get_server_socket()->get_port());
 	}
 	return Status();
 }
