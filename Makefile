@@ -3,7 +3,7 @@ INCLUDE_DIR = -I Sockets -I Server -I Parser -I Utilities -I Logger
 CXX = c++ -std=c++98 -g -static-libasan -fsanitize=address
 CXXFLAGS = -Wall -Wextra -Werror $(INCLUDE_DIR)
 LOGSDIR = Logs
-SCRIPTS = mkdir $(LOGSDIR)
+SCRIPTS = mkdir -p $(LOGSDIR)
 
 SRC = \
 	Server/ServerSocketManager.cpp \
