@@ -148,12 +148,13 @@ t_request Server::request_parser(std::string request) {
 	iss >> extract;
 	requestStruct.uri_path = extract;
 	if (extract.find('.') != std::string::npos) {
-		std::cout << extract << "\n";
 		size_t dotPos = extract.find('.');
 		size_t questionMarkPos = extract.find('?', dotPos);
 		if (questionMarkPos != std::string::npos && questionMarkPos > dotPos) {
 			requestStruct.mime_type = extract.substr(dotPos, questionMarkPos - dotPos);
 			requestStruct.cgiQueryString = extract.substr(questionMarkPos + 1);
+			requestStruct.uri_path =
+				extract.substr(0, questionMarkPos); // update uri_path without query
 		} else {
 			requestStruct.mime_type = extract.substr(dotPos);
 		}
@@ -172,8 +173,6 @@ t_request Server::request_parser(std::string request) {
 		else if (extract.find("Connection: ", 0) != std::string::npos)
 			requestStruct.connection = extract.substr(12);
 	}
-	std::cout << "Mime type: " << requestStruct.mime_type << "\n";
-	std::cout << "Uri path: " << requestStruct.uri_path << "\n";
 	return requestStruct;
 }
 
