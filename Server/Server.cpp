@@ -152,7 +152,7 @@ t_request Server::request_parser(std::string request) {
 		size_t questionMarkPos = extract.find('?', dotPos);
 		if (questionMarkPos != std::string::npos && questionMarkPos > dotPos) {
 			requestStruct.mime_type = extract.substr(dotPos, questionMarkPos - dotPos);
-			requestStruct.cgiQueryString = extract.substr(questionMarkPos + 1);
+			requestStruct.cgi_query_string = extract.substr(questionMarkPos + 1);
 			requestStruct.uri_path =
 				extract.substr(0, questionMarkPos); // update uri_path without query
 		} else {

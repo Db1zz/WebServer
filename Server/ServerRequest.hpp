@@ -11,7 +11,7 @@ typedef struct s_request {
 	std::string language;  // dont need for now
 	std::string connection;
 	std::string mime_type;	   // format that client can accept in response
-	std::string cgiQueryString;
+	std::string cgi_query_string;
 
 } t_request;
 
