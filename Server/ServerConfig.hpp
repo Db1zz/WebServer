@@ -26,6 +26,9 @@ typedef struct s_commonConfig {
 typedef struct s_location {
 	std::string path;
 	t_commonConfig common;
+	bool chunked_transfer_encoding;
+	size_t chunked_threshold;
+	size_t chunked_size;
 } t_location;
 
 typedef struct s_listen {
@@ -41,4 +44,4 @@ typedef struct s_config {
 	std::vector<t_location> location;
 } t_config;
 
-#endif  // SERVER_SERVER_CONFIG_HPP
+#endif // SERVER_SERVER_CONFIG_HPP
