@@ -158,6 +158,8 @@ Status Server::request_parser(std::string request, t_request& requestStruct) {
 	newRequestStruct.uri_path = extract;
 	if (extract.find('.') != std::string::npos)
 		newRequestStruct.mime_type = extract.substr(extract.find('.'));
+	else if (extract == "/")
+		newRequestStruct.mime_type = ".html";
 	iss >> extract; // if it's not HTTP/1.1 error
 	if (extract.compare("HTTP/1.1") != 0) {
 		status.set_status_line(400, "This server only supports HTTP/1.1");
