@@ -217,8 +217,7 @@ Status Server::request_handler(const ClientSocket* client_socket, t_request& req
 	if (!parseStatus) {
 		std::cout << "Continue with the next request\n";
 	}
-	if (req.method.compare("DELETE") == 0 || req.method.compare("POST") == 0)
-	{
+	if (req.method.compare("DELETE") == 0 || req.method.compare("POST") == 0) {
 		// we except more data, we need to read until the content length is 0
 		// req.
 	}
