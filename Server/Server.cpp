@@ -156,8 +156,18 @@ Status Server::request_parser(std::string request, t_request& requestStruct) {
 	}
 	iss >> extract;
 	newRequestStruct.uri_path = extract;
-	if (extract.find('.') != std::string::npos)
-		newRequestStruct.mime_type = extract.substr(extract.find('.'));
+	if (extract.find('.') != std::string::npos) {
+		size_t dotPos = extract.find('.');
+		size_t questionMarkPos = extract.find('?', dotPos);
+		if (questionMarkPos != std::string::npos && questionMarkPos > dotPos) {
+			newRequestStruct.mime_type = extract.substr(dotPos, questionMarkPos - dotPos);
+			newRequestStruct.cgi_query_string = extract.substr(questionMarkPos + 1);
+			newRequestStruct.uri_path =
+				extract.substr(0, questionMarkPos); // update uri_path without query
+		} else {
+			newRequestStruct.mime_type = extract.substr(dotPos);
+		}
+	}
 	else if (extract == "/")
 		newRequestStruct.mime_type = ".html";
 	iss >> extract; // if it's not HTTP/1.1 error
