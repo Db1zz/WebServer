@@ -31,6 +31,9 @@ typedef enum e_TokenType {
 	CGI,
 	MAX_CLIENT_BODY_SIZE,
 	RETURN,
+	chunked_transfer_encoding,
+	chunked_threshold,
+	chunked_size,
 
 	END_OF_FILE,
 } t_TokenType;
