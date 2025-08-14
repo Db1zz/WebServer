@@ -374,6 +374,8 @@ t_location Parser::parseLocation() {
 			consume(SEMICOLON, "expected ';' after the statement");
 		} else if (match(chunked_threshold)) {
 			std::string tempThreshold = consume(IDENTIFIER, "Expected numbers").getAll();
+			if (tempThreshold.at(0) == '0' && tempThreshold.length() > 1)
+				throw std::runtime_error("You mistyped a number: " + tempThreshold);
 			for (std::string::size_type i = 0; i < tempThreshold.size(); i++) {
 				if (!isdigit(tempThreshold.at(i)))
 					throw std::runtime_error("Expected a number, got: " + tempThreshold +
@@ -383,6 +385,8 @@ t_location Parser::parseLocation() {
 			consume(SEMICOLON, "expected ';' after the statement");
 		} else if (match(chunked_size)) {
 			std::string tempSize = consume(IDENTIFIER, "Expected numbers").getAll();
+			if (tempSize.at(0) == '0' && tempSize.length() > 1)
+				throw std::runtime_error("You mistyped a number: " + tempSize);
 			for (std::string::size_type i = 0; i < tempSize.size(); i++) {
 				if (!isdigit(tempSize.at(i)))
 					throw std::runtime_error("Expected a number, got: " + tempSize + " instead");
