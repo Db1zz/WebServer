@@ -36,7 +36,7 @@ class Server {
 
    private:
 	bool is_a_new_connection(const epoll_event& event);
-	t_request request_parser(std::string request);
+	Status request_parser(std::string request, t_request &requestStruct);
 	Status handle_new_connection_event(const epoll_event& connection_event);
 	Status handle_request_event(const epoll_event& request_event);
 	Status handle_event(int amount_of_events);

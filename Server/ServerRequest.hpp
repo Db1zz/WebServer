@@ -8,10 +8,13 @@ typedef struct s_request {
 	std::string user_agent;
 	std::string accept;
 	std::string host;
-	std::string language;  // dont need for now
+	std::string language; // dont need for now
 	std::string connection;
 	std::string mime_type;	   // format that client can accept in response
 	std::string cgi_query_string;
+	size_t contentLength;
+	std::string fileContent; // this gets filled up in case of POST or DELETE method with the binary
+							 // content of the file for further processing
 
 } t_request;
 
