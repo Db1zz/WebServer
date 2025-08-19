@@ -32,12 +32,12 @@ Parser::Parser(std::string fileName) : m_fileName(fileName) {
 	parseConfig();
 }
 
-Parser::Parser(const Parser &original) : m_fileName(original.m_fileName) {
+Parser::Parser(const Parser& original) : m_fileName(original.m_fileName) {
 	if (this != &original) {
 	}
 }
 
-Parser &Parser::operator=(const Parser &original) {
+Parser& Parser::operator=(const Parser& original) {
 	if (this != &original) {
 		m_fileName = original.m_fileName;
 	}
@@ -66,6 +66,9 @@ void Parser::addKeywords() {
 	_keywords["cgi"] = CGI;
 	_keywords["max_client_body_size"] = MAX_CLIENT_BODY_SIZE;
 	_keywords["return"] = RETURN;
+	_keywords["chunked_transfer_encoding"] = chunked_transfer_encoding;
+	_keywords["chunked_threshold"] = chunked_threshold;
+	_keywords["chunked_size"] = chunked_size;
 }
 
 std::vector<Token> Parser::scanTokens() {
@@ -98,7 +101,8 @@ char Parser::peek() {
 void Parser::identifier(char c) {
 	while (!isAtEnd()) {
 		c = peek();
-		if (isalnum(c) || c == '_' || c == '-' || c == '=' || c == '?' || c == '.' || c == '#' || c == '/' || c == '\'' || c == '\"')
+		if (isalnum(c) || c == '_' || c == '-' || c == '=' || c == '?' || c == '.' || c == '#' ||
+			c == '/' || c == '\'' || c == '\"')
 			advance();
 		else
 			break;
@@ -135,8 +139,7 @@ void Parser::scanToken() {
 			addToken(SLASH);
 			break;
 		case '#':
-			while (_current < _source.size() && _source[_current] != '\n')
-				_current++;
+			while (_current < _source.size() && _source[_current] != '\n') _current++;
 			break;
 		case '\n':
 			_line++;
@@ -157,20 +160,17 @@ void Parser::scanToken() {
 }
 
 bool Parser::tokenIsAtEnd() {
-	if (_tokens.at(_currentToken).getType() == END_OF_FILE)
-		return true;
+	if (_tokens.at(_currentToken).getType() == END_OF_FILE) return true;
 	return false;
 }
 
 Token Parser::tokenAdvance() {
-	if (!tokenIsAtEnd())
-		_currentToken++;
+	if (!tokenIsAtEnd()) _currentToken++;
 	return previous();
 }
 
 bool Parser::check(t_TokenType type) {
-	if (tokenIsAtEnd())
-		return false;
+	if (tokenIsAtEnd()) return false;
 	return tokenPeek().getType() == type;
 }
 
@@ -191,10 +191,10 @@ bool Parser::match(t_TokenType type) {
 }
 
 Token Parser::consume(t_TokenType type, std::string message) {
-	if (check(type))
-		return tokenAdvance();
+	if (check(type)) return tokenAdvance();
 	std::stringstream str;
-	str << "Parse error at line " << tokenPeek().getLine() << ": " << message << " got '" << _tokens.at(_currentToken).getAll() << "' instead\n";
+	str << "Parse error at line " << tokenPeek().getLine() << ": " << message << " got '"
+		<< _tokens.at(_currentToken).getAll() << "' instead\n";
 	throw std::runtime_error(str.str());
 }
 
@@ -209,7 +209,7 @@ void Parser::parseListen() {
 	while (check(IDENTIFIER)) {
 		std::string temp = "";
 		std::string port = "";
-		int convertedPort = -1;	 // we can use default 80 here
+		int convertedPort = -1; // we can use default 80 here
 		std::string checkRange = "";
 		int lastDot = 0;
 		t_listen listen_conf;
@@ -221,22 +221,28 @@ void Parser::parseListen() {
 					throw std::runtime_error("Not a number");
 				if (temp.at(i) == '.') {
 					if (dotCount > 4)
-						throw std::runtime_error("Incorrect IP format, correct format is: [0-255].[0-255].[0-255].[0-255]");
+						throw std::runtime_error(
+							"Incorrect IP format, correct format is: "
+							"[0-255].[0-255].[0-255].[0-255]");
 					dotCount++;
 					if (dotCount == 0)
 						checkRange = temp.substr(lastDot, i);
 					else
 						checkRange = temp.substr(lastDot, i - lastDot);
 					lastDot = i + 1;
-					if (atoi(checkRange.c_str()) < 0 || atoi(checkRange.c_str()) > 255)	 // DRY
-						throw std::runtime_error("Incorrect IP format, correct format is: [0-255].[0-255].[0-255].[0-255]");
+					if (atoi(checkRange.c_str()) < 0 || atoi(checkRange.c_str()) > 255) // DRY
+						throw std::runtime_error(
+							"Incorrect IP format, correct format is: "
+							"[0-255].[0-255].[0-255].[0-255]");
 				}
 			}
 			if (dotCount != 3)
-				throw std::runtime_error("Incorrect IP format, correct format is: [0-255].[0-255].[0-255].[0-255]");
+				throw std::runtime_error(
+					"Incorrect IP format, correct format is: [0-255].[0-255].[0-255].[0-255]");
 			checkRange = temp.substr(lastDot);
-			if (atoi(checkRange.c_str()) < 0 || atoi(checkRange.c_str()) > 255)	 // DRY
-				throw std::runtime_error("Incorrect IP format, correct format is: [0-255].[0-255].[0-255].[0-255]");
+			if (atoi(checkRange.c_str()) < 0 || atoi(checkRange.c_str()) > 255) // DRY
+				throw std::runtime_error(
+					"Incorrect IP format, correct format is: [0-255].[0-255].[0-255].[0-255]");
 		} else {
 			port = temp;
 		}
@@ -255,7 +261,7 @@ void Parser::parseListen() {
 			listen_conf.host = temp;
 		listen_conf.port = convertedPort;
 		checkDuplicateListen(listen_conf);
-		tempConfig.listen.push_back(listen_conf);  // check for duplicate
+		tempConfig.listen.push_back(listen_conf); // check for duplicate
 	}
 	consume(SEMICOLON, "expected ';' after the statement");
 }
@@ -323,6 +329,9 @@ t_location Parser::parseLocation() {
 	tempCommon.cgi.clear();
 	tempCommon.errorPage.clear();
 	tempCommon.index.clear();
+	tempLocation.chunked_size = 0;
+	tempLocation.chunked_threshold = 0;
+	tempLocation.chunked_transfer_encoding = false;
 	consume(LEFT_BRACE, "expected opening '{' for location block");
 	while (!check(RIGHT_BRACE)) {
 		if (match(ROOT)) {
@@ -343,14 +352,51 @@ t_location Parser::parseLocation() {
 		} else if (match(CGI)) {
 			std::string extension;
 			consume(DOT, "expected an extension type with a dot, example: .py");
-			extension = "." + consume(IDENTIFIER, "expected an extension type with a dot, example: .py").getAll();
+			extension =
+				"." +
+				consume(IDENTIFIER, "expected an extension type with a dot, example: .py").getAll();
 			tempCommon.cgi.insert(std::pair<std::string, std::string>(extension, parsePath()));
 			consume(SEMICOLON, "expected ';' after the statement");
 		} else if (match(MAX_CLIENT_BODY_SIZE)) {
 			tempCommon.max_client_body = parseMaxClientBody();
 			consume(SEMICOLON, "expected ';' after the statement");
+		} else if (match(chunked_transfer_encoding)) {
+			if (tokenPeek().getType() == ON) {
+				consume(ON, "expected on");
+				tempLocation.chunked_transfer_encoding = true;
+			} else if (tokenPeek().getType() == OFF) {
+				consume(OFF, "expected off");
+				tempLocation.chunked_transfer_encoding = false;
+			} else
+				throw std::runtime_error(
+					"Unexpected option for chunked_transfer_encoding, allowed options are on or "
+					"off");
+			consume(SEMICOLON, "expected ';' after the statement");
+		} else if (match(chunked_threshold)) {
+			std::string tempThreshold = consume(IDENTIFIER, "Expected numbers").getAll();
+			if (tempThreshold.at(0) == '0' && tempThreshold.length() > 1)
+				throw std::runtime_error("You mistyped a number: " + tempThreshold);
+			for (std::string::size_type i = 0; i < tempThreshold.size(); i++) {
+				if (!isdigit(tempThreshold.at(i)))
+					throw std::runtime_error("Expected a number, got: " + tempThreshold +
+											 " instead");
+			}
+			tempLocation.chunked_threshold = atol(tempThreshold.c_str());
+			consume(SEMICOLON, "expected ';' after the statement");
+		} else if (match(chunked_size)) {
+			std::string tempSize = consume(IDENTIFIER, "Expected numbers").getAll();
+			if (tempSize.at(0) == '0' && tempSize.length() > 1)
+				throw std::runtime_error("You mistyped a number: " + tempSize);
+			for (std::string::size_type i = 0; i < tempSize.size(); i++) {
+				if (!isdigit(tempSize.at(i)))
+					throw std::runtime_error("Expected a number, got: " + tempSize + " instead");
+			}
+			tempLocation.chunked_size = atol(tempSize.c_str());
+			consume(SEMICOLON, "expected ';' after the statement");
+
 		} else {
-			throw std::runtime_error("Unexpected token in the location block: " + tokenPeek().getAll());
+			throw std::runtime_error("Unexpected token in the location block: " +
+									 tokenPeek().getAll());
 		}
 	}
 	consume(RIGHT_BRACE, "expected closing '}' for location block");
@@ -370,8 +416,7 @@ void Parser::parseServerName() {
 		tempConfig.server_name.push_back(temp.str());
 		found = true;
 	}
-	if (!found)
-		throw std::runtime_error("Expected at least one server name");
+	if (!found) throw std::runtime_error("Expected at least one server name");
 	consume(SEMICOLON, "expected ';' after the statement");
 }
 
@@ -388,7 +433,8 @@ t_methods Parser::parseMethods() {
 		} else if (match(DELETE)) {
 			methodStruct.deleteMethod = true;
 		} else {
-			throw std::runtime_error("Unrecognized method found. Allowed methods are GET POST DELETE");
+			throw std::runtime_error(
+				"Unrecognized method found. Allowed methods are GET POST DELETE");
 		}
 	}
 	consume(SEMICOLON, "exptected ';' after the statement");
@@ -414,8 +460,7 @@ std::map<int, std::string> Parser::parseErrorPage() {
 	bool nonDigit;
 	while (check(IDENTIFIER)) {
 		tempString = consume(IDENTIFIER, "expected identifier").getAll();
-		if (!isSpaceBetween(previous(), tokenPeek()))
-			break;
+		if (!isSpaceBetween(previous(), tokenPeek())) break;
 		for (size_t i = 0; i < tempString.size(); i++) {
 			if (std::isdigit(tempString.at(i))) {
 				nonDigit = false;
@@ -424,8 +469,7 @@ std::map<int, std::string> Parser::parseErrorPage() {
 				break;
 			}
 		}
-		if (nonDigit)
-			break;
+		if (nonDigit) break;
 		codes.push_back(tempString);
 		tempString = "";
 	}
@@ -471,8 +515,9 @@ std::vector<t_config> Parser::getConfigStruct() {
 	// 		std::cout << "Index: " << temp.common.index.at(idx) << '\n';
 
 	// 	// Print error pages
-	// 	for (std::map<int, std::string>::iterator it = temp.common.errorPage.begin(); it != temp.common.errorPage.end(); ++it)
-	// 		std::cout << "Error Page: " << it->first << " -> " << it->second << '\n';
+	// 	for (std::map<int, std::string>::iterator it = temp.common.errorPage.begin(); it !=
+	// temp.common.errorPage.end(); ++it) 		std::cout << "Error Page: " << it->first << " -> "
+	// << it->second << '\n';
 
 	// 	// Print allowed methods
 	// 	std::cout << "Methods: "
@@ -481,8 +526,9 @@ std::vector<t_config> Parser::getConfigStruct() {
 	// 			  << (temp.common.methods.deleteMethod ? "DELETE " : "")
 	// 			  << '\n';
 
-	// 	for (std::map<std::string, std::string>::const_iterator cgi_it = temp.common.cgi.begin(); cgi_it != temp.common.cgi.end(); cgi_it++)
-	// 		std::cout << "CGI: " << cgi_it->first << " " << cgi_it->second << '\n';
+	// 	for (std::map<std::string, std::string>::const_iterator cgi_it = temp.common.cgi.begin();
+	// cgi_it != temp.common.cgi.end(); cgi_it++) 		std::cout << "CGI: " << cgi_it->first << " "
+	// << cgi_it->second << '\n';
 	// 	// Print locations
 	// 	for (size_t loc_i = 0; loc_i < temp.location.size(); loc_i++) {
 	// 		const t_location &loc = temp.location.at(loc_i);
@@ -492,17 +538,21 @@ std::vector<t_config> Parser::getConfigStruct() {
 	// 		std::cout << "  Auto Index: " << (loc.common.auto_index ? "on" : "off") << '\n';
 	// 		std::cout << "  Return Code: " << loc.common.returnCode << '\n';
 	// 		std::cout << "  Return Path: " << loc.common.returnPath << '\n';
-	// 		for (size_t idx = 0; idx < loc.common.index.size(); idx++)
-	// 			std::cout << "  Index: " << loc.common.index.at(idx) << '\n';
-	// 		for (std::map<int, std::string>::const_iterator it = loc.common.errorPage.begin(); it != loc.common.errorPage.end(); ++it)
-	// 			std::cout << "  Error Page: " << it->first << " -> " << it->second << '\n';
-	// 		std::cout << "  Methods: "
+	// std::cout << "Chunked Transfer Encoding: " << (loc.chunked_transfer_encoding ? "on" : "off")
+	// << '\n'; std::cout << "Chunked Threshold: " << loc.chunked_threshold << '\n'; std::cout <<
+	// "Chunked Size: " << loc.chunked_size << '\n'; 		for (size_t idx = 0; idx <
+	// loc.common.index.size(); idx++) 			std::cout << "  Index: " << loc.common.index.at(idx)
+	// << '\n'; 		for (std::map<int, std::string>::const_iterator it =
+	// loc.common.errorPage.begin(); it != loc.common.errorPage.end(); ++it) 			std::cout <<
+	// "  Error Page: " << it->first
+	// << " -> " << it->second << '\n'; 		std::cout << "  Methods: "
 	// 				  << (loc.common.methods.getMethod ? "GET " : "")
 	// 				  << (loc.common.methods.postMethod ? "POST " : "")
 	// 				  << (loc.common.methods.deleteMethod ? "DELETE " : "")
 	// 				  << '\n';
-	// 		for (std::map<std::string, std::string>::const_iterator cgi_it = loc.common.cgi.begin(); cgi_it != loc.common.cgi.end(); cgi_it++)
-	// 			std::cout << "  CGI: " << cgi_it->first << " " << cgi_it->second << '\n';
+	// 		for (std::map<std::string, std::string>::const_iterator cgi_it = loc.common.cgi.begin();
+	// cgi_it != loc.common.cgi.end(); cgi_it++) 			std::cout << "  CGI: " << cgi_it->first
+	// << " " << cgi_it->second << '\n';
 	// 	}
 	// 	std::cout << "-----------------------------\n";
 	// }
@@ -525,7 +575,7 @@ void Parser::fillDefaultValues() {
 	tempConfig.common.root = "";
 }
 
-void Parser::parseReturn(std::string &path, int *code) {
+void Parser::parseReturn(std::string& path, int* code) {
 	bool nonDigit = false;
 	std::string tempString = tokenPeek().getAll();
 	for (size_t i = 0; i < tempString.size(); i++) {
@@ -536,10 +586,8 @@ void Parser::parseReturn(std::string &path, int *code) {
 			break;
 		}
 	}
-	if (!nonDigit)
-		*code = atol(consume(IDENTIFIER, "expected a status code").getAll().c_str());
-	if (nonDigit || !check(SEMICOLON))
-		path = parsePath();
+	if (!nonDigit) *code = atol(consume(IDENTIFIER, "expected a status code").getAll().c_str());
+	if (nonDigit || !check(SEMICOLON)) path = parsePath();
 	consume(SEMICOLON, "expected ';' after the statement");
 }
 
@@ -547,12 +595,10 @@ size_t Parser::parseMaxClientBody() {
 	std::string number = consume(IDENTIFIER, "expected number and unit specifier").getAll();
 	size_t i = 0;
 	while (i < number.size()) {
-		if (!std::isdigit(number.at(i)))
-			break;
+		if (!std::isdigit(number.at(i))) break;
 		i++;
 	}
-	if (i == number.size())
-		return atol(number.c_str());
+	if (i == number.size()) return atol(number.c_str());
 	switch (number.at(i)) {
 		case 'k':
 			return atol(number.c_str()) * 1024;
@@ -561,7 +607,8 @@ size_t Parser::parseMaxClientBody() {
 		case 'g':
 			return atol(number.c_str()) * 1024 * 1024 * 1024;
 		default:
-			throw std::runtime_error("Unrecognizeable unit found in one of the max_client_body_size directive");
+			throw std::runtime_error(
+				"Unrecognizeable unit found in one of the max_client_body_size directive");
 	}
 	return 0;
 }
@@ -593,7 +640,8 @@ void Parser::parseConfig() {
 					consume(SEMICOLON, "expected ';' after the statement");
 				} else if (match(INDEX)) {
 					std::vector<std::string> tempVector = parseIndex();
-					tempConfig.common.index.insert(tempConfig.common.index.end(), tempVector.begin(), tempVector.end());
+					tempConfig.common.index.insert(tempConfig.common.index.end(),
+												   tempVector.begin(), tempVector.end());
 				} else if (match(METHODS)) {
 					tempConfig.common.methods = parseMethods();
 				} else if (match(AUTO_INDEX)) {
@@ -608,8 +656,11 @@ void Parser::parseConfig() {
 				} else if (match(CGI)) {
 					std::string extension;
 					consume(DOT, "expected an extension type with a dot, example: .py");
-					extension = "." + consume(IDENTIFIER, "expected an extension type with a dot, example: .py").getAll();
-					tempConfig.common.cgi.insert(std::pair<std::string, std::string>(extension, parsePath()));
+					extension = "." + consume(IDENTIFIER,
+											  "expected an extension type with a dot, example: .py")
+										  .getAll();
+					tempConfig.common.cgi.insert(
+						std::pair<std::string, std::string>(extension, parsePath()));
 					consume(SEMICOLON, "expected ';' after the statement");
 				} else if (match(MAX_CLIENT_BODY_SIZE)) {
 					tempConfig.common.max_client_body = parseMaxClientBody();
@@ -621,7 +672,8 @@ void Parser::parseConfig() {
 			consume(RIGHT_BRACE, "expected terminator '}' after server block content");
 			_configVector.push_back(tempConfig);
 		} else {
-			throw std::runtime_error("expected server block, got \"" + tokenPeek().getAll() + "\" instead");
+			throw std::runtime_error("expected server block, got \"" + tokenPeek().getAll() +
+									 "\" instead");
 		}
 	}
 }

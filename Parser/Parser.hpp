@@ -15,7 +15,7 @@
 
 class Parser {
    private:
-	std::string &m_fileName;
+	std::string& m_fileName;
 	std::vector<Token> _tokens;
 	std::vector<t_config> _configVector;
 	std::map<std::string, t_TokenType> _keywords;
@@ -27,8 +27,8 @@ class Parser {
 
    public:
 	Parser(std::string fileName);
-	Parser(const Parser &original);
-	Parser &operator=(const Parser &original);
+	Parser(const Parser& original);
+	Parser& operator=(const Parser& original);
 	~Parser();
 	std::vector<Token> scanTokens();
 	void addKeywords();
@@ -57,7 +57,7 @@ class Parser {
 	bool isSpaceBetween(Token curr, Token next);
 	std::vector<t_config> getConfigStruct();
 	void fillDefaultValues();
-	void parseReturn(std::string &path, int *code);
+	void parseReturn(std::string& path, int* code);
 	size_t parseMaxClientBody();
 	void checkDuplicateListen(t_listen check);
 
