@@ -176,6 +176,7 @@ Status Server::request_parser(std::string request, t_request& requestStruct) {
 		return status;
 	}
 	while (std::getline(iss, extract) || extract != "\r") {
+		std::cout << extract << "\n";
 		if (extract.empty() || extract == "\r\n") break;
 		if (extract.find("Host: ", 0) != std::string::npos)
 			newRequestStruct.host = extract.substr(6);
@@ -213,7 +214,6 @@ std::string extract_filename(std::string extractee)
 		size_t end = extractee.find("\"", start);
 		if (end != std::string::npos) {
 			filename = extractee.substr(start, end - start);
-			std::cout << "The searched filename is: " << filename << "\n"; //DEBUG
 		}
 	}
 	return filename;
@@ -276,23 +276,11 @@ Status Server::handle_post_or_delete(std::string request, t_request& requestStru
 	std::string tempFileContent;
 	if (filename != "")
 		tempFileContent = extract_file_content(request, requestStruct.bound);
-	std::cout << "File Content: " << tempFileContent << "\n";
-	std::cout << "BOUND: " << requestStruct.bound << "\n";
-	if (request.find(requestStruct.bound + "--") != std::string::npos)
-	{
-		std::cout << "END FOUND\n";
-	}
-	else {
-		std::cout << "We read\n";
-		ssize_t rd_bytes = 1;
-		char buffer[4096];
-		while (rd_bytes > 0)
-		{
-			rd_bytes = read(requestStruct.client_socket_fd, buffer, 4096);
-			std::cout << std::string(buffer) << "\n";
-		}
-		
-	}
+	requestStruct.files[filename] = tempFileContent;
+	// std::cout << "Filename: " << filename << "\n";
+	// std::cout << "File Content: " << tempFileContent << "\n";
+	// std::cout << "BOUND: " << requestStruct.bound << "\n";
+
 	return status;
 }
 
@@ -322,7 +310,6 @@ Status Server::request_handler(const ClientSocket* client_socket, t_request& req
 	if (!readStatus) {
 		return Status("Error in Server::request_handler(): " + readStatus.msg());
 	}
-	req.client_socket_fd = client_socket->get_fd(); // I need this so I can read multiple request further [file]
 	parseStatus = request_parser(request_string, req);
 	if (!parseStatus) {
 		std::cout << "Continue with the next request\n";
