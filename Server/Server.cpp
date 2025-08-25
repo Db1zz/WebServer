@@ -298,19 +298,17 @@ Status Server::handle_post_or_delete(std::string request, t_request& requestStru
 
 Status Server::read_request(const ClientSocket* client_socket, std::string& result) {
 	const size_t read_buff_size = 4096;
-	char read_buff[read_buff_size];
+	char read_buff[read_buff_size + 1];
 	ssize_t rd_bytes;
 
-	rd_bytes = read(client_socket->get_fd(), read_buff, read_buff_size);
-	if (rd_bytes < 0) {
-		return Status(std::string("read() failed"), rd_bytes);
-	}
-	if (rd_bytes == 0) {
-		return Status("EOF", rd_bytes);
-	}
-	read_buff[rd_bytes] = 0;
-	result = std::string(read_buff);
-	std::cout << CYAN300 << "REQUEST:\n" << read_buff << RESET << std::endl;
+	do {
+		rd_bytes = read(client_socket->get_fd(), read_buff, read_buff_size);
+		if (rd_bytes > 0) {
+			read_buff[rd_bytes] = 0;
+			result.append(read_buff);
+		}
+	} while (rd_bytes > 0);
+	std::cout << CYAN300 << "REQUEST:\n" << result << RESET << std::endl;
 	return Status();
 }
 
