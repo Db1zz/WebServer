@@ -182,8 +182,11 @@ Status Server::request_parser(std::string request, t_request& requestStruct) {
 			newRequestStruct.host = extract.substr(6);
 		else if (extract.find("User-Agent: ", 0) != std::string::npos)
 			newRequestStruct.user_agent = extract.substr(12);
-		else if (extract.find("Accept: ", 0) != std::string::npos)
-			newRequestStruct.accept = extract.substr(8);
+		else if (extract.find("Accept: ", 0) != std::string::npos) {
+			std::string value = extract.substr(8);
+			value.erase(value.find_last_not_of(" \r\n") + 1);
+			newRequestStruct.accept = value;
+		}
 		else if (extract.find("Accept-Language: ", 0) != std::string::npos)
 			newRequestStruct.language = extract.substr(17);
 		else if (extract.find("Connection: ", 0) != std::string::npos)
