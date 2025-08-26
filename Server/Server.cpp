@@ -175,6 +175,7 @@ Status Server::request_parser(std::string request, t_request& requestStruct) {
 		status.set_ok(false);
 		return status;
 	}
+	std::getline(iss, extract);
 	while (std::getline(iss, extract) || extract != "\r") {
 		if (extract.empty() || extract == "\r\n") break;
 		if (extract.find("Host: ", 0) != std::string::npos)

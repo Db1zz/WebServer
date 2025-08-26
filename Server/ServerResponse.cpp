@@ -108,8 +108,8 @@ std::string ServerResponse::generate_response() {
 			delete_method(*best_match);
 		else if (_req_data->method == "GET" && best_match->common.methods.getMethod)
 			serve_static_page(*best_match);
-		// else if (_req_data->method == "POST" && best_match->common.methods.postMethod)
-		// 	post_method(*best_match); -> implement later
+		else if (_req_data->method == "POST" && best_match->common.methods.postMethod)
+			post_method(*best_match);
 		else
 			send_error_page(405, "Method Not Allowed");
 	}
@@ -197,6 +197,38 @@ void ServerResponse::resolve_file_path(const t_location& loc) {
 		uri_path = uri_path.substr(1);
 	_resolved_file_path += uri_path;
 }
+
+ServerResponse& ServerResponse::post_method(const t_location& loc) {
+		// std::cout << "POST METHOD IS TRUE: "<< loc.common.methods.postMethod << std::endl;
+		if (!loc.common.methods.postMethod) {
+			_status.set_status_line(405, "Method Not Allowed");
+			send_error_page(405, "Method Not Allowed");
+			return *this;
+		}
+		std::string upload_dir = loc.common.root.empty() ? _server_data->common.root : loc.common.root;
+		if (!upload_dir.empty() && upload_dir[upload_dir.size() - 1] != '/') upload_dir += "/";
+		bool file_saved = false;
+		for (std::map<std::string, std::string>::const_iterator it = _req_data->files.begin(); it != _req_data->files.end(); ++it) {
+			if (it->first.empty()) continue;
+			std::cout << "UPLOAD DIR: " << upload_dir << std::endl;
+			std::ofstream outfile((upload_dir + it->first).c_str(), std::ios::binary);
+			if (outfile) {
+				outfile.write(it->second.c_str(), it->second.size());
+				outfile.close();
+				file_saved = true;
+			}
+		}
+		if (file_saved) {
+			_status.set_status_line(200, "OK");
+			_body = "<html><body>Upload successful. <a href=\"/Uploads\">View files</a></body></html>";
+			header("content-type", "text/html");
+		} else {
+			_status.set_status_line(400, "Bad Request");
+			send_error_page(400, "No file uploaded or failed to save file(s)");
+		}
+		return *this;
+}
+
 
 ServerResponse& ServerResponse::delete_method(const t_location& loc) {
 	if (!loc.common.methods.deleteMethod) {

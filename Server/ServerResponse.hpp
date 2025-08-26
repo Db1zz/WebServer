@@ -33,7 +33,7 @@ class ServerResponse {
 	ServerResponse& header(const std::string& key, const std::string& value);
 	ServerResponse& serve_static_page(const t_location& loc);
 	ServerResponse& json(const std::string& data);
-	ServerResponse& post_method();
+	ServerResponse& post_method(const t_location& loc);
 	ServerResponse& delete_method(const t_location& loc);
 	ServerResponse& handle_api_files();
 	std::string generate_response();
