@@ -149,7 +149,6 @@ Status Server::request_parser(std::string request, t_request& requestStruct) {
 	if (newRequestStruct.method.compare("GET") != 0 &&
 		newRequestStruct.method.compare("DELETE") != 0 &&
 		newRequestStruct.method.compare("POST") != 0) {
-		std::cout << newRequestStruct.method << "\n\n";
 		status.set_status_line(405, "Method not allowed " + newRequestStruct.method);
 		status.set_ok(false);
 		return status;
@@ -176,6 +175,7 @@ Status Server::request_parser(std::string request, t_request& requestStruct) {
 		status.set_ok(false);
 		return status;
 	}
+	std::getline(iss, extract);
 	while (std::getline(iss, extract) || extract != "\r") {
 		if (extract.empty() || extract == "\r\n") break;
 		if (extract.find("Host: ", 0) != std::string::npos)
@@ -192,27 +192,114 @@ Status Server::request_parser(std::string request, t_request& requestStruct) {
 		else if (extract.find("Connection: ", 0) != std::string::npos)
 			newRequestStruct.connection = extract.substr(12);
 		else if (extract.find("Content-Length: ") != std::string::npos)
-			newRequestStruct.contentLength = atoll(extract.substr(16).c_str());
+			newRequestStruct.content_length = atol(extract.substr(16).c_str());
+		else if (extract.find("Content-Type: ") != std::string::npos)
+			newRequestStruct.content_type = extract.substr(14);
+		if (!extract.empty() && extract[extract.size()-1] == '\r')
+			extract.erase(extract.size()-1);
+		if (extract.empty()) break; // End of headers
+
 	}
 	requestStruct = newRequestStruct;
+	if (requestStruct.method.compare("POST") == 0 || requestStruct.method.compare("DELETE") == 0) {
+		status = handle_post_or_delete(request, requestStruct);
+		return status;
+	}
 	return Status();
+}
+
+std::string extract_filename(std::string extractee)
+{
+	std::string filename = "";
+	size_t filename_pos = extractee.find("filename=\"");
+	if (filename_pos != std::string::npos) {
+		size_t start = filename_pos + 10; // length of 'filename="'
+		size_t end = extractee.find("\"", start);
+		if (end != std::string::npos) {
+			filename = extractee.substr(start, end - start);
+		}
+	}
+	return filename;
+}
+
+std::string extract_file_content(std::string request, std::string boundary)
+{
+	std::string file_content = "";
+	std::string delimiter = "--" + boundary;
+	size_t part_start = request.find(delimiter);
+	if (part_start == std::string::npos)
+		return file_content;
+
+	// Move to the start of the part after the boundary line
+	part_start += delimiter.length();
+	// Skip possible \r\n after boundary
+	if (request.substr(part_start, 2) == "\r\n")
+		part_start += 2;
+
+	// Find the end of the part headers
+	size_t header_end = request.find("\r\n\r\n", part_start);
+	if (header_end == std::string::npos)
+		return file_content;
+
+	// File content starts after the part headers
+	size_t content_start = header_end + 4;
+
+	// Find the next boundary (end of file content)
+	size_t content_end = request.find(delimiter, content_start);
+	if (content_end == std::string::npos)
+		content_end = request.length();
+
+	file_content = request.substr(content_start, content_end - content_start);
+
+	// Remove possible trailing \r\n
+	while (!file_content.empty() && (file_content[file_content.size()-1] == '\n' || file_content[file_content.size()-1] == '\r'))
+		file_content.erase(file_content.size()-1);
+
+	return file_content;
+}
+
+Status Server::handle_post_or_delete(std::string request, t_request& requestStruct)
+{
+	Status status;
+	size_t boundaryPos = request.find("boundary=");
+	if (boundaryPos != std::string::npos)
+	{
+		size_t boundaryStart = boundaryPos + 9; // length of "boundary="
+		size_t boundaryEnd = request.find("\r\n", boundaryStart);
+		if (boundaryEnd != std::string::npos) {
+			requestStruct.bound = request.substr(boundaryStart, boundaryEnd - boundaryStart);
+		}
+	}
+	else {
+		status.set_status_line(400, "Bad request, boundary must be provided");
+		status.set_ok(false);
+		return status;
+	}
+	std::string filename = extract_filename(request);
+	std::string tempFileContent;
+	if (filename != "")
+		tempFileContent = extract_file_content(request, requestStruct.bound);
+	requestStruct.files[filename] = tempFileContent;
+	// std::cout << "Filename: " << filename << "\n";
+	// std::cout << "File Content: " << tempFileContent << "\n";
+	// std::cout << "BOUND: " << requestStruct.bound << "\n";
+
+	return status;
 }
 
 Status Server::read_request(const ClientSocket* client_socket, std::string& result) {
 	const size_t read_buff_size = 4096;
-	char read_buff[read_buff_size];
+	char read_buff[read_buff_size + 1];
 	ssize_t rd_bytes;
 
-	rd_bytes = read(client_socket->get_fd(), read_buff, read_buff_size);
-	if (rd_bytes < 0) {
-		return Status(std::string("read() failed"), rd_bytes);
-	}
-	if (rd_bytes == 0) {
-		return Status("EOF", rd_bytes);
-	}
-	read_buff[rd_bytes] = 0;
-	result = std::string(read_buff);
-	std::cout << CYAN300 << "REQUEST:\n" << read_buff << RESET << std::endl;
+	do {
+		rd_bytes = read(client_socket->get_fd(), read_buff, read_buff_size);
+		if (rd_bytes > 0) {
+			read_buff[rd_bytes] = 0;
+			result.append(read_buff);
+		}
+	} while (rd_bytes > 0);
+	std::cout << CYAN300 << "REQUEST:\n" << result << RESET << std::endl;
 	return Status();
 }
 
@@ -229,10 +316,6 @@ Status Server::request_handler(const ClientSocket* client_socket, t_request& req
 	parseStatus = request_parser(request_string, req);
 	if (!parseStatus) {
 		std::cout << "Continue with the next request\n";
-	}
-	if (req.method.compare("DELETE") == 0 || req.method.compare("POST") == 0) {
-		// we except more data, we need to read until the content length is 0
-		// req.
 	}
 	return Status();
 }
