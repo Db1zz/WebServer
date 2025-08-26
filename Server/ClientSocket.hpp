@@ -11,7 +11,10 @@ class ClientSocket : public Socket {
 	void set_server_fd(int server_fd);
 	int get_server_fd();
 
+	std::string& get_data_buffer();
+
    private:
+    std::string _data_buffer;
    	int _server_fd;
 };
 

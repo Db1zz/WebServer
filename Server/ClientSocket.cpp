@@ -12,3 +12,7 @@ void ClientSocket::set_server_fd(int server_fd) {
 int ClientSocket::get_server_fd() {
 	return _server_fd;
 }
+
+std::string& ClientSocket::get_data_buffer() {
+	return _data_buffer;
+}
