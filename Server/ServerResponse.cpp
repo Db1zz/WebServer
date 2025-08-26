@@ -122,7 +122,6 @@ std::string ServerResponse::generate_response() {
 }
 
 ServerResponse& ServerResponse::json(const std::string& data) {
-	std::cout << "HERE IN JSON\n";
 	if (data.empty())
 		send_error_page(500, "Internal Server Error - No file management location found");
 	DIR* dir = opendir(data.c_str());
