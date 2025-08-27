@@ -20,16 +20,18 @@ ServerResponse& ServerResponse::header(const std::string& key, const std::string
 ServerResponse& ServerResponse::serve_static_page(const t_location& loc) {
 	struct stat path_stat;
 	if (stat(_resolved_file_path.c_str(), &path_stat) == 0 && S_ISDIR(path_stat.st_mode)) {
-		if (loc.common.auto_index  && (_req_data->mime_type == ".json" || _req_data->accept == "*/*") ) {
+		if (loc.common.auto_index &&
+			(_req_data->mime_type == ".json" || _req_data->accept == "*/*")) {
 			json(_resolved_file_path);
 			return *this;
 		}
-		if (!_resolved_file_path.empty() && _resolved_file_path[_resolved_file_path.size() - 1] != '/')
+		if (!_resolved_file_path.empty() &&
+			_resolved_file_path[_resolved_file_path.size() - 1] != '/')
 			_resolved_file_path += "/";
 		_resolved_file_path += loc.common.index.empty() ? "index.html" : loc.common.index[0];
 		const_cast<t_request*>(_req_data)->mime_type = ".html";
 	}
-	
+
 	_resp_content_type = identify_mime();
 	header("content-type", _resp_content_type);
 	if (is_binary()) {
@@ -122,7 +124,6 @@ std::string ServerResponse::generate_response() {
 }
 
 ServerResponse& ServerResponse::json(const std::string& data) {
-	std::cout << "HERE IN JSON\n";
 	if (data.empty())
 		send_error_page(500, "Internal Server Error - No file management location found");
 	DIR* dir = opendir(data.c_str());
@@ -186,49 +187,45 @@ ServerResponse& ServerResponse::handle_api_files() {
 	return *this;
 }
 
-
 void ServerResponse::resolve_file_path(const t_location& loc) {
 	_resolved_file_path = loc.common.root.empty() ? _server_data->common.root : loc.common.root;
 	if (!_resolved_file_path.empty() && _resolved_file_path[_resolved_file_path.size() - 1] != '/')
 		_resolved_file_path += "/";
 
 	std::string uri_path = _req_data->uri_path;
-	if (!uri_path.empty() && uri_path[0] == '/')
-		uri_path = uri_path.substr(1);
+	if (!uri_path.empty() && uri_path[0] == '/') uri_path = uri_path.substr(1);
 	_resolved_file_path += uri_path;
 }
 
 ServerResponse& ServerResponse::post_method(const t_location& loc) {
-		// std::cout << "POST METHOD IS TRUE: "<< loc.common.methods.postMethod << std::endl;
-		if (!loc.common.methods.postMethod) {
-			_status.set_status_line(405, "Method Not Allowed");
-			send_error_page(405, "Method Not Allowed");
-			return *this;
-		}
-		std::string upload_dir = loc.common.root.empty() ? _server_data->common.root : loc.common.root;
-		if (!upload_dir.empty() && upload_dir[upload_dir.size() - 1] != '/') upload_dir += "/";
-		bool file_saved = false;
-		for (std::map<std::string, std::string>::const_iterator it = _req_data->files.begin(); it != _req_data->files.end(); ++it) {
-			if (it->first.empty()) continue;
-			std::cout << "UPLOAD DIR: " << upload_dir << std::endl;
-			std::ofstream outfile((upload_dir + it->first).c_str(), std::ios::binary);
-			if (outfile) {
-				outfile.write(it->second.c_str(), it->second.size());
-				outfile.close();
-				file_saved = true;
-			}
-		}
-		if (file_saved) {
-			_status.set_status_line(200, "OK");
-			_body = "<html><body>Upload successful. <a href=\"/Uploads\">View files</a></body></html>";
-			header("content-type", "text/html");
-		} else {
-			_status.set_status_line(400, "Bad Request");
-			send_error_page(400, "No file uploaded or failed to save file(s)");
-		}
+	if (!loc.common.methods.postMethod) {
+		send_error_page(405, "Method Not Allowed");
 		return *this;
+	}
+	std::string upload_dir = _resolved_file_path;
+	if (!upload_dir.empty() && upload_dir[upload_dir.size() - 1] != '/') upload_dir += "/";
+	bool file_saved = false;
+	for (std::map<std::string, std::string>::const_iterator it = _req_data->files.begin();
+		 it != _req_data->files.end(); ++it) {
+		if (it->first.empty()) continue;
+		std::ofstream outfile((upload_dir + it->first).c_str(), std::ios::binary);
+		if (outfile) {
+			outfile.write(it->second.c_str(), it->second.size());
+			outfile.close();
+			file_saved = true;
+		}
+	}
+	if (file_saved) {
+		_status.set_status_line(200, "OK");
+		_body = "{\"success\": true, \"message\": \"Upload successful\"}";
+		header("content-type", "application/json");
+	} else {
+		_status.set_status_line(400, "Bad Request");
+		_body = "{\"success\": false, \"message\": \"No file uploaded or failed to save file(s)\"}";
+		header("content-type", "application/json");
+	}
+	return *this;
 }
-
 
 ServerResponse& ServerResponse::delete_method(const t_location& loc) {
 	if (!loc.common.methods.deleteMethod) {
