@@ -12,9 +12,10 @@ typedef struct s_request {
 	std::string connection;
 	std::string mime_type;	   // format that client can accept in response
 	std::string cgi_query_string;
-	size_t contentLength;
-	std::string fileContent; // this gets filled up in case of POST or DELETE method with the binary
-							 // content of the file for further processing
+	int content_length;
+	std::map <std::string, std::string> files; // key is file name
+	std::string content_type;
+	std::string bound;
 
 } t_request;
 
