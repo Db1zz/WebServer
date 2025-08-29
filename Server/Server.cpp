@@ -93,9 +93,7 @@ Status Server::handle_request_event(const epoll_event& request_event) {
 	ClientSocket* client_socket;
 	std::map<int, ServerSocketManager*>::iterator search;
 
-	client_socket = static_cast<ClientSocket*>(
-		request_event.data.ptr); // the client socket shoulld be handled differently. It should come
-								 // back so data loss will be prevented
+	client_socket = static_cast<ClientSocket*>(request_event.data.ptr);
 	if (request_event.events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP)) {
 		if (!find_server_socket_manager(client_socket->get_server_fd(), search)) {
 			return Status("Server cannot find a server to close connection with");
