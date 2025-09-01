@@ -11,10 +11,11 @@ class ClientSocket : public Socket {
 	void set_server_fd(int server_fd);
 	int get_server_fd();
 
-	std::string& get_data_buffer();
+	std::string& get_request_buffer();
 
 	void reset_request_buffer();
 	bool is_request_ready();
+	void set_request_ready();
 
    private:
 	std::string _request_buffer;

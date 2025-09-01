@@ -105,14 +105,17 @@ Status Server::handle_request_event(const epoll_event& request_event) {
 		if (!status) {
 			return Status("request_handler() failed in Server::handle_event(): " + status.msg());
 		}
-		status = response_handler(client_socket, request);
-		if (!status) {
-			return Status("response_handler() failed in Server::handle_event(): " + status.msg());
+		if (client_socket->is_request_ready()) {
+			status = response_handler(client_socket, request);
+			if (!status) {
+				return Status("response_handler() failed in Server::handle_event(): " + status.msg());
+			}
+	
+			find_server_socket_manager(client_socket->get_server_fd(), search);
+			_server_logger.log_access(*client_socket->get_host(), request.method, request.uri_path,
+									  search->second->get_server_socket()->get_port());
+			client_socket->reset_request_buffer();
 		}
-
-		find_server_socket_manager(client_socket->get_server_fd(), search);
-		_server_logger.log_access(*client_socket->get_host(), request.method, request.uri_path,
-								  search->second->get_server_socket()->get_port());
 	}
 	return Status();
 }
@@ -287,23 +290,27 @@ Status Server::handle_post_or_delete(std::string request, t_request& requestStru
 	return status;
 }
 
-Status Server::read_request(const ClientSocket* client_socket, std::string& result) {
-	const size_t read_buff_size = 4096;
+Status Server::read_request(ClientSocket* client_socket) {
+	const ssize_t read_buff_size = 4096;
 	char read_buff[read_buff_size + 1];
 	ssize_t rd_bytes;
+	std::string& request_buffer = client_socket->get_request_buffer();
 
-	do {
-		rd_bytes = read(client_socket->get_fd(), read_buff, read_buff_size);
-		if (rd_bytes > 0) {
-			read_buff[rd_bytes] = 0;
-			result.append(read_buff);
-		}
-	} while (rd_bytes > 0);
-	std::cout << CYAN300 << "REQUEST:\n" << result << RESET << std::endl;
+	rd_bytes = read(client_socket->get_fd(), read_buff, read_buff_size);
+	if (rd_bytes > 0) {
+		request_buffer.append(read_buff);
+	}
+
+	std::cout << "BYTES: " << rd_bytes << std::endl;
+	if (rd_bytes < read_buff_size || rd_bytes == 0) {
+		std::cout << rd_bytes << " == " << read_buff_size << std::endl;
+		client_socket->set_request_ready();
+		std::cout << CYAN300 << "REQUEST:\n" << request_buffer << RESET << std::endl;
+	}
 	return Status();
 }
 
-Status Server::request_handler(const ClientSocket* client_socket, t_request& req) {
+Status Server::request_handler(ClientSocket* client_socket, t_request& req) {
 	Status status;
 	Status parseStatus;
 	std::string request_string;
@@ -313,9 +320,11 @@ Status Server::request_handler(const ClientSocket* client_socket, t_request& req
 	if (!readStatus) {
 		return Status("Error in Server::request_handler(): " + readStatus.msg());
 	}
-	parseStatus = request_parser(request_string, req);
-	if (!parseStatus) {
-		std::cout << "Continue with the next request\n";
+	if (client_socket->is_request_ready()) {
+		parseStatus = request_parser(client_socket->get_request_buffer(), req);
+		if (!parseStatus) {
+			std::cout << "Continue with the next request\n";
+		}
 	}
 	return Status();
 }

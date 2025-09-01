@@ -14,7 +14,7 @@ int ClientSocket::get_server_fd() {
 	return _server_fd;
 }
 
-std::string& ClientSocket::get_data_buffer() {
+std::string& ClientSocket::get_request_buffer() {
 	return _request_buffer;
 }
 
@@ -25,4 +25,8 @@ void ClientSocket::reset_request_buffer() {
 
 bool ClientSocket::is_request_ready() {
 	return _request_ready;
+}
+
+void ClientSocket::set_request_ready() {
+	_request_ready = true;
 }

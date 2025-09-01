@@ -40,8 +40,8 @@ class Server {
 	Status handle_new_connection_event(const epoll_event& connection_event);
 	Status handle_request_event(const epoll_event& request_event);
 	Status handle_event(int amount_of_events);
-	Status read_request(const ClientSocket* client_socket, std::string& result);
-	Status request_handler(const ClientSocket* client_socket, t_request& req);
+	Status read_request(ClientSocket* client_socket);
+	Status request_handler(ClientSocket* client_socket, t_request& req);
 	Status handle_post_or_delete(std::string request, t_request& requestStruct);
 	Status response_handler(const ClientSocket* client_socket, const t_request& request);
 	Status create_server_socket_manager(const std::string& host, int port);
