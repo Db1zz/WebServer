@@ -11,8 +11,15 @@ class ClientSocket : public Socket {
 	void set_server_fd(int server_fd);
 	int get_server_fd();
 
+	std::string& get_data_buffer();
+
+	void reset_request_buffer();
+	bool is_request_ready();
+
    private:
-   	int _server_fd;
+	std::string _request_buffer;
+	bool _request_ready;
+	int _server_fd;
 };
 
 #endif // SERVER_CLIENT_SOCKET_HPP_

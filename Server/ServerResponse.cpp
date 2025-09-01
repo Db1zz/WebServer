@@ -20,8 +20,7 @@ ServerResponse& ServerResponse::header(const std::string& key, const std::string
 ServerResponse& ServerResponse::serve_static_page(const t_location& loc) {
 	struct stat path_stat;
 	if (stat(_resolved_file_path.c_str(), &path_stat) == 0 && S_ISDIR(path_stat.st_mode)) {
-		if (loc.common.auto_index &&
-			(_req_data->mime_type == ".json" || _req_data->accept == "*/*")) {
+		if (loc.common.auto_index  && (_req_data->mime_type == ".json" || _req_data->accept == "*/*") ) {
 			json(_resolved_file_path);
 			return *this;
 		}
