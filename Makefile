@@ -5,6 +5,12 @@ CXXFLAGS = -Wall -Wextra -Werror $(INCLUDE_DIR)
 LOGSDIR = Logs
 SCRIPTS = mkdir -p $(LOGSDIR)
 
+TESTS_DIR = Tests
+VENV_DIR = $(TESTS_DIR)/venv
+
+TESTS_SRC = \
+	Tests/test.py
+
 SRC = \
 	Server/ServerSocketManager.cpp \
 	Server/ServerSocket.cpp \
@@ -47,4 +53,14 @@ docker_build:
 run: docker_build
 	docker attach webserv
 
-.PHONY: all clean fclean re run docker_build
+test:
+	. $(VENV_DIR)/bin/activate; python3 ./$(TESTS_DIR)/test.py
+
+install_python_libs:
+	python3 -m venv $(VENV_DIR)
+	./$(VENV_DIR)/bin/pip install --upgrade pip
+	./$(VENV_DIR)/bin/pip install -r $(TESTS_DIR)/requirements.txt
+
+compile_and_test: re install_python_libs test
+
+.PHONY: all clean fclean re run docker_build test install_python_libs compile_and_test
