@@ -298,12 +298,10 @@ Status Server::read_request(ClientSocket* client_socket) {
 
 	rd_bytes = read(client_socket->get_fd(), read_buff, read_buff_size);
 	if (rd_bytes > 0) {
-		request_buffer.append(read_buff);
+		request_buffer.append(read_buff, rd_bytes);
 	}
 
-	std::cout << "BYTES: " << rd_bytes << std::endl;
 	if (rd_bytes < read_buff_size || rd_bytes == 0) {
-		std::cout << rd_bytes << " == " << read_buff_size << std::endl;
 		client_socket->set_request_ready();
 		std::cout << CYAN300 << "REQUEST:\n" << request_buffer << RESET << std::endl;
 	}
@@ -313,10 +311,9 @@ Status Server::read_request(ClientSocket* client_socket) {
 Status Server::request_handler(ClientSocket* client_socket, t_request& req) {
 	Status status;
 	Status parseStatus;
-	std::string request_string;
 	Status readStatus;
 
-	readStatus = read_request(client_socket, request_string);
+	readStatus = read_request(client_socket);
 	if (!readStatus) {
 		return Status("Error in Server::request_handler(): " + readStatus.msg());
 	}
