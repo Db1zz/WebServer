@@ -24,12 +24,13 @@ ServerResponse& ServerResponse::serve_static_page(const t_location& loc) {
 			json(_resolved_file_path);
 			return *this;
 		}
-		if (!_resolved_file_path.empty() && _resolved_file_path[_resolved_file_path.size() - 1] != '/')
+		if (!_resolved_file_path.empty() &&
+			_resolved_file_path[_resolved_file_path.size() - 1] != '/')
 			_resolved_file_path += "/";
 		_resolved_file_path += loc.common.index.empty() ? "index.html" : loc.common.index[0];
 		const_cast<t_request*>(_req_data)->mime_type = ".html";
 	}
-	
+
 	_resp_content_type = identify_mime();
 	header("content-type", _resp_content_type);
 	if (is_binary()) {
@@ -108,8 +109,8 @@ std::string ServerResponse::generate_response() {
 			delete_method(*best_match);
 		else if (_req_data->method == "GET" && best_match->common.methods.getMethod)
 			serve_static_page(*best_match);
-		// else if (_req_data->method == "POST" && best_match->common.methods.postMethod)
-		// 	post_method(*best_match); -> implement later
+		else if (_req_data->method == "POST" && best_match->common.methods.postMethod)
+			post_method(*best_match);
 		else
 			send_error_page(405, "Method Not Allowed");
 	}
@@ -185,16 +186,44 @@ ServerResponse& ServerResponse::handle_api_files() {
 	return *this;
 }
 
-
 void ServerResponse::resolve_file_path(const t_location& loc) {
 	_resolved_file_path = loc.common.root.empty() ? _server_data->common.root : loc.common.root;
 	if (!_resolved_file_path.empty() && _resolved_file_path[_resolved_file_path.size() - 1] != '/')
 		_resolved_file_path += "/";
 
 	std::string uri_path = _req_data->uri_path;
-	if (!uri_path.empty() && uri_path[0] == '/')
-		uri_path = uri_path.substr(1);
+	if (!uri_path.empty() && uri_path[0] == '/') uri_path = uri_path.substr(1);
 	_resolved_file_path += uri_path;
+}
+
+ServerResponse& ServerResponse::post_method(const t_location& loc) {
+	if (!loc.common.methods.postMethod) {
+		send_error_page(405, "Method Not Allowed");
+		return *this;
+	}
+	std::string upload_dir = _resolved_file_path;
+	if (!upload_dir.empty() && upload_dir[upload_dir.size() - 1] != '/') upload_dir += "/";
+	bool file_saved = false;
+	for (std::map<std::string, std::string>::const_iterator it = _req_data->files.begin();
+		 it != _req_data->files.end(); ++it) {
+		if (it->first.empty()) continue;
+		std::ofstream outfile((upload_dir + it->first).c_str(), std::ios::binary);
+		if (outfile) {
+			outfile.write(it->second.c_str(), it->second.size());
+			outfile.close();
+			file_saved = true;
+		}
+	}
+	if (file_saved) {
+		_status.set_status_line(200, "OK");
+		_body = "{\"success\": true, \"message\": \"Upload successful\"}";
+		header("content-type", "application/json");
+	} else {
+		_status.set_status_line(400, "Bad Request");
+		_body = "{\"success\": false, \"message\": \"No file uploaded or failed to save file(s)\"}";
+		header("content-type", "application/json");
+	}
+	return *this;
 }
 
 ServerResponse& ServerResponse::delete_method(const t_location& loc) {
