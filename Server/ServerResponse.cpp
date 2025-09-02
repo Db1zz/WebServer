@@ -118,7 +118,7 @@ std::string ServerResponse::generate_response() {
 	header("server", _server_data->server_name[0]);
 	header("content-length", get_body_size());
 	_response = WS_PROTOCOL + _status.status_line() + get_headers() + "\r\n" + get_body();
-	std::cout << GREEN400 "RESPONSE:\n" << _response << RESET << std::endl;
+	// std::cout << GREEN400 "RESPONSE:\n" << _response << RESET << std::endl;
 	return _response;
 }
 

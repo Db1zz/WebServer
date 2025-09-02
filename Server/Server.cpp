@@ -94,11 +94,12 @@ Status Server::handle_request_event(const epoll_event& request_event) {
 	std::map<int, ServerSocketManager*>::iterator search;
 
 	client_socket = static_cast<ClientSocket*>(request_event.data.ptr);
-	if (request_event.events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP)) {
+	if (request_event.events & (EPOLLERR | EPOLLRDHUP)) {
 		if (!find_server_socket_manager(client_socket->get_server_fd(), search)) {
 			return Status("Server cannot find a server to close connection with");
 		}
 		search->second->close_connection_with_client(client_socket->get_fd());
+		std::cout << "destroy client\n";
 	} else if (request_event.events & EPOLLIN) {
 		t_request request;
 		status = request_handler(client_socket, request);
@@ -301,9 +302,9 @@ Status Server::read_request(ClientSocket* client_socket) {
 		request_buffer.append(read_buff, rd_bytes);
 	}
 
-	if (rd_bytes < read_buff_size || rd_bytes == 0) {
+	if (rd_bytes < read_buff_size || 0 >= rd_bytes) {
 		client_socket->set_request_ready();
-		std::cout << CYAN300 << "REQUEST:\n" << request_buffer << RESET << std::endl;
+		// std::cout << CYAN300 << "REQUEST:\n" << request_buffer << RESET << std::endl;
 	}
 	return Status();
 }
