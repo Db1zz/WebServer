@@ -16,7 +16,7 @@ typedef struct s_request {
 	std::map <std::string, std::string> files; // key is file name
 	std::string content_type;
 	std::string bound;
-
+	std::string body;
 } t_request;
 
 #endif
