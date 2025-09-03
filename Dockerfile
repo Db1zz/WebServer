@@ -5,7 +5,10 @@ RUN apt-get update && apt-get install -y \
 	g++ \
 	make \
 	nginx \
-	valgrind
+	valgrind \
+	python3 \
+	pip \
+	python3.12-venv
 
 WORKDIR /app
 
