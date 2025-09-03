@@ -1,6 +1,8 @@
 import requests
 import subprocess
 import socket
+import filecmp
+import os
 from colorama import Fore, Back, Style
 from time import sleep
 from utils import extract_addresses_from_cfg
@@ -30,14 +32,6 @@ class Webserver:
 
 	def stop(self):
 		self.process.terminate()
-
-def startServer(args=[""]):
-	binary_path = "./webserv"
-	process = subprocess.Popen(
-		binary_path,
-		stdout=subprocess.DEVNULL,
-		stderr=subprocess.DEVNULL
-	)
 
 class WebserverTester:
 	def __init__(self):
@@ -69,31 +63,59 @@ class LoadExistingPage:
 class LoadNonExistantPage:
 	name = "Load non-existant page"
 	def test():
+		serv = Webserver()
+		serv.start()
 		r = requests.get("http://127.0.0.1/damn.html")
+		serv.stop()
 		return r.status_code, 404
 
 class Load404PageWithBrokenPath:
 	name = "Load 404 page with broken path"
 	def test():
+		serv = Webserver()
+		serv.start()
 		r = requests.get("http://127.0.0.1/.//damn.html")
+		serv.stop()
 		return r.status_code, 200
 
 class CheckPorts:
-	name = "Check Webserver ports"
+	name = "Verify Webserver ports"
 	def test():
+		serv = Webserver()
+		serv.start()
+		cfgAddr = extract_addresses_from_cfg("./Tests/resources/webserver_test.cfg")
 		expected = []
 		result = []
-		for cfgPort in cfgPorts:
-			addr = "http://" + cfgPort[0] + ":" + cfgPort[1]
+		for cfgAddr in cfgAddr:
+			addr = "http://" + cfgAddr[0] + ":" + cfgAddr[1]
 			r = requests.get(addr)
-			expected.append(cfgPort + ("200",))
-			result.append(cfgPort + (str(r.status_code),))
-		return expected, result
+			expected.append(cfgAddr + ("200",))
+			result.append(cfgAddr + (str(r.status_code),))
+		serv.stop()
+		return result, expected
+
+class CheckUpload:
+	name = "Verify the uploaded file"
+	def test():
+		serv = Webserver()
+		serv.start()
+		filePath = "./Tests/resources/init_pic.jpg"
+		UploadedFilePath = "./Tests/resources/init_pic.jpg"
+		fileToUpload = open(filePath, "rb")
+		files = {"file" : fileToUpload}
+
+		r = requests.post("http://127.0.0.1/Uploads", files=files)
+		expected = os.path.getsize(filePath)
+		if r.ok:
+			result = os.path.getsize(UploadedFilePath)
+		else: 
+			result = -1
+		serv.stop()
+		return result, expected
+			
+
 
 if __name__ == "__main__":
-
-	server = Webserver()
-	server.start()
 
 	tester = WebserverTester()
 
@@ -101,5 +123,6 @@ if __name__ == "__main__":
 	tester.addTestCase(LoadNonExistantPage)
 	tester.addTestCase(Load404PageWithBrokenPath)
 	tester.addTestCase(CheckPorts)
+	tester.addTestCase(CheckUpload)
 
 	tester.run()

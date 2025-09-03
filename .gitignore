@@ -4,4 +4,6 @@ webserv
 my_notes.txt
 .DS_Store
 Logs/*
-./Tests/venv
+Tests/venv/
+Tests/__pycache__
+Pages/Uploads
