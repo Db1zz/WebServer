@@ -107,7 +107,7 @@ Status Server::handle_request_event(const epoll_event& request_event) {
 			return Status("request_handler() failed in Server::handle_event(): " + status.msg());
 		}
 		if (client_socket->is_request_ready()) {
-			status = response_handler(client_socket, request);
+			status = response_handler(client_socket);
 			if (!status) {
 				return Status("response_handler() failed in Server::handle_event(): " +
 							  status.msg());
@@ -322,12 +322,13 @@ Status Server::request_handler(ClientSocket* client_socket, t_request& req) {
 		if (!parseStatus) {
 			std::cout << "Continue with the next request\n";
 		}
+		client_socket->set_request(new t_request(req));
 	}
 	return Status();
 }
 
-Status Server::response_handler(const ClientSocket* client_socket, const t_request& request) {
-	ServerResponse resp(request, _configs[0]);
+Status Server::response_handler(ClientSocket* client_socket) {
+	ServerResponse resp(client_socket, _configs[0]);
 	std::string res = resp.generate_response();
 
 	if (write(client_socket->get_fd(), res.c_str(), res.size()) < 0) {

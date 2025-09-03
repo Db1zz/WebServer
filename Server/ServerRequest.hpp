@@ -1,7 +1,7 @@
 #ifndef SERVER_SERVERREQUEST_HPP
 #define SERVER_SERVERREQUEST_HPP
 #include <iostream>
-
+#include <map>
 typedef struct s_request {
 	std::string method;
 	std::string uri_path;

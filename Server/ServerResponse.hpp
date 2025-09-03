@@ -20,14 +20,16 @@
 #include "ServerConfig.hpp"
 #include "ServerRequest.hpp"
 #include "ServerResponse.hpp"
+#include "ClientSocket.hpp"
 
 #define PAGE_INITIAL "Pages/index.html"
 #define PAGE_404 "Pages/404.html"
 #define STYLESHEET "Pages/styles.css"
 
+class ClientSocket;
 class ServerResponse {
-   public:
-	ServerResponse(const t_request& request, const t_config& server_data);
+	public:
+	 ServerResponse(ClientSocket* client_socket, const t_config& server_data);
 	~ServerResponse();
 	ServerResponse& operator<<(const std::string& data);
 	ServerResponse& header(const std::string& key, const std::string& value);

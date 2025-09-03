@@ -1,7 +1,8 @@
 #include "ServerResponse.hpp"
 
-ServerResponse::ServerResponse(const t_request& request, const t_config& server_data)
-	: _req_data(&request), _server_data(&server_data) {
+ServerResponse::ServerResponse(ClientSocket* client_socket, const t_config& server_data)
+	: _server_data(&server_data) {
+	_req_data = client_socket ? client_socket->get_request() : NULL;
 }
 
 ServerResponse::~ServerResponse() {

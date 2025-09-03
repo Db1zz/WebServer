@@ -43,7 +43,7 @@ class Server {
 	Status read_request(ClientSocket* client_socket);
 	Status request_handler(ClientSocket* client_socket, t_request& req);
 	Status handle_post_or_delete(std::string request, t_request& requestStruct);
-	Status response_handler(const ClientSocket* client_socket, const t_request& request);
+	Status response_handler(ClientSocket* client_socket);
 	Status create_server_socket_manager(const std::string& host, int port);
 	Status create_sockets_from_config(const t_config& server_config);
 	Status create_sockets_from_configs(const std::vector<t_config>& configs);
