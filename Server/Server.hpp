@@ -36,19 +36,18 @@ class Server {
 
    private:
 	bool is_a_new_connection(const epoll_event& event);
-	Status request_parser(std::string request, t_request& requestStruct);
 	Status handle_new_connection_event(const epoll_event& connection_event);
 	Status handle_request_event(const epoll_event& request_event);
 	Status handle_event(int amount_of_events);
-	Status read_request(ClientSocket* client_socket);
-	Status request_handler(ClientSocket* client_socket, t_request& req);
-	Status handle_post_or_delete(std::string request, t_request& requestStruct);
+	Status get_request_body_chunk(ClientSocket* client_socket);
+	Status get_request_header(ClientSocket* client_socket);
+	Status request_handler(ClientSocket* client_socket);
 	Status response_handler(ClientSocket* client_socket);
-	Status create_server_socket_manager(const std::string& host, int port);
+	Status create_server_socket_manager(const std::string& host, int port,
+										const t_config& server_config);
 	Status create_sockets_from_config(const t_config& server_config);
 	Status create_sockets_from_configs(const std::vector<t_config>& configs);
 	void print_debug_addr(const std::string& address, int port);
-
 	Status find_server_socket_manager(int server_socket_fd,
 									  std::map<int, ServerSocketManager*>::iterator& search_result);
 	void destroy_all_server_socket_managers();

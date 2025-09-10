@@ -119,7 +119,7 @@ std::string ServerResponse::generate_response() {
 	header("server", _server_data->server_name[0]);
 	header("content-length", get_body_size());
 	_response = WS_PROTOCOL + _status.status_line() + get_headers() + "\r\n" + get_body();
-	// std::cout << GREEN400 "RESPONSE:\n" << _response << RESET << std::endl;
+	std::cout << GREEN400 "RESPONSE:\n" << _response << RESET << std::endl;
 	return _response;
 }
 
@@ -205,15 +205,11 @@ ServerResponse& ServerResponse::post_method(const t_location& loc) {
 	std::string upload_dir = _resolved_file_path;
 	if (!upload_dir.empty() && upload_dir[upload_dir.size() - 1] != '/') upload_dir += "/";
 	bool file_saved = false;
-	for (std::map<std::string, std::string>::const_iterator it = _req_data->files.begin();
-		 it != _req_data->files.end(); ++it) {
-		if (it->first.empty()) continue;
-		std::ofstream outfile((upload_dir + it->first).c_str(), std::ios::binary);
-		if (outfile) {
-			outfile.write(it->second.c_str(), it->second.size());
-			outfile.close();
-			file_saved = true;
-		}
+	std::ofstream outfile((upload_dir + _req_data->filename).c_str(), std::ios::binary);
+	if (outfile) {
+		outfile.write(_req_data->body_chunk.c_str(), _req_data->body_chunk.size());
+		outfile.close();
+		file_saved = true;
 	}
 	if (file_saved) {
 		_status.set_status_line(200, "OK");

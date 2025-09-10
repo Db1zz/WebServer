@@ -3,6 +3,7 @@
 
 #include "Parser/Parser.hpp"
 #include "Server/Server.hpp"
+#include "Server/ServerRequestParser.hpp"
 #include "ServerLogger.hpp"
 #include "colors.hpp"
 #include "fs.hpp"
@@ -28,7 +29,6 @@ int main(int argc, char** argv) {
 		std::cerr << e.what() << '\n';
 		return 1;
 	}
-
 	try {
 		ServerLogger server_logger("./Logs/");
 		Status status = server_logger.init();

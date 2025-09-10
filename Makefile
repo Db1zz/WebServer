@@ -12,6 +12,7 @@ TESTS_SRC = \
 	Tests/test.py
 
 SRC = \
+	Server/ServerRequestParser.cpp \
 	Server/ServerSocketManager.cpp \
 	Server/ServerSocket.cpp \
 	Server/ClientSocket.cpp \
