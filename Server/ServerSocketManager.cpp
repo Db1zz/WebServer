@@ -1,16 +1,19 @@
 #include "ServerSocketManager.hpp"
 
 #include <errno.h>
-#include <string.h>
 #include <fcntl.h>
+#include <string.h>
 
 #include "ClientSocket.hpp"
 #include "ServerEvent.hpp"
 #include "status.hpp"
 
 ServerSocketManager::ServerSocketManager(const std::string& server_socket_host,
-										 int server_socket_port, ServerEvent* event_system)
-	: _server_socket(server_socket_host, server_socket_port), _event_system(event_system) {
+										 int server_socket_port, ServerEvent* event_system,
+										 const t_config& server_config)
+	: _server_socket(server_socket_host, server_socket_port),
+	  _event_system(event_system),
+	  _server_config(server_config) {
 }
 
 ServerSocketManager::~ServerSocketManager() {
@@ -94,7 +97,7 @@ Status ServerSocketManager::get_client_socket(int client_socket_fd, ClientSocket
 	return Status();
 }
 
-const ServerSocket* ServerSocketManager::get_server_socket() {
+const ServerSocket* ServerSocketManager::get_server_socket() const {
 	return &_server_socket;
 }
 
@@ -153,4 +156,8 @@ void ServerSocketManager::destroy_all_clients() {
 		++it;
 	}
 	_clients.clear();
+}
+
+const t_config& ServerSocketManager::get_server_config() const {
+	return _server_config;
 }
