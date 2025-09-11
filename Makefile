@@ -50,6 +50,7 @@ $(LIBDIR)/$(LIB): $(OBJS)
 	ar rcs $(LIBDIR)/$(LIB) $(OBJS)
 
 $(OBJSDIR)/main.o: main.cpp
+	mkdir -p $(OBJSDIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDE) -c $< -o $@
 
 $(NAME): $(OBJSDIR)/main.o $(LIBDIR)/$(LIB)

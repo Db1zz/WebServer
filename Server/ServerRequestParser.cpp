@@ -110,7 +110,6 @@ Status ServerRequestParser::get_request_headers(std::string& request_string, t_r
 	std::string token_type;
 	std::string token_value;
 
-	std::cout << "Header: " << request_string << std::endl;
 	do {
 		get_token(request_string, token_type, ": \n");
 		get_token(request_string, token_value, "\n\0");
@@ -132,8 +131,6 @@ Status ServerRequestParser::get_request_headers(std::string& request_string, t_r
 		} else if (token_type == "Content-Type") {
 			request.content_type = token_value;
 			get_boundary(request.content_type, request);
-		} else {
-			std::cout << "Token: " << token_type << std::endl;
 		}
 	} while (!request_string.empty() && request_string[0] != '\r');
 	get_token(request_string, token_type, "\n");

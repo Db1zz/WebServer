@@ -109,8 +109,6 @@ Status Server::handle_request_event(const epoll_event& request_event) {
 		}
 		const t_request* request = client_socket->get_request_data();
 		if (request->is_request_ready()) {
-			std::cout << "downloaded: " << request->body_chunk.size() << std::endl;
-			std::cout << "Chunk: " << request->body_chunk << std::endl;
 			status = response_handler(client_socket);
 			if (!status) {
 				return Status("response_handler() failed in Server::handle_event(): " +
