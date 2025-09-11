@@ -278,16 +278,16 @@ Status ServerRequestParser::erase_request_body_end_boundary(t_request& request) 
 	size_t boundary_pos = request.cache.find(request_boundary_end);
 
 	if (boundary_pos == std::string::npos) {
-		request.body_chunk.append(std::string(request.cache.begin(), request.cache.begin() + size_delta));
+		request.body_chunk = std::string(request.cache.begin(), request.cache.begin() + size_delta);
 		request.cache =
 			std::string(request.cache.begin() + size_delta,
 						request.cache.begin() + size_delta + request_boundary_end.size());
 		return Status("boundary not found");
 	}
 
-	request.body_chunk.append(
+	request.body_chunk = 
 		std::string(request.cache.begin(), request.cache.begin() + boundary_pos) +
-		std::string(request.cache.begin() + boundary_pos + request_boundary_end.size(), request.cache.end()));
+		std::string(request.cache.begin() + boundary_pos + request_boundary_end.size(), request.cache.end());
 	if (request.cache.empty()) {
 		request.cache.erase();
 	}

@@ -107,18 +107,21 @@ Status Server::handle_request_event(const epoll_event& request_event) {
 		if (!status) {
 			return Status("request_handler() failed in Server::handle_event(): " + status.msg());
 		}
-		const t_request* request = client_socket->get_request_data();
-		if (request->is_request_ready()) {
+		t_request* request = client_socket->get_request_data();
+		if (!request->method.empty()) {
 			status = response_handler(client_socket);
+			request->body_chunk.clear();
 			if (!status) {
 				return Status("response_handler() failed in Server::handle_event(): " +
 							  status.msg());
 			}
-			find_server_socket_manager(client_socket->get_server_fd(), search);
-			_server_logger.log_access(*client_socket->get_host(), request->method,
-									  request->uri_path,
-									  search->second->get_server_socket()->get_port());
-			client_socket->reset_request();
+			if (request->is_request_ready()) {
+				find_server_socket_manager(client_socket->get_server_fd(), search);
+				_server_logger.log_access(*client_socket->get_host(), request->method,
+										  request->uri_path,
+										  search->second->get_server_socket()->get_port());
+				client_socket->reset_request();
+			}
 		}
 	}
 	return Status();
@@ -207,6 +210,10 @@ Status Server::response_handler(ClientSocket* client_socket) {
 	// const t_request& request = *client_socket->get_request_data();
 	ServerResponse resp(client_socket, _configs[0]);
 	std::string res = resp.generate_response();
+
+	if (resp._status == 201) {
+		return Status();
+	}
 
 	if (write(client_socket->get_fd(), res.c_str(), res.size()) < 0) {
 		return Status(strerror(errno));

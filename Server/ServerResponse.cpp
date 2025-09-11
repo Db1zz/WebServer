@@ -21,7 +21,8 @@ ServerResponse& ServerResponse::header(const std::string& key, const std::string
 ServerResponse& ServerResponse::serve_static_page(const t_location& loc) {
 	struct stat path_stat;
 	if (stat(_resolved_file_path.c_str(), &path_stat) == 0 && S_ISDIR(path_stat.st_mode)) {
-		if (loc.common.auto_index  && (_req_data->mime_type == ".json" || _req_data->accept == "*/*") ) {
+		if (loc.common.auto_index &&
+			(_req_data->mime_type == ".json" || _req_data->accept == "*/*")) {
 			json(_resolved_file_path);
 			return *this;
 		}
@@ -205,19 +206,31 @@ ServerResponse& ServerResponse::post_method(const t_location& loc) {
 	std::string upload_dir = _resolved_file_path;
 	if (!upload_dir.empty() && upload_dir[upload_dir.size() - 1] != '/') upload_dir += "/";
 	bool file_saved = false;
-	std::ofstream outfile((upload_dir + _req_data->filename).c_str(), std::ios::binary);
+	std::string file_path = upload_dir + _req_data->filename;
+	std::ofstream outfile(file_path.c_str(), std::ios::app | std::ios::binary);
 	if (outfile) {
 		outfile.write(_req_data->body_chunk.c_str(), _req_data->body_chunk.size());
-		outfile.close();
-		file_saved = true;
+		if (_req_data->is_request_ready()) {
+			file_saved = true;
+			outfile.close();
+		}
+		std::cout << "Expected file length: " << _req_data->content_length
+				  << ", current chunk size: " << _req_data->body_chunk.size() << std::endl;
 	}
 	if (file_saved) {
 		_status.set_status_line(200, "OK");
 		_body = "{\"success\": true, \"message\": \"Upload successful\"}";
 		header("content-type", "application/json");
-	} else {
+	} else if (!file_saved && _req_data->is_request_ready()) {
 		_status.set_status_line(400, "Bad Request");
 		_body = "{\"success\": false, \"message\": \"No file uploaded or failed to save file(s)\"}";
+		header("content-type", "application/json");
+	}
+	 else {
+		_status.set_status_line(201, "Continue");
+		std::stringstream ss;
+		ss << "saved chunk size: [" << _req_data->body_chunk.size() << "] bytes";
+		_body = ss.str();
 		header("content-type", "application/json");
 	}
 	return *this;
