@@ -2,16 +2,24 @@ NAME = ./webserv
 INCLUDE_DIR = -I Sockets -I Server -I Parser -I Utilities -I Logger
 CXX = c++ -std=c++98 -g -static-libasan
 CXXFLAGS = -Wall -Wextra -Werror $(INCLUDE_DIR)
+
+BUILDDIR = Build
+OBJSDIR = $(BUILDDIR)/Objs
+EXECUTABLEDIR = $(BUILDDIR)/
+
+LIBDIR = $(BUILDDIR)/Lib
+LIB = webservlib.a
+
 LOGSDIR = Logs
 SCRIPTS = mkdir -p $(LOGSDIR)
 
 TESTS_DIR = Tests
 VENV_DIR = $(TESTS_DIR)/venv
 
-TESTS_SRC = \
+TESTS_SRCS = \
 	Tests/test.py
 
-SRC = \
+SRCS = \
 	Server/ServerRequestParser.cpp \
 	Server/ServerSocketManager.cpp \
 	Server/ServerSocket.cpp \
@@ -28,23 +36,33 @@ SRC = \
 	Utilities/status.cpp \
 	Parser/Parser.cpp \
 	Parser/Token.cpp \
-	main.cpp
 
-OBJ = $(SRC:.cpp=.o)
+OBJS = $(patsubst %.cpp, $(OBJSDIR)/%.o, $(SRCS))
 
 all: $(NAME) scripts
+
+$(OBJS): $(OBJSDIR)/%.o: %.cpp
+	mkdir -p $(BUILDDIR) $(dir $@)
+	$(CXX) $(CXXFLAGS) -c $< $(INCLUDE) -o $@
+
+$(LIBDIR)/$(LIB): $(OBJS)
+	mkdir -p $(LIBDIR)
+	ar rcs $(LIBDIR)/$(LIB) $(OBJS)
+
+$(OBJSDIR)/main.o: main.cpp
+	$(CXX) $(CXXFLAGS) $(INCLUDE) -c $< -o $@
+
+$(NAME): $(OBJSDIR)/main.o $(LIBDIR)/$(LIB)
+	$(CXX) $(OBJSDIR)/main.o $(LIBDIR)/$(LIB) -o $@
 
 scripts:
 	$(SCRIPTS)
 
-$(NAME): $(OBJ)
-	$(CXX) $(CXXFLAGS) $(OBJ) $(INCLUDE) -o $(NAME)
-
 clean:
-	rm -rf $(OBJ) 
+	rm -rf $(OBJSDIR)/$(dir $(OBJS))
 
-fclean: clean
-	rm -rf $(NAME) $(LOGSDIR)
+fclean:
+	rm -rf $(BUILDDIR) $(LOGSDIR)
 
 re: fclean all
 

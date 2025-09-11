@@ -6,3 +6,5 @@ my_notes.txt
 Logs/*
 ./Tests/venv
 ./Pages/Uplodas
+./Build
+Build
