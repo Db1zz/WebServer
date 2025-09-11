@@ -217,9 +217,9 @@ ServerResponse& ServerResponse::post_method(const t_location& loc) {
 		// std::cout << "Expected file length: " << _req_data->content_length
 		// 		  << ", current chunk size: " << _req_data->body_chunk.size() << std::endl;
 	}
+	const_cast<t_request*>(_req_data)->transfered_length += _req_data->body_chunk.size();
 	std::cout << " transfered LEN: " << _req_data->transfered_length << std::endl;
 	std::cout << RED500 << "content_len: " << _req_data->content_length << RESET << std::endl;
-
 	if (file_saved) {
 		_status.set_status_line(200, "OK");
 		_body = "{\"success\": true, \"message\": \"Upload successful\"}";
