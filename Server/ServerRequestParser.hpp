@@ -24,16 +24,19 @@
 
 class ServerRequestParser {
    public:
-	static Status parse_request_header(std::string& request_string,
-									   t_request& request,
+	static Status parse_request_header(std::string& request_string, t_request& request,
 									   ServerLogger& server_logger);
 	static Status parse_request_body_chunk(t_request& request);
+	static std::string& get_token(std::string& request_string, std::string& result,
+								  const char* delims);
+
    private:
 	// Deleted functions
 	ServerRequestParser();
 	ServerRequestParser(const ServerRequestParser& copy);
 	ServerRequestParser& operator=(const ServerRequestParser& copy);
-	
+
+   protected:
 	// Functions for internal use
 	static bool is_method_valid(const std::string& method);
 	// static Status normalize_uri(const t_commonConfig& common_server_config, std::string& uri);
@@ -41,15 +44,14 @@ class ServerRequestParser {
 	static bool is_sub_delims(char c);
 	static bool is_path_valid(const std::string& path);
 	static bool is_pos_hex(const std::string& str, size_t pos);
-	static std::string& get_token(std::string& request_string, std::string& result,
-								  const char* delims);
 	static std::string& consume_char(std::string& request_string, char c);
 	static Status get_request_line(std::string& request_string, t_request& request);
 	static Status get_request_headers(std::string& request_string, t_request& request);
 	static Status extract_file_name_with_mime(const std::string& uri_path, std::string& filename,
 											  std::string& mime_type);
 	static Status get_mime_from_filename(const std::string& filename, std::string& result);
-	static Status get_filename_from_request_body(const std::string& request_string, std::string& result);
+	static Status get_filename_from_request_body(const std::string& request_string,
+												 std::string& result);
 	static Status extract_request_body_header(t_request& request, std::string& result);
 	static Status erase_request_body_end_boundary(t_request& request);
 	static Status get_boundary(const std::string& request_string, t_request& request);

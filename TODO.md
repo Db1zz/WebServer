@@ -18,7 +18,7 @@
 /*
 	each read() call can return different amount of readed bytes, and this issue can cause
 	in incomplete headers, data content and boundary lables, to prevent it, we can store important
-	content such as headers and boundary lables in a body_chunk till it will the content will be complete.
+	content such as headers and boundary lables in a body_chunk till the content will be complete.
 
 	start
 	------geckoformboundarydbe55acddb6231da461629742a34e1e6\r\n
