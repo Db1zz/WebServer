@@ -149,7 +149,7 @@ Status Server::handle_event(int amount_of_events) {
 }
 
 Status Server::get_request_header(ClientSocket* client_socket) {
-	const ssize_t read_buff_size = 100000;
+	const ssize_t read_buff_size = 1000000;
 	Status status;
 	char read_buff[read_buff_size + 1];
 	ssize_t rd_bytes;
@@ -166,13 +166,12 @@ Status Server::get_request_header(ClientSocket* client_socket) {
 		if (!status) {
 			return Status("ServerRequestParser::parse_request_header() failed: " + status.msg());
 		}
-		request.transfered_length = rd_bytes;
 	}
 	return Status();
 }
 
 Status Server::get_request_body_chunk(ClientSocket* client_socket) {
-	const ssize_t read_buff_size = 100000;
+	const ssize_t read_buff_size = 1000000;
 	Status status;
 	char read_buff[read_buff_size + 1];
 	ssize_t rd_bytes;
@@ -181,12 +180,12 @@ Status Server::get_request_body_chunk(ClientSocket* client_socket) {
 	rd_bytes = read(client_socket->get_fd(), read_buff, read_buff_size);
 	if (rd_bytes > 0) {
 		request.cache.append(read_buff, rd_bytes);
-		request.transfered_length += rd_bytes;
 	}
 
 	if (!request.cache.empty()) {
 		ServerRequestParser::parse_request_body_chunk(request);
 	}
+
 	return Status();
 }
 
