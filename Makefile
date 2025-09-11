@@ -63,7 +63,7 @@ clean:
 	rm -rf $(OBJSDIR)/$(dir $(OBJS))
 
 fclean:
-	rm -rf $(BUILDDIR) $(LOGSDIR)
+	rm -rf $(BUILDDIR) $(LOGSDIR) $(NAME)
 
 re: fclean all
 

@@ -16,11 +16,11 @@
 #include "../Utilities/colors.hpp"
 #include "../Utilities/fs.hpp"
 #include "../Utilities/status.hpp"
+#include "ClientSocket.hpp"
 #include "Server.hpp"
 #include "ServerConfig.hpp"
 #include "ServerRequest.hpp"
 #include "ServerResponse.hpp"
-#include "ClientSocket.hpp"
 
 #define PAGE_INITIAL "Pages/index.html"
 #define PAGE_404 "Pages/404.html"
@@ -28,8 +28,8 @@
 
 class ClientSocket;
 class ServerResponse {
-	public:
-	 ServerResponse(ClientSocket* client_socket, const t_config& server_data);
+   public:
+	ServerResponse(ClientSocket* client_socket, const t_config& server_data);
 	~ServerResponse();
 	ServerResponse& operator<<(const std::string& data);
 	ServerResponse& header(const std::string& key, const std::string& value);
@@ -49,6 +49,7 @@ class ServerResponse {
 	const std::string get_body_size() const;
 	const std::string& get_headers() const;
 	const std::string& get_body() const;
+	Status _status;
 
    private:
 	std::string _resp_content_type;
@@ -58,7 +59,6 @@ class ServerResponse {
 	std::string _resolved_file_path;
 	const t_request* _req_data;
 	const t_config* _server_data;
-	Status _status;
 	/*setters*/
 	/*getters*/
 };

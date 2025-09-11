@@ -21,7 +21,8 @@ ServerResponse& ServerResponse::header(const std::string& key, const std::string
 ServerResponse& ServerResponse::serve_static_page(const t_location& loc) {
 	struct stat path_stat;
 	if (stat(_resolved_file_path.c_str(), &path_stat) == 0 && S_ISDIR(path_stat.st_mode)) {
-		if (loc.common.auto_index  && (_req_data->mime_type == ".json" || _req_data->accept == "*/*") ) {
+		if (loc.common.auto_index &&
+			(_req_data->mime_type == ".json" || _req_data->accept == "*/*")) {
 			json(_resolved_file_path);
 			return *this;
 		}
@@ -209,13 +210,12 @@ ServerResponse& ServerResponse::post_method(const t_location& loc) {
 	std::ofstream outfile(file_path.c_str(), std::ios::app | std::ios::binary);
 	if (outfile) {
 		outfile.write(_req_data->body_chunk.c_str(), _req_data->body_chunk.size());
-		if (_req_data->transfered_length == _req_data->content_length) {
+		if (_req_data->is_request_ready()) {
 			file_saved = true;
 			outfile.close();
 		}
 		std::cout << "Expected file length: " << _req_data->content_length
-				  << ", current chunk size: " << _req_data->body_chunk.size()
-				  << std::endl;
+				  << ", current chunk size: " << _req_data->body_chunk.size() << std::endl;
 	}
 	if (file_saved) {
 		_status.set_status_line(200, "OK");
@@ -226,7 +226,7 @@ ServerResponse& ServerResponse::post_method(const t_location& loc) {
 		_body = "{\"success\": false, \"message\": \"No file uploaded or failed to save file(s)\"}";
 		header("content-type", "application/json");
 	}
-	else {
+	 else {
 		_status.set_status_line(201, "Continue");
 		std::stringstream ss;
 		ss << "saved chunk size: [" << _req_data->body_chunk.size() << "] bytes";
