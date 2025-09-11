@@ -27,8 +27,6 @@ class ServerRequestParser {
 	static Status parse_request_header(std::string& request_string, t_request& request,
 									   ServerLogger& server_logger);
 	static Status parse_request_body_chunk(t_request& request);
-	static std::string& get_token(std::string& request_string, std::string& result,
-								  const char* delims);
 
    private:
 	// Deleted functions
@@ -39,6 +37,7 @@ class ServerRequestParser {
    protected:
 	// Functions for internal use
 	static bool is_method_valid(const std::string& method);
+	static std::string& get_token(std::string& request_string, std::string& result, const char* delims);
 	// static Status normalize_uri(const t_commonConfig& common_server_config, std::string& uri);
 	static bool is_unreserved(char c);
 	static bool is_sub_delims(char c);
