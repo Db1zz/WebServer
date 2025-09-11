@@ -149,7 +149,7 @@ Status Server::handle_event(int amount_of_events) {
 }
 
 Status Server::get_request_header(ClientSocket* client_socket) {
-	const ssize_t read_buff_size = 1000000;
+	const ssize_t read_buff_size = 4096;
 	Status status;
 	char read_buff[read_buff_size + 1];
 	ssize_t rd_bytes;
@@ -171,6 +171,7 @@ Status Server::get_request_header(ClientSocket* client_socket) {
 }
 
 Status Server::get_request_body_chunk(ClientSocket* client_socket) {
+	static size_t aboba;
 	const ssize_t read_buff_size = 1000000;
 	Status status;
 	char read_buff[read_buff_size + 1];
@@ -179,7 +180,11 @@ Status Server::get_request_body_chunk(ClientSocket* client_socket) {
 
 	rd_bytes = read(client_socket->get_fd(), read_buff, read_buff_size);
 	if (rd_bytes > 0) {
+		aboba += rd_bytes;
 		request.cache.append(read_buff, rd_bytes);
+		std::cout << "Aboba: " << aboba << std::endl;
+		std::cout << "TL: " << request.transfered_length << std::endl;
+		std::cout << "CL: " << request.content_length << std::endl;
 	}
 
 	if (!request.cache.empty()) {
