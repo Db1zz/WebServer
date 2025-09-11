@@ -120,7 +120,7 @@ std::string ServerResponse::generate_response() {
 	header("server", _server_data->server_name[0]);
 	header("content-length", get_body_size());
 	_response = WS_PROTOCOL + _status.status_line() + get_headers() + "\r\n" + get_body();
-	std::cout << GREEN400 "RESPONSE:\n" << _response << RESET << std::endl;
+	//std::cout << GREEN400 "RESPONSE:\n" << _response << RESET << std::endl;
 	return _response;
 }
 
@@ -214,9 +214,12 @@ ServerResponse& ServerResponse::post_method(const t_location& loc) {
 			file_saved = true;
 			outfile.close();
 		}
-		std::cout << "Expected file length: " << _req_data->content_length
-				  << ", current chunk size: " << _req_data->body_chunk.size() << std::endl;
+		//std::cout << "Expected file length: " << _req_data->content_length
+				//  << ", current chunk size: " << _req_data->body_chunk.size() << std::endl;
 	}
+	std::cout << " transfered LEN: " << _req_data->transfered_length << std::endl;
+	std::cout << RED500 << "content_len: " << _req_data->content_length << RESET << std::endl;
+
 	if (file_saved) {
 		_status.set_status_line(200, "OK");
 		_body = "{\"success\": true, \"message\": \"Upload successful\"}";
@@ -228,10 +231,6 @@ ServerResponse& ServerResponse::post_method(const t_location& loc) {
 	}
 	 else {
 		_status.set_status_line(201, "Continue");
-		std::stringstream ss;
-		ss << "saved chunk size: [" << _req_data->body_chunk.size() << "] bytes";
-		_body = ss.str();
-		header("content-type", "application/json");
 	}
 	return *this;
 }

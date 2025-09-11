@@ -149,7 +149,7 @@ Status Server::handle_event(int amount_of_events) {
 }
 
 Status Server::get_request_header(ClientSocket* client_socket) {
-	const ssize_t read_buff_size = 4096;
+	const ssize_t read_buff_size = 100000;
 	Status status;
 	char read_buff[read_buff_size + 1];
 	ssize_t rd_bytes;
@@ -172,7 +172,7 @@ Status Server::get_request_header(ClientSocket* client_socket) {
 }
 
 Status Server::get_request_body_chunk(ClientSocket* client_socket) {
-	const ssize_t read_buff_size = 4096;
+	const ssize_t read_buff_size = 100000;
 	Status status;
 	char read_buff[read_buff_size + 1];
 	ssize_t rd_bytes;
