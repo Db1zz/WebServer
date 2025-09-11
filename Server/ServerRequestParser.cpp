@@ -128,6 +128,7 @@ Status ServerRequestParser::get_request_headers(std::string& request_string, t_r
 			request.connection = token_value;
 		} else if (token_type == "Content-Length") {
 			request.content_length = atol(token_value.c_str());
+			request.transfered_length = 0;
 		} else if (token_type == "Content-Type") {
 			request.content_type = token_value;
 			get_boundary(request.content_type, request);

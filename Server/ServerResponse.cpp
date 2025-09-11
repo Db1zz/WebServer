@@ -203,10 +203,19 @@ ServerResponse& ServerResponse::post_method(const t_location& loc) {
 		send_error_page(405, "Method Not Allowed");
 		return *this;
 	}
+
 	std::string upload_dir = _resolved_file_path;
-	if (!upload_dir.empty() && upload_dir[upload_dir.size() - 1] != '/') upload_dir += "/";
 	bool file_saved = false;
 	std::string file_path = upload_dir + _req_data->filename;
+	struct stat file_stat;
+	
+	if (!upload_dir.empty() && upload_dir[upload_dir.size() - 1] != '/') upload_dir += "/";
+	if (_req_data->transfered_length == 0 && stat(file_path.c_str(), &file_stat) == 0) {
+		_status.set_status_line(409, "Conflict");
+		_body = "{\"success\": false, \"message\": \"File already exists\"}";
+		header("content-type", "application/json");
+		return *this;
+	}
 	std::ofstream outfile(file_path.c_str(), std::ios::app | std::ios::binary);
 	if (outfile) {
 		outfile.write(_req_data->body_chunk.c_str(), _req_data->body_chunk.size());
