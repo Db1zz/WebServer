@@ -4,7 +4,9 @@ webserv
 my_notes.txt
 .DS_Store
 Logs/*
-./Tests/venv
+./Tests/global/venv
+Tests/global/venv
+Tests/global/__pycache__
 ./Pages/Uplodas
 ./Build
 Build

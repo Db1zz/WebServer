@@ -13,7 +13,7 @@ LIB = webservlib.a
 LOGSDIR = Logs
 SCRIPTS = mkdir -p $(LOGSDIR)
 
-TESTS_DIR = Tests
+TESTS_DIR = Tests/global
 VENV_DIR = $(TESTS_DIR)/venv
 
 TESTS_SRCS = \

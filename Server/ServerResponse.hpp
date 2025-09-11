@@ -57,7 +57,7 @@ class ServerResponse {
 	std::string _headers;
 	std::string _response;
 	std::string _resolved_file_path;
-	const t_request* _req_data;
+	t_request* _req_data;
 	const t_config* _server_data;
 	/*setters*/
 	/*getters*/

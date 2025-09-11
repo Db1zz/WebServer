@@ -14,6 +14,7 @@ class Status {
 	Status(const Status &to_copy);
 
 	Status &operator=(const Status &to_copy);
+	bool operator==(int code);
 	std::string operator+(const std::string &_msg);
 
 	operator bool() const { return _ok; }

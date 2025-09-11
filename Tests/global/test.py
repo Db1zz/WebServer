@@ -12,7 +12,7 @@ class Webserver:
 	def __init__(self):
 		self.binary_path = "./webserv"
 
-	def _wait_server_to_start(self, args=["./Tests/resources/webserver_test.cfg"]):
+	def _wait_server_to_start(self, args=["./Tests/global/resources/webserver_test.cfg"]):
 		cfgAdresses = extract_addresses_from_cfg(args[0])
 		for _ in range(50):
 			with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
@@ -23,7 +23,7 @@ class Webserver:
 			sleep(0.1)
 		return TimeoutError("Unable to start server")
 
-	def start(self, args=["./Tests/resources/webserver_test.cfg"]):
+	def start(self, args=["./Tests/global/resources/webserver_test.cfg"]):
 		self.process = subprocess.Popen(
 			self.binary_path,
 			stdout=subprocess.DEVNULL,
@@ -83,7 +83,7 @@ class CheckPorts:
 	def test():
 		serv = Webserver()
 		serv.start()
-		cfgAddr = extract_addresses_from_cfg("./Tests/resources/webserver_test.cfg")
+		cfgAddr = extract_addresses_from_cfg("./Tests/global/resources/webserver_test.cfg")
 		expected = []
 		result = []
 		for cfgAddr in cfgAddr:
@@ -99,8 +99,8 @@ class CheckUpload:
 	def test():
 		serv = Webserver()
 		serv.start()
-		filePath = "./Tests/resources/init_pic.jpg"
-		UploadedFilePath = "./Tests/resources/init_pic.jpg"
+		filePath = "./Tests/global/resources/test.jpg"
+		UploadedFilePath = "./Tests/global/resources/test.jpg"
 		fileToUpload = open(filePath, "rb")
 		files = {"file" : fileToUpload}
 
