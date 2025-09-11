@@ -206,8 +206,8 @@ Status Server::request_handler(ClientSocket* client_socket) {
 }
 
 Status Server::response_handler(ClientSocket* client_socket) {
-	const t_request& request = *client_socket->get_request_data();
-	ServerResponse resp(request, _configs[0]);
+	// const t_request& request = *client_socket->get_request_data();
+	ServerResponse resp(client_socket, _configs[0]);
 	std::string res = resp.generate_response();
 
 	if (write(client_socket->get_fd(), res.c_str(), res.size()) < 0) {

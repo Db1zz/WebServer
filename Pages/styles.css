@@ -1,3 +1,29 @@
+.file-button-group {
+	display: flex;
+	gap: 10px;
+	margin-left: auto;
+}
+
+.file-button-group button {
+	margin-left: 0;
+}
+
+.file-download-button {
+	padding: 10px 20px;
+	font-size: 1rem;
+	background: #4B9CD3;
+	color: white;
+	border: none;
+	border-radius: 12px;
+	cursor: pointer;
+	margin-left: 20px;
+	transition: background-color 0.2s;
+}
+
+.file-download-button:hover {
+	background: #3572A5;
+}
+
 body {
 	background-color: #D9A299;
 }
@@ -124,7 +150,7 @@ button:hover,
 	justify-content: space-between;
 	align-items: center;
 	max-width: 600px;
-	box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 .file-item:hover {
