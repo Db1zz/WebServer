@@ -211,7 +211,6 @@ ServerResponse& ServerResponse::post_method(const t_location& loc) {
 	
 	if (!upload_dir.empty() && upload_dir[upload_dir.size() - 1] != '/') upload_dir += "/";
 	if (stat(file_path.c_str(), &file_stat) == 0) {
-		std::cout << RED500 << "HERE same file" << RESET << std::endl;
 		_req_data->transfered_length = _req_data->content_length;
 		_status.set_status_line(409, "Conflict");
 		_body = "{\"success\": false, \"message\": \"File already exists\"}";
@@ -220,7 +219,6 @@ ServerResponse& ServerResponse::post_method(const t_location& loc) {
 	}
 	std::ofstream outfile(file_path.c_str(), std::ios::app | std::ios::binary);
 	if (outfile) {
-		std::cout << YELLOW400 << "saving file" << RESET << std::endl;
 		outfile.write(_req_data->body_chunk.c_str(), _req_data->body_chunk.size());
 		if (_req_data->is_request_ready()) {
 			file_saved = true;
@@ -232,13 +230,11 @@ ServerResponse& ServerResponse::post_method(const t_location& loc) {
 		_body = "{\"success\": true, \"message\": \"Upload successful\"}";
 		header("content-type", "application/json");
 	} else if (!file_saved && _req_data->is_request_ready()) {
-		std::cout << GREEN400 << "HERE same file file not saved req redy" << RESET << std::endl;
 		_status.set_status_line(400, "Bad Request");
 		_body = "{\"success\": false, \"message\": \"No file uploaded or failed to save file(s)\"}";
 		header("content-type", "application/json");
 	}
 	 else {
-		std::cout << BLUE400 << "HERE same file else" << RESET << std::endl;
 		_status.set_status_line(100, "Continue");
 	}
 	return *this;
