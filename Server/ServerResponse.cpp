@@ -220,6 +220,7 @@ ServerResponse& ServerResponse::post_method(const t_location& loc) {
 	}
 	std::ofstream outfile(file_path.c_str(), std::ios::app | std::ios::binary);
 	if (outfile) {
+		std::cout << YELLOW400 << "saving file" << RESET << std::endl;
 		outfile.write(_req_data->body_chunk.c_str(), _req_data->body_chunk.size());
 		if (_req_data->is_request_ready()) {
 			file_saved = true;
@@ -231,13 +232,14 @@ ServerResponse& ServerResponse::post_method(const t_location& loc) {
 		_body = "{\"success\": true, \"message\": \"Upload successful\"}";
 		header("content-type", "application/json");
 	} else if (!file_saved && _req_data->is_request_ready()) {
-		std::cout << "goes here\n";
+		std::cout << GREEN400 << "HERE same file file not saved req redy" << RESET << std::endl;
 		_status.set_status_line(400, "Bad Request");
 		_body = "{\"success\": false, \"message\": \"No file uploaded or failed to save file(s)\"}";
 		header("content-type", "application/json");
 	}
 	 else {
-		_status.set_status_line(201, "Continue");
+		std::cout << BLUE400 << "HERE same file else" << RESET << std::endl;
+		_status.set_status_line(100, "Continue");
 	}
 	return *this;
 }

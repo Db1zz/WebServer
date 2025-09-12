@@ -210,14 +210,18 @@ Status Server::response_handler(ClientSocket* client_socket) {
 	// const t_request& request = *client_socket->get_request_data();
 	ServerResponse resp(client_socket, _configs[0]);
 	std::string res = resp.generate_response();
-
-	if (resp._status == 201) {
+	if (resp._status == 100) {
 		return Status();
 	}
-
 	if (write(client_socket->get_fd(), res.c_str(), res.size()) < 0) {
 		return Status(strerror(errno));
 	}
+	if (resp._status == 400 || resp._status == 409) {
+		close(client_socket->get_fd());
+		return Status();
+	} // this is a temporary solution. we can make it in a way,
+	// that we only proceed with chunking the request if status == 100, 200, 201, 202, 206
+	//discuss later, after refactoring response
 	return Status();
 }
 
