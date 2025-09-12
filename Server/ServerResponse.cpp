@@ -30,7 +30,7 @@ ServerResponse& ServerResponse::serve_static_page(const t_location& loc) {
 			_resolved_file_path[_resolved_file_path.size() - 1] != '/')
 			_resolved_file_path += "/";
 		_resolved_file_path += loc.common.index.empty() ? "index.html" : loc.common.index[0];
-		const_cast<t_request*>(_req_data)->mime_type = ".html";
+		_req_data->mime_type = ".html";
 	}
 
 	_resp_content_type = identify_mime();
@@ -226,7 +226,6 @@ ServerResponse& ServerResponse::post_method(const t_location& loc) {
 		// std::cout << "Expected file length: " << _req_data->content_length
 		// 		  << ", current chunk size: " << _req_data->body_chunk.size() << std::endl;
 	}
-	const_cast<t_request*>(_req_data)->transfered_length += _req_data->body_chunk.size();
 	std::cout << " transfered LEN: " << _req_data->transfered_length << std::endl;
 	std::cout << RED500 << "content_len: " << _req_data->content_length << RESET << std::endl;
 	if (file_saved) {
@@ -234,6 +233,7 @@ ServerResponse& ServerResponse::post_method(const t_location& loc) {
 		_body = "{\"success\": true, \"message\": \"Upload successful\"}";
 		header("content-type", "application/json");
 	} else if (!file_saved && _req_data->is_request_ready()) {
+		std::cout << "goes here\n";
 		_status.set_status_line(400, "Bad Request");
 		_body = "{\"success\": false, \"message\": \"No file uploaded or failed to save file(s)\"}";
 		header("content-type", "application/json");

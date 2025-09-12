@@ -19,7 +19,6 @@ int main(int argc, char** argv) {
 	} else if (argc == 2) {
 		fileName = argv[argc - 1];
 	}
-
 	std::vector<t_config> config;
 	try {
 		Parser parser(fileName.c_str());

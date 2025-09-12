@@ -149,7 +149,7 @@ Status Server::handle_event(int amount_of_events) {
 }
 
 Status Server::get_request_header(ClientSocket* client_socket) {
-	const ssize_t read_buff_size = 1000000;
+	const ssize_t read_buff_size = 4096;
 	Status status;
 	char read_buff[read_buff_size + 1];
 	ssize_t rd_bytes;
@@ -161,11 +161,11 @@ Status Server::get_request_header(ClientSocket* client_socket) {
 		request.cache.append(read_buff, rd_bytes);
 		// std::map<int, ServerSocketManager*>::iterator server_socket_manager_it;
 		// assert(find_server_socket_manager(client_socket->get_server_fd(), server_socket_manager_it));
-		status = ServerRequestParser::parse_request_header(
-			request.cache, request, _server_logger);
+		status = ServerRequestParser::parse_request_header(request.cache, request, _server_logger);
 		if (!status) {
 			return Status("ServerRequestParser::parse_request_header() failed: " + status.msg());
 		}
+		request.transfered_length += request.cache.size();
 	}
 	return Status();
 }
@@ -180,6 +180,7 @@ Status Server::get_request_body_chunk(ClientSocket* client_socket) {
 	rd_bytes = read(client_socket->get_fd(), read_buff, read_buff_size);
 	if (rd_bytes > 0) {
 		request.cache.append(read_buff, rd_bytes);
+		request.transfered_length += rd_bytes;
 	}
 
 	if (!request.cache.empty()) {
@@ -217,7 +218,6 @@ Status Server::response_handler(ClientSocket* client_socket) {
 	if (write(client_socket->get_fd(), res.c_str(), res.size()) < 0) {
 		return Status(strerror(errno));
 	}
-
 	return Status();
 }
 

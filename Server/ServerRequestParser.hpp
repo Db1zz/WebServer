@@ -27,6 +27,7 @@ class ServerRequestParser {
 	static Status parse_request_header(std::string& request_string, t_request& request,
 									   ServerLogger& server_logger);
 	static Status parse_request_body_chunk(t_request& request);
+	static Status erase_request_body_end_boundary(t_request& request);
 
    private:
 	// Deleted functions
@@ -52,7 +53,6 @@ class ServerRequestParser {
 	static Status get_filename_from_request_body(const std::string& request_string,
 												 std::string& result);
 	static Status extract_request_body_header(t_request& request, std::string& result);
-	static Status erase_request_body_end_boundary(t_request& request);
 	static Status get_boundary(const std::string& request_string, t_request& request);
 };
 

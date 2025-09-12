@@ -26,8 +26,13 @@ Status &Status::operator=(const Status &to_copy) {
 
 std::string Status::operator+(const std::string &_msg) { return _msg + _msg; }
 
+bool Status::operator==(int code) {
+	return _code == code;
+}
+
 void Status::set_status_line(int code, std::string msg) {
 	std::stringstream code_str;
+	_code = code;
 	code_str << code;
 	_msg = msg;
 	_status_line = " " + code_str.str() + " " + msg + "\r\n";
