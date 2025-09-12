@@ -209,12 +209,15 @@ ServerResponse& ServerResponse::post_method(const t_location& loc) {
 	std::string file_path = upload_dir + _req_data->filename;
 	struct stat file_stat;
 	
+	std::cout << CYAN200 <<  "Transferred length: " << _req_data->body_chunk.size() << std::endl;
+	std::cout << CYAN200 <<  "Content-Length: " << _req_data->content_length << std::endl;
 	if (!upload_dir.empty() && upload_dir[upload_dir.size() - 1] != '/') upload_dir += "/";
-	if (stat(file_path.c_str(), &file_stat) == 0) {
+	if (stat(file_path.c_str(), &file_stat) == 0 && !_req_data->is_request_ready()) {
 		_req_data->transfered_length = _req_data->content_length;
 		_status.set_status_line(409, "Conflict");
 		_body = "{\"success\": false, \"message\": \"File already exists\"}";
 		header("content-type", "application/json");
+		std::cout << RED300  <<"return 409" << RESET << std::endl;
 		return *this;
 	}
 	std::ofstream outfile(file_path.c_str(), std::ios::app | std::ios::binary);
@@ -239,6 +242,7 @@ ServerResponse& ServerResponse::post_method(const t_location& loc) {
 	}
 	return *this;
 }
+
 
 ServerResponse& ServerResponse::delete_method(const t_location& loc) {
 	if (!loc.common.methods.deleteMethod) {
