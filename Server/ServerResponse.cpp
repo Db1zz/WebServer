@@ -91,21 +91,8 @@ void ServerResponse::send_error_page(int code, std::string error_msg) {
 
 std::string ServerResponse::generate_response() {
 	_status.set_status_line(200, "OK");
-	bool found = false;
-	const t_location* best_match = NULL;
-	size_t best_match_length = 0;
-
-	for (size_t i = 0; i < _server_data->location.size(); ++i) {
-		if (_req_data->uri_path.find(_server_data->location[i].path) == 0) {
-			size_t location_length = _server_data->location[i].path.length();
-			if (location_length > best_match_length) {
-				best_match = &_server_data->location[i];
-				best_match_length = location_length;
-				found = true;
-			}
-		}
-	}
-	if (found && best_match) {
+	const t_location* best_match = find_location();
+	if (best_match) {
 		resolve_file_path(*best_match);
 		if (_req_data->method == "DELETE" && best_match->common.methods.deleteMethod)
 			delete_method(*best_match);
@@ -116,12 +103,28 @@ std::string ServerResponse::generate_response() {
 		else
 			send_error_page(405, "Method Not Allowed");
 	}
-	if (!found) serve_default_root();
+	if (!best_match) serve_default_root();
 	header("server", _server_data->server_name[0]);
 	header("content-length", get_body_size());
 	_response = WS_PROTOCOL + _status.status_line() + get_headers() + "\r\n" + get_body();
-	// std::cout << GREEN400 "RESPONSE:\n" << _response << RESET << std::endl;
 	return _response;
+}
+
+const t_location* ServerResponse::find_location() {
+	const t_location* best_match = NULL;
+	size_t best_match_length = 0;
+
+	for (size_t i = 0; i < _server_data->location.size(); ++i) {
+		if (_req_data->uri_path.find(_server_data->location[i].path) == 0) {
+			size_t location_length = _server_data->location[i].path.length();
+			if (location_length > best_match_length) {
+				best_match = &_server_data->location[i];
+				best_match_length = location_length;
+				return best_match;
+			}
+		}
+	}
+	return NULL;
 }
 
 ServerResponse& ServerResponse::json(const std::string& data) {
@@ -208,9 +211,8 @@ ServerResponse& ServerResponse::post_method(const t_location& loc) {
 	bool file_saved = false;
 	std::string file_path = upload_dir + _req_data->filename;
 	struct stat file_stat;
-	
-	if (!upload_dir.empty() && upload_dir[upload_dir.size() - 1] != '/')
-		upload_dir += "/";
+
+	if (!upload_dir.empty() && upload_dir[upload_dir.size() - 1] != '/') upload_dir += "/";
 
 	if (stat(file_path.c_str(), &file_stat) == 0 && _req_data->transfered_length == 0) {
 		_req_data->transfered_length = _req_data->content_length;
@@ -235,13 +237,11 @@ ServerResponse& ServerResponse::post_method(const t_location& loc) {
 		_status.set_status_line(400, "Bad Request");
 		_body = "{\"success\": false, \"message\": \"No file uploaded or failed to save file(s)\"}";
 		header("content-type", "application/json");
-	}
-	else {
+	} else {
 		_status.set_status_line(100, "Continue");
 	}
 	return *this;
 }
-
 
 ServerResponse& ServerResponse::delete_method(const t_location& loc) {
 	if (!loc.common.methods.deleteMethod) {
