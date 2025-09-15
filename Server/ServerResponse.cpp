@@ -90,10 +90,12 @@ void ServerResponse::send_error_page(int code, std::string error_msg) {
 }
 
 std::string ServerResponse::generate_response() {
+	std::cout << PURPLE300 << "Request URI path: " << _req_data->uri_path << RESET << std::endl;
 	_status.set_status_line(200, "OK");
 	const t_location* best_match = find_location();
 	if (best_match) {
 		resolve_file_path(*best_match);
+		std::cout << RED500<< "Resolved file path: " << _resolved_file_path << RESET << std::endl;
 		if (_req_data->method == "DELETE" && best_match->common.methods.deleteMethod)
 			delete_method(*best_match);
 		else if (_req_data->method == "GET" && best_match->common.methods.getMethod)
