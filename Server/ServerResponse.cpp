@@ -100,8 +100,10 @@ std::string ServerResponse::generate_response() {
 			serve_static_page(*best_match);
 		else if (_req_data->method == "POST" && best_match->common.methods.postMethod)
 			post_method(*best_match);
-		else
+		else {
+			std::cout << YELLOW300 << "inside generate_method" << std::endl;
 			send_error_page(405, "Method Not Allowed");
+		}
 	}
 	if (!best_match) serve_default_root();
 	header("server", _server_data->server_name[0]);
@@ -203,6 +205,7 @@ void ServerResponse::resolve_file_path(const t_location& loc) {
 
 ServerResponse& ServerResponse::post_method(const t_location& loc) {
 	if (!loc.common.methods.postMethod) {
+		std::cout << PURPLE300 << "inside POST" << std::endl;
 		send_error_page(405, "Method Not Allowed");
 		return *this;
 	}
