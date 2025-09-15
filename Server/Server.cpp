@@ -157,7 +157,7 @@ Status Server::get_request_header(ClientSocket* client_socket) {
 	// std::map<int, ServerSocketManager*>::iterator search_result;
 
 	rd_bytes = read(client_socket->get_fd(), read_buff, read_buff_size);
-	std::cout << GREEN300 << "REQUEST: " << read_buff << RESET << std::endl;
+	//std::cout << GREEN300 << "REQUEST: " << read_buff << RESET << std::endl;
 	if (rd_bytes > 0) {
 		request.cache.append(read_buff, rd_bytes);
 		// std::map<int, ServerSocketManager*>::iterator server_socket_manager_it;
