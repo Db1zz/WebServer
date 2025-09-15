@@ -18,7 +18,6 @@
 	padding: 20px;
 	border-radius: 16px;
 	max-width: 400px;
-	width: 100%;
 	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
 	position: relative;
 	text-align: center;
@@ -117,8 +116,7 @@ body {
 }
 
 .upload-container {
-	max-width: 400px;
-	width: 100%;
+	max-width: 500px;
 	margin: 40px auto;
 	padding: 30px;
 	background: #FAF7F3;
@@ -151,20 +149,19 @@ body {
 
 .file-list .file-item,
 .file-item {
-	background: #FAF7F3;
-	border: 1px solid #DCC5B2;
-	border-radius: 8px;
-	padding: 10px 20px;
-	margin: 10px 0;
-	font-size: 18px;
-	font-weight: 500;
-	color: #2D2D2D;
-	display: flex;
-	justify-content: space-between;
-	align-items: center;
-	max-width: 400px;
-	width: 100%;
-	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+background: #FAF7F3;
+border: 1px solid #DCC5B2;
+border-radius: 8px;
+padding: 10px 20px;
+margin: 10px 0;
+font-size: 18px;
+font-weight: 500;
+color: #2D2D2D;
+display: flex;
+justify-content: space-between;
+align-items: center;
+max-width: 600px;
+box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 .file-item:hover {
@@ -214,20 +211,23 @@ button,
 .file-delete-button {
 	background: #CE5A67;
 	color: white;
-	margin-left: 20px;
+	margin-left: auto;
 }
 
 .file-delete-button:hover {
 	background: #B54854;
 }
 
-button,
-.main_button {
+
+button {
 	display: block;
 	margin: 20px auto;
 	padding: 20px 40px;
 	background: #DCC5B2;
 	color: black;
+}
+
+.main_button {
 	max-width: 400px;
 	width: 100%;
 	box-sizing: border-box;
