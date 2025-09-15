@@ -1,3 +1,7 @@
+document.addEventListener('DOMContentLoaded', function () {
+	var uploadForm = document.getElementById('uploadForm');
+	if (uploadForm) uploadForm.action = '/Uploads/';
+});
 
 const dropArea = document.getElementById('drop-area');
 const fileInput = document.getElementById('file');
