@@ -45,7 +45,6 @@ class ServerResponse {
 	void send_error_page(int code, std::string error_msg);
 	void serve_default_root();
 	void resolve_file_path(const t_location& loc);
-	const t_location* find_location();
 	/*getters*/
 	const std::string get_body_size() const;
 	const std::string& get_headers() const;
