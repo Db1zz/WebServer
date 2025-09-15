@@ -23,12 +23,15 @@ dropArea.addEventListener('dragleave', () => {
 dropArea.addEventListener('drop', (e) => {
 	e.preventDefault();
 	dropArea.classList.remove('dragover');
-	filesArray = Array.from(e.dataTransfer.files);
+	const droppedFiles = Array.from(e.dataTransfer.files);
+	filesArray = filesArray.concat(droppedFiles.filter(f => !filesArray.some(existing => existing.name === f.name && existing.size === f.size)));
 	updateFileInput();
 	showFiles();
 });
 fileInput.addEventListener('change', () => {
-	filesArray = Array.from(fileInput.files);
+	const selectedFiles = Array.from(fileInput.files);
+	filesArray = filesArray.concat(selectedFiles.filter(f => !filesArray.some(existing => existing.name === f.name && existing.size === f.size)));
+	updateFileInput();
 	showFiles();
 });
 
