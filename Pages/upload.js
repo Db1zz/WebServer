@@ -87,6 +87,9 @@ document.addEventListener('DOMContentLoaded', function () {
 			} catch (jsonErr) { }
 			if (response.ok && isJson && data && data.success) {
 				alert(data.message);
+				filesArray = [];
+				updateFileInput();
+				showFiles();
 			} else if (isJson && data && data.message) {
 				alert(data.message);
 			} else {

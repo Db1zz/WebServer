@@ -149,19 +149,19 @@ body {
 
 .file-list .file-item,
 .file-item {
-background: #FAF7F3;
-border: 1px solid #DCC5B2;
-border-radius: 8px;
-padding: 10px 20px;
-margin: 10px 0;
-font-size: 18px;
-font-weight: 500;
-color: #2D2D2D;
-display: flex;
-justify-content: space-between;
-align-items: center;
-max-width: 600px;
-box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+	background: #FAF7F3;
+	border: 1px solid #DCC5B2;
+	border-radius: 8px;
+	padding: 10px 20px;
+	margin: 10px 0;
+	font-size: 18px;
+	font-weight: 500;
+	color: #2D2D2D;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	max-width: 600px;
+	box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
 .file-item:hover {
