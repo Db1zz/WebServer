@@ -24,6 +24,7 @@ typedef struct s_request {
 	std::string filename;
 
 	std::string body_chunk;
+	std::string cache;
 	bool is_file_created;
 
 	bool is_request_ready() const {
