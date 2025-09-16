@@ -67,6 +67,7 @@ enum ErrorCode {
 	RequestBoundaryIsNotProvided = 605,
 	EndBoundaryNotFound = 606,
 	InvalidPath = 607,
+	CloseConnection = 608,
 
 	// 1xxx - Special error codes
 	// !!! DO NOT ADD ANYTHING BELOW THIS LINE !!!
@@ -156,6 +157,7 @@ class Status {
 	DEFINE_STATUS_FACTORY(InvalidPath, "invalid path")
 
 	DEFINE_STATUS_FACTORY(Interrupted, "EINTR signal sent")
+	DEFINE_STATUS_FACTORY(CloseConnection, "closed connection")
 
 #undef DEFINE_STATUS_FACTORY
 
