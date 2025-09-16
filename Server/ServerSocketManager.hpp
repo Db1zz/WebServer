@@ -8,7 +8,6 @@
 
 class ServerEvent;
 class ClientSocket;
-class ServerSocket;
 class Status;
 
 class ServerSocketManager {

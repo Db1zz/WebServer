@@ -20,6 +20,7 @@
 #define WS_PROTOCOL "HTTP/1.1"
 #define IPV4_STR_MAX_SIZE 15
 #define IPV4_OCTETS_SIZE 4
+#define READ_BUFFER_SIZE 100000
 
 class Status;
 class Socket;
@@ -39,8 +40,7 @@ class Server {
 	Status handle_new_connection_event(const epoll_event& connection_event);
 	Status handle_request_event(const epoll_event& request_event);
 	Status handle_event(int amount_of_events);
-	Status get_request_body_chunk(ClientSocket* client_socket);
-	Status get_request_header(ClientSocket* client_socket);
+	Status read_data(ClientSocket* client_socket, std::string& buff, int& rd_bytes);
 	Status request_handler(ClientSocket* client_socket);
 	Status response_handler(ClientSocket* client_socket);
 	Status create_server_socket_manager(const std::string& host, int port,

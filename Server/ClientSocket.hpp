@@ -3,6 +3,15 @@
 
 #include "Socket.hpp"
 #include "ServerRequest.hpp"
+#include "ServerRequestParser.hpp"
+
+struct ClientConnectionContext {
+	t_request request;
+	ServerRequestParser parser;
+
+	ClientConnectionContext();
+	void reset();
+};
 
 class ClientSocket : public Socket {
    public:
@@ -12,11 +21,11 @@ class ClientSocket : public Socket {
 	void set_server_fd(int server_fd);
 	int get_server_fd();
 
-	void reset_request();
-	t_request* get_request_data();
+	ClientConnectionContext* get_connection_context();
+	void reset_connection_context();
 
    private:
-	t_request* _request_data;
+	ClientConnectionContext _connection_context;
 	int _server_fd;
 };
 

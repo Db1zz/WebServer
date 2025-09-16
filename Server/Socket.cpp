@@ -80,25 +80,25 @@ Status Socket::set_socket_option(SocketOption socket_option, SetMode mode) {
 	}
 
 	if (setsockopt(_socket_fd, SOL_SOCKET, socket_option_int, &mode_int, sizeof(mode_int)) < 0) {
-		return Status("Socket failed to set option: ", strerror(errno));
+		return Status(std::string("Socket failed to set option: ") + strerror(errno));
 	}
-	return Status();
+	return Status::OK();
 }
 
 Status Socket::is_connected() const {
 	if (_socket_fd < 0) {
 		return Status("Socket fd is < 0");
 	}
-	return Status();
+	return Status::OK();
 }
 
 /* general functions */
 Status Socket::close_socket() {
 	if (close(_socket_fd) < 0) {
-		return Status("close() ", strerror(errno));
+		return Status(std::string("close() ") + strerror(errno));
 	}
 	_socket_fd = -1;
-	return Status();
+	return Status::OK();
 }
 
 Status Socket::set_host_ipv4_address_from_sockaddr() {
@@ -120,7 +120,7 @@ Status Socket::set_host_ipv4_address_from_sockaddr() {
 		return Status(e.what());
 	}
 
-	return Status();
+	return Status::OK();
 }
 
 void Socket::set_port_ipv4_from_sockaddr() {

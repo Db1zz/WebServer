@@ -42,7 +42,7 @@ Status ALogger::write_data_to_logfile(const std::string& data) {
 	} catch (const std::exception& e) {
 		return Status(e.what());
 	}
-	return Status();
+	return Status::OK();
 }
 
 std::string ALogger::get_current_date(char delimiter) {

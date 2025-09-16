@@ -27,10 +27,10 @@ Status ServerSocket::open_socket() {
 	}
 
 	if (bind(_socket_fd, &_sockaddr, _socklen) < 0) {
-		return Status("ServerSocket failed to bind socket: ", strerror(errno));
+		return Status(std::string("ServerSocket failed to bind socket: ") + strerror(errno));
 	}
 	if (listen(_socket_fd, SOCKET_DEFAULT_MAX_CONNECTIONS) < 0) {
-		return Status("ServerSocket failed to listen socket: ", strerror(errno));
+		return Status(std::string("ServerSocket failed to listen socket: ") + strerror(errno));
 	}
 
 	return Status();

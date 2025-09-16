@@ -3,57 +3,43 @@
 
 #include <string>
 
-#include "ServerLogger.hpp"
-#include "ServerRequest.hpp"
-#include "ServerSocketManager.hpp"
-#include "status.hpp"
-
-/*
-	HTTP 1.1 Requirements
-
-	An implementation is not compliant if it fails to satisfy one or more
-	of the MUST or REQUIRED level requirements for the protocols it
-	implements. An implementation that satisfies all the MUST or REQUIRED
-	level and all the SHOULD level requirements for its protocols is said
-	to be "unconditionally compliant"; one that satisfies all the MUST
-	level requirements but not all the SHOULD level requirements for its
-	protocols is said to be "conditionally compliant."
-
-	https://www.rfc-editor.org/rfc/rfc2616
-*/
+class Status;
+typedef struct s_request t_request;
 
 class ServerRequestParser {
    public:
-	static Status parse_request_header(std::string& request_string, t_request& request,
-									   ServerLogger& server_logger);
-	static Status parse_request_body_chunk(t_request& request);
-	static Status erase_request_body_end_boundary(t_request& request);
-
-   private:
-	// Deleted functions
-	ServerRequestParser();
+	// Public Functions
+	explicit ServerRequestParser(t_request* request);
 	ServerRequestParser(const ServerRequestParser& copy);
 	ServerRequestParser& operator=(const ServerRequestParser& copy);
 
-   protected:
-	// Functions for internal use
-	static bool is_method_valid(const std::string& method);
-	static std::string& get_token(std::string& request_string, std::string& result, const char* delims);
-	// static Status normalize_uri(const t_commonConfig& common_server_config, std::string& uri);
-	static bool is_unreserved(char c);
-	static bool is_sub_delims(char c);
-	static bool is_path_valid(const std::string& path);
-	static bool is_pos_hex(const std::string& str, size_t pos);
-	static std::string& consume_char(std::string& request_string, char c);
-	static Status get_request_line(std::string& request_string, t_request& request);
-	static Status get_request_headers(std::string& request_string, t_request& request);
-	static Status extract_file_name_with_mime(const std::string& uri_path, std::string& filename,
-											  std::string& mime_type);
-	static Status get_mime_from_filename(const std::string& filename, std::string& result);
-	static Status get_filename_from_request_body(const std::string& request_string,
-												 std::string& result);
-	static Status extract_request_body_header(t_request& request, std::string& result);
-	static Status get_boundary(const std::string& request_string, t_request& request);
+	Status parse_chunk(const std::string& chunk);
+
+	// void reset();
+	// void set_request(t_request* request);
+
+   private:
+	// Internal Functions
+	bool is_method_valid(const std::string& method);
+
+	Status parse_request_header();
+	Status parse_request_line();
+	Status parse_boundary();
+	Status get_filename_from_request_body(const std::string& request_string, std::string& result);
+	Status get_mime_from_filename(const std::string& filename, std::string& result);
+
+   private:
+	// Internal Variables
+	t_request* _request;
+	size_t _cursor_pos;
+
+	bool _request_header_parsed;
+	bool _boundary_header_parsed;
+
+	std::string _boundary_start;
+	std::string _boundary_end;
+
+	std::string _cache;
 };
 
 #endif // SERVER_SERVER_REQUEST_PARSER
