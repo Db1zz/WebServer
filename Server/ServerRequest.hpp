@@ -24,10 +24,13 @@ typedef struct s_request {
 	std::string filename;
 
 	std::string body_chunk;
+	bool is_file_created;
 
 	bool is_request_ready() const {
 		return transfered_length >= content_length;
 	}
+
+	s_request() : content_length(0), transfered_length(0), is_file_created(false) {}
 } t_request;
 
 #endif
