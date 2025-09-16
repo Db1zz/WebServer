@@ -206,7 +206,7 @@ Status Server::response_handler(ClientSocket* client_socket) {
 		std::map<int, ServerSocketManager*>::iterator server_manager_it;
 		find_server_socket_manager(client_socket->get_server_fd(), server_manager_it);
 		server_manager_it->second->close_connection_with_client(client_socket->get_fd());
-		return Status();
+		return Status::CloseConnection();
 	} // this is a temporary solution. we can make it in a way,
 	// that we only proceed with chunking the request if status == 100, 200, 201, 202, 206
 	// discuss later, after refactoring response
