@@ -25,6 +25,7 @@ typedef struct s_request {
 
 	std::string body_chunk;
 	std::string cache;
+	bool is_file_created;
 
 	bool is_request_ready() const {
 		return transfered_length >= content_length;
