@@ -4,10 +4,36 @@ project(tests LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD_REQUIRED 17)
 
 include_directories(../../)
+include_directories(../../Server)
+include_directories(../../Logger)
+include_directories(../../Parser)
+include_directories(../../Utilities)
 
 set(SOURCES
   tests.cpp
   ServerRequestParserTests.cpp)
+
+include(ExternalProject)
+
+set(WEBSERVER_DIR ${CMAKE_CURRENT_SOURCE_DIR}/../../)
+set(WEBSERVER_LIB_PATH ${WEBSERVER_DIR}/Build/lib/webservlib.a)
+
+ExternalProject_Add(webserver_project
+  SOURCE_DIR ${WEBSERVER_DIR}
+  CONFIGURE_COMMAND ""
+  BUILD_COMMAND make -C ${WEBSERVER_DIR}
+  INSTALL_COMMAND ""
+  BUILD_BYPRODUCTS ${WEBSERVER_LIB_PATH}
+)
+
+add_library(webserver_lib STATIC IMPORTED)
+
+set_target_properties(webserver_lib PROPERTIES
+  IMPORTED_LOCATION ${WEBSERVER_LIB_PATH}
+  INTERFACE_INCLUDE_DIRECTORIES ${WEBSERVER_DIR}
+)
+
+add_dependencies(webserver_lib webserver_project)
 
 include(FetchContent)
 
@@ -26,6 +52,8 @@ add_executable(
 
 target_link_libraries(
   tests
+  PUBLIC
+  webserver_lib
   GTest::gtest_main
 )
 

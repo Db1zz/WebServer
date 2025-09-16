@@ -2,7 +2,7 @@
 
 ServerResponse::ServerResponse(ClientSocket* client_socket, const t_config& server_data)
 	: _server_data(&server_data) {
-	_req_data = client_socket ? client_socket->get_request_data() : NULL;
+	_req_data = client_socket ? &client_socket->get_connection_context()->request : NULL;
 }
 
 ServerResponse::~ServerResponse() {
@@ -52,7 +52,7 @@ bool ServerResponse::is_binary() {
 bool ServerResponse::serve_file(const std::string& path, bool is_error_page) {
 	std::fstream file;
 	_status = fs::open_file(file, path, std::ios::in | std::ios::binary);
-	if (_status.ok()) {
+	if (_status.is_ok()) {
 		file.seekg(0, std::ios::end);
 		size_t size = file.tellg();
 		file.seekg(0, std::ios::beg);

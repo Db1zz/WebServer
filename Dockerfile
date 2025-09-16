@@ -8,7 +8,8 @@ RUN apt-get update && apt-get install -y \
 	valgrind \
 	python3 \
 	pip \
-	python3.12-venv
+	python3.12-venv \
+	cmake
 
 WORKDIR /app
 

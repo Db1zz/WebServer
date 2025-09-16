@@ -48,7 +48,7 @@ Status Server::launch() {
 	std::signal(SIGINT, sigint_handler);
 	while (g_signal_status != SIGINT) {
 		status = _event.wait_event(-1, &amount_of_events);
-		if (!status && status.code() != EINTR) {
+		if (!status && status.error() != EINTR) {
 			throw std::runtime_error("wait_event() failed in Server::Launch(): " + status.msg());
 		}
 
@@ -61,7 +61,7 @@ Status Server::launch() {
 		}
 	}
 	std::cout << "[Server] shutdown..." << std::endl;
-	return Status();
+	return Status::OK();
 }
 
 bool Server::is_a_new_connection(const epoll_event& event) {
@@ -87,7 +87,7 @@ Status Server::handle_new_connection_event(const epoll_event& connection_event) 
 		return status;
 	}
 
-	return Status();
+	return Status::OK();
 }
 
 Status Server::handle_request_event(const epoll_event& request_event) {
@@ -104,27 +104,29 @@ Status Server::handle_request_event(const epoll_event& request_event) {
 		std::cout << "destroy client\n";
 	} else if (request_event.events & EPOLLIN) {
 		status = request_handler(client_socket);
-		if (!status) {
+		ClientConnectionContext* connection_context = client_socket->get_connection_context();
+		// std::cout << connection_context->request.body_chunk.size() << std::endl;;
+		if (!status && connection_context->request.body_chunk.empty()) {
 			return Status("request_handler() failed in Server::handle_event(): " + status.msg());
 		}
-		t_request* request = client_socket->get_request_data();
-		if (!request->method.empty()) {
+		if (!connection_context->request.method.empty()) {
 			status = response_handler(client_socket);
-			request->body_chunk.clear();
+			connection_context->request.body_chunk.clear();
 			if (!status) {
 				return Status("response_handler() failed in Server::handle_event(): " +
 							  status.msg());
 			}
-			if (request->is_request_ready()) {
+			if (connection_context->request.is_request_ready()) {
 				find_server_socket_manager(client_socket->get_server_fd(), search);
-				_server_logger.log_access(*client_socket->get_host(), request->method,
-										  request->uri_path,
+				_server_logger.log_access(*client_socket->get_host(),
+										  connection_context->request.method,
+										  connection_context->request.uri_path,
 										  search->second->get_server_socket()->get_port());
-				client_socket->reset_request();
+				client_socket->reset_connection_context();
 			}
 		}
 	}
-	return Status();
+	return Status::OK();
 }
 
 Status Server::handle_event(int amount_of_events) {
@@ -145,72 +147,55 @@ Status Server::handle_event(int amount_of_events) {
 			continue;
 		}
 	}
-	return Status();
+	return Status::OK();
 }
 
-Status Server::get_request_header(ClientSocket* client_socket) {
-	const ssize_t read_buff_size = 4096;
-	Status status;
-	char read_buff[read_buff_size + 1];
-	ssize_t rd_bytes;
-	t_request& request = *client_socket->get_request_data();
-	// std::map<int, ServerSocketManager*>::iterator search_result;
+Status Server::read_data(ClientSocket* client_socket, std::string& buff, int& rd_bytes) {
+	const ssize_t read_buff_size = READ_BUFFER_SIZE;
+	char read_buff[read_buff_size];
 
 	rd_bytes = read(client_socket->get_fd(), read_buff, read_buff_size);
-	//std::cout << GREEN300 << "REQUEST: " << read_buff << RESET << std::endl;
-	if (rd_bytes > 0) {
-		request.cache.append(read_buff, rd_bytes);
-		// std::map<int, ServerSocketManager*>::iterator server_socket_manager_it;
-		// assert(find_server_socket_manager(client_socket->get_server_fd(), server_socket_manager_it));
-		status = ServerRequestParser::parse_request_header(request.cache, request, _server_logger);
-		if (!status) {
-			return Status("ServerRequestParser::parse_request_header() failed: " + status.msg());
-		}
-		request.transfered_length += request.cache.size();
+	if (rd_bytes == 0) {
+		return Status("EOF is found");
 	}
-	return Status();
+	if (rd_bytes < 0) {
+		return Status("read did not read anything");
+	}
+	buff.append(read_buff, rd_bytes);
+	return Status::OK();
 }
 
-Status Server::get_request_body_chunk(ClientSocket* client_socket) {
-	const ssize_t read_buff_size = 1000000;
-	Status status;
-	char read_buff[read_buff_size + 1];
-	ssize_t rd_bytes;
-	t_request& request = *client_socket->get_request_data();
+/*
+	New Request -> Request Handler -> Read Request Chunk ->
+	Get Request Data -> Pass Chunk To Request Parser
 
-	rd_bytes = read(client_socket->get_fd(), read_buff, read_buff_size);
-	if (rd_bytes > 0) {
-		request.cache.append(read_buff, rd_bytes);
-		request.transfered_length += rd_bytes;
-	}
-
-	if (!request.cache.empty()) {
-		ServerRequestParser::parse_request_body_chunk(request);
-	}
-
-	return Status();
-}
-
+	The instance of the ServerRequesParser will have a cache
+	that stores all relaible to request data.
+*/
 Status Server::request_handler(ClientSocket* client_socket) {
 	Status status;
+	ClientConnectionContext* connection_context = client_socket->get_connection_context();
+	std::string buffer;
+	int rd_bytes;
 
-	if (client_socket->get_request_data()->method.empty()) {
-		status = get_request_header(client_socket);
-		if (!status) {
-			return Status("Error in Server::get_request_header(): " + status.msg());
-		}
-	} 
-	status = get_request_body_chunk(client_socket);
+	status = read_data(client_socket, buffer, rd_bytes);
 	if (!status) {
-		return Status("Error in Server::get_request_body_chunk(): " + status.msg());
+		return Status("Server::read_data " + status.msg());
 	}
-	return Status();
+
+	status = connection_context->parser.parse_chunk(buffer);
+	if (!status) {
+		return Status("ServerRequestParser::parse_chunk " + status.msg());
+	}
+
+	return Status::OK();
 }
 
 Status Server::response_handler(ClientSocket* client_socket) {
 	// const t_request& request = *client_socket->get_request_data();
 	ServerResponse resp(client_socket, _configs[0]);
 	std::string res = resp.generate_response();
+
 	if (resp._status == 100) {
 		return Status();
 	}
@@ -218,11 +203,13 @@ Status Server::response_handler(ClientSocket* client_socket) {
 		return Status(strerror(errno));
 	}
 	if (resp._status == 400 || resp._status == 409) {
-		close(client_socket->get_fd());
+		std::map<int, ServerSocketManager*>::iterator server_manager_it;
+		find_server_socket_manager(client_socket->get_server_fd(), server_manager_it);
+		server_manager_it->second->close_connection_with_client(client_socket->get_fd());
 		return Status();
 	} // this is a temporary solution. we can make it in a way,
 	// that we only proceed with chunking the request if status == 100, 200, 201, 202, 206
-	//discuss later, after refactoring response
+	// discuss later, after refactoring response
 	return Status();
 }
 
@@ -238,7 +225,7 @@ Status Server::create_server_socket_manager(const std::string& host, int port,
 		return status;
 	}
 	_server_socket_managers.insert(std::make_pair(manager->get_server_socket()->get_fd(), manager));
-	return Status();
+	return Status::OK();
 }
 
 Status Server::create_sockets_from_config(const t_config& server_config) {
@@ -254,7 +241,7 @@ Status Server::create_sockets_from_config(const t_config& server_config) {
 			return status;
 		}
 	}
-	return Status();
+	return Status::OK();
 }
 
 Status Server::create_sockets_from_configs(const std::vector<t_config>& configs) {
@@ -268,7 +255,7 @@ Status Server::create_sockets_from_configs(const std::vector<t_config>& configs)
 			return status;
 		}
 	}
-	return Status();
+	return Status::OK();
 }
 
 Status Server::find_server_socket_manager(
@@ -277,7 +264,7 @@ Status Server::find_server_socket_manager(
 	if (search_result == _server_socket_managers.end()) {
 		return Status("Server failed to find ServerSocketManager");
 	}
-	return Status();
+	return Status::OK();
 }
 
 void Server::destroy_all_server_socket_managers() {

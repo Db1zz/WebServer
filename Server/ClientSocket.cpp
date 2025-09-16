@@ -1,5 +1,14 @@
 #include "ClientSocket.hpp"
-ClientSocket::ClientSocket() : Socket(), _request_data(NULL), _server_fd(-1) {
+
+ClientConnectionContext::ClientConnectionContext()
+	: request(), parser(&request) {}
+
+void ClientConnectionContext::reset() {
+	request = t_request();
+	parser = ServerRequestParser(&request);
+}
+
+ClientSocket::ClientSocket() : Socket(), _server_fd(-1) {
 }
 
 ClientSocket::~ClientSocket() {
@@ -13,16 +22,10 @@ int ClientSocket::get_server_fd() {
 	return _server_fd;
 }
 
-void ClientSocket::reset_request() {
-	if (_request_data) {
-		delete _request_data;
-		_request_data = NULL;
-	}
+void ClientSocket::reset_connection_context() {
+	_connection_context.reset();
 }
 
-t_request* ClientSocket::get_request_data() {
-	if (_request_data == NULL) {
-		_request_data = new t_request;
-	}
-	return _request_data;
+ClientConnectionContext* ClientSocket::get_connection_context() {
+	return &_connection_context;
 }

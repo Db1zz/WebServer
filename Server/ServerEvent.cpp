@@ -40,7 +40,7 @@ Status ServerEvent::add_event(uint32_t events, Socket *socket) {
 		return Status(strerror(errno));
 	}
 	++_events_size;
-    return Status();
+    return Status::OK();
 }
 
 Status ServerEvent::add_event(uint32_t events, int event_fd) {
@@ -57,7 +57,7 @@ Status ServerEvent::add_event(uint32_t events, int event_fd) {
         return Status(strerror(errno));
     }
     ++_events_size;
-    return Status();
+    return Status::OK();
 }
 
 Status ServerEvent::remove_event(int event_fd) {
@@ -71,7 +71,7 @@ Status ServerEvent::remove_event(int event_fd) {
         return Status(strerror(errno));
     }
     --_events_size;
-    return Status();
+    return Status::OK();
 }
 
 /*
@@ -82,9 +82,12 @@ Status ServerEvent::remove_event(int event_fd) {
 Status ServerEvent::wait_event(int timeout, int *nfds) {
     *nfds = epoll_wait(_epoll_fd, _events_arr, _events_capacity, timeout);
     if (*nfds < 0) {
-        return Status(strerror(errno), errno);
-    }
-    return Status();
+        if (errno == EINTR) {
+			return Status::Interrupted();
+		}
+		return Status(UnknownError, errno, strerror(errno));
+	}
+    return Status::OK();
 }
 
 epoll_event *ServerEvent::operator[](size_t index) {
@@ -106,7 +109,7 @@ Status ServerEvent::init() {
         return Status(e.what());
     }
 
-    return Status();
+    return Status::OK();
 }
 
 Status ServerEvent::resize_events_arr(size_t new_size) {
@@ -122,7 +125,7 @@ Status ServerEvent::resize_events_arr(size_t new_size) {
         return Status(e.what());
     }
 
-    return Status();
+    return Status::OK();
 }
 
 void ServerEvent::copy_events_arr(size_t src_size, const epoll_event *src, epoll_event *dst) {
@@ -143,5 +146,5 @@ Status ServerEvent::event_mod(uint32_t events, int event_fd) {
         return Status(strerror(errno));
     }
 
-    return Status();
+    return Status::OK();
 }

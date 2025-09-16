@@ -4,6 +4,63 @@
 
 #include <cassert>
 
+#include "ServerRequest.hpp"
+#include "ServerRequestParserHelpers.hpp"
+
+ServerRequestParser::ServerRequestParser(t_request* request)
+	: _request(request),
+	  _cursor_pos(0),
+	  _request_header_parsed(false),
+	  _boundary_header_parsed(false) {
+}
+
+ServerRequestParser::ServerRequestParser(const ServerRequestParser& copy) {
+	*this = copy;
+}
+
+ServerRequestParser& ServerRequestParser::operator=(const ServerRequestParser& copy) {
+	if (this == &copy) {
+		return *this;
+	}
+
+	_request = copy._request;
+	_cursor_pos = copy._cursor_pos;
+	_request_header_parsed = copy._request_header_parsed;
+	_boundary_header_parsed = copy._boundary_header_parsed;
+	_boundary_start = copy._boundary_start;
+	_boundary_end = copy._boundary_end;
+	_cache = copy._cache;
+
+	return *this;
+}
+
+Status ServerRequestParser::parse_chunk(const std::string& chunk) {
+	Status status;
+	std::string header;
+	_cache.append(chunk);
+
+	if (!_request_header_parsed) {
+		status = parse_request_header();
+		if (status) {
+			_request_header_parsed = true;
+		}
+	}
+	if (status && !_boundary_header_parsed) {
+		status = internal_server_request_parser::parse_request_body_header(
+			_cache, _cursor_pos, _request->transfered_length, _boundary_start, header);
+		if (status) {
+			get_filename_from_request_body(header, _request->filename);
+			get_mime_from_filename(_request->filename, _request->mime_type);
+			_boundary_header_parsed = true;
+		}
+	}
+	if (status && _boundary_header_parsed && !_request->is_request_ready()) {
+		status = internal_server_request_parser::parse_request_body_chunk(
+			_cache, _cursor_pos, _request->transfered_length, _boundary_end, _request->body_chunk);
+	}
+	return status;
+}
+
 /*
 	+-------------------+---------------------+
 	|        Part       |       Data          |
@@ -21,42 +78,54 @@
 
 	https://bob:bobby@www.lunatech.com:8080/file;p=1?q=2#third
 	\___/   \_/ \___/ \______________/ \__/\_______/ \_/ \___/
-	|      |    |          |          |      | \_/  |    |
+	|      |    |          |          |      |   \_/  |    |
 	Scheme User Password    Host       Port  Path |   | Fragment
 			\_____________________________/       | Query
 						|               Path parameter
 					Authority
 */
-Status ServerRequestParser::parse_request_header(std::string& request_string, t_request& request, ServerLogger& server_logger) {
+Status ServerRequestParser::parse_request_header() {
 	Status status;
+	std::string token_type;
+	std::string token_value;
+	size_t end;
 
-	status = get_request_line(request_string, request);
+	end = _cache.find("\r\n\r\n");
+	if (end == std::string::npos) {
+		return Status::Incomplete();
+	}
+
+	status = parse_request_line();
 	if (!status) {
-		server_logger.log_error("ServerRequestParser::parse_request_header()", status.msg());
-		return Status("Bad Request", 400, false);
+		return Status::BadRequest();
 	}
 
-	status = get_request_headers(request_string, request);
-	if (!status) {
-		server_logger.log_error("ServerRequestParser::parse_request_header()", status.msg());
-		return Status("Bad Request", 400, false);
-	}
-
-	return Status();
-}
-
-Status ServerRequestParser::parse_request_body_chunk(t_request& request) {
-	Status status;
-	std::string request_body_header;
-
-	// REMOVEME
-	if (request.method == "POST" && extract_request_body_header(request, request_body_header)) {
-		get_filename_from_request_body(request_body_header, request.filename);
-		get_mime_from_filename(request.filename, request.mime_type);
-	}
-	erase_request_body_end_boundary(request);
-
-	return Status();
+	do {
+		_cursor_pos = internal_server_request_parser::get_token_with_delims(_cache, _cursor_pos,
+																			token_type, ": \n");
+		_cursor_pos = internal_server_request_parser::get_token_with_delim(_cache, _cursor_pos,
+																		   token_value, "\r\n");
+		if (token_type == "Host") {
+			_request->host = token_value;
+		} else if (token_type == "User-Agent") {
+			_request->user_agent = token_value;
+		} else if (token_type == "Accept") {
+			_request->accept = token_value;
+		} else if (token_type == "Accept-Language") {
+			_request->language = token_value;
+		} else if (token_type == "Connection") {
+			_request->connection = token_value;
+		} else if (token_type == "Content-Length") {
+			_request->content_length = atol(token_value.c_str());
+			_request->transfered_length = 0;
+		} else if (token_type == "Content-Type") {
+			_request->content_type = token_value;
+			parse_boundary();
+			_boundary_start = "--" + _request->boundary + "\r\n";
+			_boundary_end = "\r\n--" + _request->boundary + "--\r\n";
+		}
+	} while (_cursor_pos < end);
+	return status;
 }
 
 bool ServerRequestParser::is_method_valid(const std::string& method) {
@@ -71,72 +140,50 @@ bool ServerRequestParser::is_method_valid(const std::string& method) {
 // 	return Status();
 // }
 
-Status ServerRequestParser::get_request_line(std::string& request_string, t_request& request) {
-	std::string method;
-	std::string uri_path;
-	std::string uri_path_params;
-	std::string protocol_version;
-	std::string cgi_query_string;
+Status ServerRequestParser::parse_request_line() {
+	size_t pos;
 
-	get_token(request_string, method, " ");
-	if (!is_method_valid(method)) {
-		return Status("client sent invalid method while reading client request line");
+	pos = internal_server_request_parser::get_token_with_delims(_cache, _cursor_pos,
+																_request->method, " ");
+	if (!is_method_valid(_request->method)) {
+		// TODO: we have to return BAD REQUEST if method has forbidden characters 
+		return Status::NotImplemented();
 	}
-	get_token(request_string, uri_path, " ;?");
-	if (request_string[0] == ';') {
-		get_token(request_string, uri_path, " ?");
+	pos = internal_server_request_parser::get_token_with_delims(_cache, pos, _request->uri_path,
+																" ;?");
+	if (_cache[pos] == ';') {
+		pos = internal_server_request_parser::get_token_with_delims(_cache, pos, _request->uri_path,
+																	" ?");
 	}
-	if (request_string[0] == '?') {
-		get_token(request_string, uri_path_params, " ");
+	if (_cache[pos] == '?') {
+		pos = internal_server_request_parser::get_token_with_delims(_cache, pos, _request->uri_path,
+																	" ");
 	}
-	get_token(request_string, protocol_version, "\n\0");
-
-	request.method = method;
-	request.uri_path = uri_path;
-	request.uri_path_params = uri_path_params;
-	request.protocol_version = protocol_version;
-	request.cgi_query_string = cgi_query_string;
-
-	// REMOVEME
-	if (request.method != "POST") {
-		extract_file_name_with_mime(request.uri_path, request.filename, request.mime_type);
+	pos = internal_server_request_parser::get_token_with_delim(_cache, pos,
+															   _request->protocol_version, "\r\n");
+	if (_request->method != "POST") {
+		internal_server_request_parser::parse_file_name_with_mime(
+			_request->uri_path, _request->filename, _request->mime_type);
 	}
 
-	return Status();
+	_cursor_pos = pos;
+	return Status::OK();
 }
 
-Status ServerRequestParser::get_request_headers(std::string& request_string, t_request& request) {
-	Status status;
-	std::string token_type;
-	std::string token_value;
+Status ServerRequestParser::parse_boundary() {
+	std::string boundary_key("boundary=");
+	size_t start = _cache.find(boundary_key);
 
-	do {
-		get_token(request_string, token_type, ": \n");
-		get_token(request_string, token_value, "\n\0");
-		if (token_type == "Host") {
-			request.host = token_value;
-		} else if (token_type == "User-Agent") {
-			request.user_agent = token_value;
-		} else if (token_type == "Accept") {
-			request.accept = token_value;
-			if (*(request.accept.end() - 1) == '\r') {
-				request.accept.erase(request.accept.size() - 1);
-			}
-		} else if (token_type == "Accept-Language") {
-			request.language = token_value;
-		} else if (token_type == "Connection") {
-			request.connection = token_value;
-		} else if (token_type == "Content-Length") {
-			request.content_length = atol(token_value.c_str());
-			request.transfered_length = 0;
-		} else if (token_type == "Content-Type") {
-			request.content_type = token_value;
-			get_boundary(request.content_type, request);
-		}
-	} while (!request_string.empty() && request_string[0] != '\r');
-	get_token(request_string, token_type, "\n");
-
-	return status;
+	if (start == std::string::npos) {
+		return Status::RequestBoundaryIsNotProvided();
+	}
+	size_t end = _cache.find("\r", start);
+	if (end == std::string::npos) {
+		return Status::IncompleteRequestBodyHeader();
+	}
+	_request->boundary =
+		std::string(_cache.begin() + start + boundary_key.size(), _cache.begin() + end);
+	return Status::OK();
 }
 
 // 	https://datatracker.ietf.org/doc/html/rfc3986#section-3.3
@@ -146,166 +193,28 @@ Status ServerRequestParser::get_request_headers(std::string& request_string, t_r
 //   sub-delims  = "!" / "$" / "&" / "'" / "(" / ")"
 // 			  / "*" / "+" / "," / ";" / "="
 
-bool ServerRequestParser::is_unreserved(char c) {
-	return (isdigit(c) || isalpha(c) || c == '-' || c == '.' || c == '_' || c == '~');
-}
-
-bool ServerRequestParser::is_sub_delims(char c) {
-	return (c == '!' || c == '$' || c == '&' || c == '\'' || c == '(' || c == ')' || c == '*' ||
-			c == '+' || c == ',' || c == ';' || c == '=');
-}
-
-bool ServerRequestParser::is_path_valid(const std::string& path) {
-	const size_t path_size = path.size();
-
-	for (size_t i = 0; i < path_size; ++i) {
-		if (is_sub_delims(path[i]) || is_unreserved(path[i]) || path[i] == ':' || path[i] == '@') {
-			continue;
-		} else if (is_pos_hex(path, i)) {
-			i += 3;
-			continue;
-		}
-		return false;
-	}
-	return true;
-}
-
-bool ServerRequestParser::is_pos_hex(const std::string& str, size_t pos) {
-	if (str[pos] == '%' && str.size() - pos > 2) {
-		std::string hex(str.begin() + pos, str.begin() + pos + 2);
-		if (hex.find_first_not_of("0123456789abcdefABCDEF", 1) == std::string::npos) {
-			return true;
-		}
-	}
-	return false;
-}
-
-std::string& ServerRequestParser::get_token(std::string& request_string, std::string& result,
-											const char* delims) {
-	size_t pos = request_string.find_first_of(delims);
-	if (pos == std::string::npos) {
-		result = request_string;
-		request_string.erase();
-		return request_string;
-	}
-
-	result = std::string(request_string.begin(), request_string.begin() + pos);
-	pos = request_string.find_first_not_of(delims, pos);
-	if (pos == std::string::npos) {
-		request_string.erase();
-	} else {
-		request_string.erase(0, pos);
-	}
-
-	return request_string;
-}
-
-std::string& ServerRequestParser::consume_char(std::string& request_string, char c) {
-	if (request_string[0] == c) {
-		request_string.erase(0);
-	}
-	return request_string;
-}
-
-Status ServerRequestParser::extract_file_name_with_mime(const std::string& uri_path,
-														std::string& filename,
-														std::string& mime_type) {
-	size_t slash_pos = uri_path.find_last_of("/");
-	size_t mime_pos;
-	if (slash_pos == std::string::npos) {
-		return Status("invalid path");
-	}
-
-	filename = std::string(uri_path.begin() + slash_pos, uri_path.end());
-
-	mime_pos = filename.find(".");
-	if (mime_pos != std::string::npos) {
-		mime_type = std::string(filename.begin() + mime_pos, filename.end());
-	}
-	return Status();
-}
-
-Status ServerRequestParser::get_filename_from_request_body(const std::string& request_string, std::string& result) {
+Status ServerRequestParser::get_filename_from_request_body(const std::string& request_string,
+														   std::string& result) {
 	std::string key("filename=\"");
 	size_t start = request_string.find(key);
 	if (start == std::string::npos) {
-		return Status("request body has no filename key");
+		return Status::NoFilename();
 	}
 	start += key.size();
 	size_t end = request_string.find("\"", start);
 	if (end == std::string::npos) {
-		return Status("filename key found but the name of the file is incomplete");
+		return Status::Incomplete();
 	}
 	result = std::string(request_string.begin() + start, request_string.begin() + end);
-	return Status();
+	return Status::OK();
 }
 
 Status ServerRequestParser::get_mime_from_filename(const std::string& filename,
 												   std::string& result) {
 	size_t mime_pos = filename.find(".");
 	if (mime_pos == std::string::npos) {
-		return Status("filename has not mime type");
+		return Status::NoMime();
 	}
 	result = std::string(filename.begin() + mime_pos, filename.end());
-	return Status();
-}
-
-Status ServerRequestParser::extract_request_body_header(t_request& request, std::string& result) {
-	std::string body_header_end("\r\n\r\n");
-	size_t start = request.cache.find(request.boundary + "\r\n");
-	size_t end = request.cache.find(body_header_end);
-	
-	if (start == std::string::npos || end == std::string::npos) {
-		return Status("incomplete request body header");
-	}
-
-	if (end == std::string::npos) {
-		return Status("incomplete request body header");
-	}
-	end += body_header_end.size();
-	result = std::string(request.cache.begin() + start, request.cache.begin() + end);
-	request.cache.erase(start, end);
-
-	return Status();
-}
-
-Status ServerRequestParser::erase_request_body_end_boundary(t_request& request) {
-	std::string request_boundary_end("\r\n" + request.boundary + "--\r\n");
-
-	if (request.cache.size() < request_boundary_end.size()) {
-		return Status("boundary not found");
-	}
-	size_t size_delta = request.cache.size() - request_boundary_end.size();
-	size_t boundary_pos = request.cache.find(request_boundary_end);
-
-	if (boundary_pos == std::string::npos) {
-		request.body_chunk = std::string(request.cache.begin(), request.cache.begin() + size_delta);
-		request.cache =
-			std::string(request.cache.begin() + size_delta,
-						request.cache.begin() + size_delta + request_boundary_end.size());
-		return Status("boundary not found");
-	}
-
-	request.body_chunk = 
-		std::string(request.cache.begin(), request.cache.begin() + boundary_pos) +
-		std::string(request.cache.begin() + boundary_pos + request_boundary_end.size(), request.cache.end());
-	if (request.cache.empty()) {
-		request.cache.erase();
-	}
-	return Status();
-}
-
-Status ServerRequestParser::get_boundary(const std::string& request_string, t_request& request) {
-	std::string boundary_key("boundary=");
-	size_t start = request_string.find(boundary_key);
-
-	if (start == std::string::npos) {
-		return Status("boundary was not provided in content-type");
-	}
-	size_t end = request_string.find("\r", start);
-	if (end == std::string::npos) {
-		return Status("incomplete header or invalid header format");
-	}
-	request.boundary = "--" + std::string(request_string.begin() + start + boundary_key.size(), request_string.begin() + end);
-	return Status();
+	return Status::OK();
 }
