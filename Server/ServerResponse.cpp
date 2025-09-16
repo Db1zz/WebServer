@@ -203,10 +203,25 @@ ServerResponse& ServerResponse::post_method(const t_location& loc) {
 		send_error_page(405, "Method Not Allowed");
 		return *this;
 	}
+
 	std::string upload_dir = _resolved_file_path;
-	if (!upload_dir.empty() && upload_dir[upload_dir.size() - 1] != '/') upload_dir += "/";
 	bool file_saved = false;
 	std::string file_path = upload_dir + _req_data->filename;
+	struct stat file_stat;
+	
+	if (!upload_dir.empty() && upload_dir[upload_dir.size() - 1] != '/')
+		upload_dir += "/";
+
+	std::cout << CYAN200 <<  "Transferred length: " << _req_data->body_chunk.size() << std::endl;
+	std::cout << CYAN200 <<  "Content-Length: " << _req_data->content_length << std::endl;
+	if (stat(file_path.c_str(), &file_stat) == 0 && _req_data->transfered_length == 0) {
+		_req_data->transfered_length = _req_data->content_length;
+		std::cout << RED500 << "SENT A 409" << RESET<< std::endl;
+		_status.set_status_line(409, "Conflict");
+		_body = "{\"success\": false, \"message\": \"File already exists\"}";
+		header("content-type", "application/json");
+		return *this;
+	}
 	std::ofstream outfile(file_path.c_str(), std::ios::app | std::ios::binary);
 	if (outfile) {
 		outfile.write(_req_data->body_chunk.c_str(), _req_data->body_chunk.size());
@@ -214,26 +229,22 @@ ServerResponse& ServerResponse::post_method(const t_location& loc) {
 			file_saved = true;
 			outfile.close();
 		}
-		// std::cout << "Expected file length: " << _req_data->content_length
-		// 		  << ", current chunk size: " << _req_data->body_chunk.size() << std::endl;
 	}
-	std::cout << " transfered LEN: " << _req_data->transfered_length << std::endl;
-	std::cout << RED500 << "content_len: " << _req_data->content_length << RESET << std::endl;
 	if (file_saved) {
 		_status.set_status_line(200, "OK");
 		_body = "{\"success\": true, \"message\": \"Upload successful\"}";
 		header("content-type", "application/json");
 	} else if (!file_saved && _req_data->is_request_ready()) {
-		std::cout << "goes here\n";
 		_status.set_status_line(400, "Bad Request");
 		_body = "{\"success\": false, \"message\": \"No file uploaded or failed to save file(s)\"}";
 		header("content-type", "application/json");
 	}
-	 else {
-		_status.set_status_line(201, "Continue");
+	else {
+		_status.set_status_line(100, "Continue");
 	}
 	return *this;
 }
+
 
 ServerResponse& ServerResponse::delete_method(const t_location& loc) {
 	if (!loc.common.methods.deleteMethod) {

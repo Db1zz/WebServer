@@ -150,7 +150,7 @@ Status Server::handle_event(int amount_of_events) {
 	return Status::OK();
 }
 
-Status Server::read_data(ClientSocket* client_socket, std::string& buff, int &rd_bytes) {
+Status Server::read_data(ClientSocket* client_socket, std::string& buff, int& rd_bytes) {
 	const ssize_t read_buff_size = READ_BUFFER_SIZE;
 	char read_buff[read_buff_size];
 
@@ -195,15 +195,19 @@ Status Server::response_handler(ClientSocket* client_socket) {
 	// const t_request& request = *client_socket->get_request_data();
 	ServerResponse resp(client_socket, _configs[0]);
 	std::string res = resp.generate_response();
-
-	if (resp._status == 201) {
-		return Status::OK();
+	if (resp._status == 100) {
+		return Status();
 	}
-
 	if (write(client_socket->get_fd(), res.c_str(), res.size()) < 0) {
 		return Status(strerror(errno));
 	}
-	return Status::OK();
+	if (resp._status == 400 || resp._status == 409) {
+		close(client_socket->get_fd());
+		return Status();
+	} // this is a temporary solution. we can make it in a way,
+	// that we only proceed with chunking the request if status == 100, 200, 201, 202, 206
+	// discuss later, after refactoring response
+	return Status();
 }
 
 Status Server::create_server_socket_manager(const std::string& host, int port,
