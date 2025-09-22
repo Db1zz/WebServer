@@ -38,7 +38,7 @@ class ServerResponse {
 	ServerResponse& post_method(const t_location& loc);
 	ServerResponse& delete_method(const t_location& loc);
 	ServerResponse& handle_api_files();
-	std::string generate_response();
+	Status generate_response();
 	std::string identify_mime();
 	bool serve_file(const std::string& path, bool is_error_page);
 	bool is_binary();
@@ -49,6 +49,7 @@ class ServerResponse {
 	const std::string get_body_size() const;
 	const std::string& get_headers() const;
 	const std::string& get_body() const;
+	const std::string& get_response() const;
 	Status _status;
 
    private:

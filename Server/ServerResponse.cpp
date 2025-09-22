@@ -89,7 +89,7 @@ void ServerResponse::send_error_page(int code, std::string error_msg) {
 	}
 }
 
-std::string ServerResponse::generate_response() {
+Status ServerResponse::generate_response() {
 	_status.set_status_line(200, "OK");
 	bool found = false;
 	const t_location* best_match = NULL;
@@ -121,7 +121,7 @@ std::string ServerResponse::generate_response() {
 	header("content-length", get_body_size());
 	_response = WS_PROTOCOL + _status.status_line() + get_headers() + "\r\n" + get_body();
 	// std::cout << GREEN400 "RESPONSE:\n" << _response << RESET << std::endl;
-	return _response;
+	return Status(_status);
 }
 
 ServerResponse& ServerResponse::json(const std::string& data) {
@@ -316,4 +316,8 @@ const std::string& ServerResponse::get_headers() const {
 
 const std::string& ServerResponse::get_body() const {
 	return _body;
+}
+
+const std::string& ServerResponse::get_response() const {
+	return _response;
 }
