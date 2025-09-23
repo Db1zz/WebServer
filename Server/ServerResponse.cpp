@@ -212,10 +212,9 @@ ServerResponse& ServerResponse::post_method(const t_location& loc) {
 	if (!upload_dir.empty() && upload_dir[upload_dir.size() - 1] != '/')
 		upload_dir += "/";
 
-	std::cout << CYAN200 <<  "Transferred length: " << _req_data->body_chunk.size() << std::endl;
+	std::cout << CYAN200 <<  "Transferred length: " << _req_data->transfered_length << std::endl;
 	std::cout << CYAN200 <<  "Content-Length: " << _req_data->content_length << std::endl;
 	if (stat(file_path.c_str(), &file_stat) == 0 && !_req_data->is_file_created) {
-		_req_data->transfered_length = _req_data->content_length;
 		std::cout << RED500 << "SENT A 409" << RESET<< std::endl;
 		_status.set_status_line(409, "Conflict");
 		_body = "{\"success\": false, \"message\": \"File already exists\"}";
@@ -227,7 +226,6 @@ ServerResponse& ServerResponse::post_method(const t_location& loc) {
 		outfile.write(_req_data->body_chunk.c_str(), _req_data->body_chunk.size());
 		if (_req_data->is_request_ready()) {
 			file_saved = true;
-			_req_data->is_file_created  = true;
 			outfile.close();
 		}
 	}
@@ -241,6 +239,7 @@ ServerResponse& ServerResponse::post_method(const t_location& loc) {
 		header("content-type", "application/json");
 	}
 	else {
+		_req_data->is_file_created  = true;
 		_status.set_status_line(100, "Continue");
 	}
 	return *this;

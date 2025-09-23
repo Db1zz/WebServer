@@ -179,6 +179,7 @@ Status Server::request_handler(ClientSocket* client_socket) {
 	int rd_bytes;
 
 	status = read_data(client_socket, buffer, rd_bytes);
+	//std::cout << GREEN300 << "REQUEST:" << buffer << RESET << std::endl;
 	if (!status) {
 		return Status("Server::read_data " + status.msg());
 	}
