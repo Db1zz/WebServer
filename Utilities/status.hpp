@@ -47,6 +47,7 @@ enum ErrorCode {
 	UnsupportedMediaType = 415,
 	RequestedRangeNotSatisfiable = 416,
 	ExpectationFailed = 417,
+	RequestHeaderFieldsTooLarge = 431,
 
 	// 5xx
 	InternalServerError = 500,
@@ -68,7 +69,7 @@ enum ErrorCode {
 	EndBoundaryNotFound = 606,
 	InvalidPath = 607,
 	CloseConnection = 608,
-
+	InvalidFilenameFormat = 609,
 	// 1xxx - Special error codes
 	// !!! DO NOT ADD ANYTHING BELOW THIS LINE !!!
 	UnknownError = 998,
@@ -141,6 +142,7 @@ class Status {
 	DEFINE_STATUS_FACTORY(ServiceUnavailable)
 	DEFINE_STATUS_FACTORY(GatewayTimeout)
 	DEFINE_STATUS_FACTORY(HTTPVersionNotSupported)
+	DEFINE_STATUS_FACTORY(RequestHeaderFieldsTooLarge)
 
 #undef DEFINE_STATUS_FACTORY
 
@@ -158,6 +160,7 @@ class Status {
 
 	DEFINE_STATUS_FACTORY(Interrupted, "EINTR signal sent")
 	DEFINE_STATUS_FACTORY(CloseConnection, "closed connection")
+	DEFINE_STATUS_FACTORY(InvalidFilenameFormat, "invalid filename format");
 
 #undef DEFINE_STATUS_FACTORY
 

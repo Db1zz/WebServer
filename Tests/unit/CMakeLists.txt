@@ -5,13 +5,15 @@ set(CMAKE_CXX_STANDARD_REQUIRED 17)
 
 include_directories(../../)
 include_directories(../../Server)
+include_directories(../../Server/RequestParser)
 include_directories(../../Logger)
 include_directories(../../Parser)
 include_directories(../../Utilities)
 
 set(SOURCES
-  tests.cpp
-  ServerRequestParserTests.cpp)
+  ServerRequestParserTests.cpp
+  RequestMultipartBodyParserTests.cpp
+  ServerRequestParserHelpersTests.cpp)
 
 include(ExternalProject)
 

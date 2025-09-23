@@ -1,7 +1,7 @@
 NAME = ./webserv
 INCLUDE_DIR = -I Sockets -I Server -I Parser -I Utilities -I Logger
 CXX = c++ -std=c++98 -g -static-libasan
-CXXFLAGS = -Wall -Wextra -Werror $(INCLUDE_DIR)
+CXXFLAGS = -Wall -Wextra $(INCLUDE_DIR)
 
 BUILDDIR = Build
 OBJSDIR = $(BUILDDIR)/Objs
@@ -21,8 +21,10 @@ TESTS_SRCS = \
 	Tests/test.py
 
 SRCS = \
-	Server/ServerRequestParser.cpp \
-	Server/ServerRequestParserHelpers.cpp \
+	Server/RequestParser/ServerRequestParser.cpp \
+	Server/RequestParser/ServerRequestParserHelpers.cpp \
+	Server/RequestParser/RequestMultipartBodyParser.cpp \
+	Server/RequestParser/RequestRawBodyParser.cpp \
 	Server/ServerSocketManager.cpp \
 	Server/ServerSocket.cpp \
 	Server/ClientSocket.cpp \

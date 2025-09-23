@@ -12,7 +12,7 @@
 #include "ServerConfig.hpp"
 #include "ServerLogger.hpp"
 #include "ServerRequest.hpp"
-#include "ServerRequestParser.hpp"
+#include "RequestParser/ServerRequestParser.hpp"
 #include "ServerResponse.hpp"
 #include "ServerSocket.hpp"
 #include "ServerSocketManager.hpp"
@@ -111,11 +111,11 @@ Status Server::handle_request_event(const epoll_event& request_event) {
 		}
 		if (!connection_context->request.method.empty()) {
 			status = response_handler(client_socket);
-			connection_context->request.body_chunk.clear();
 			if (!status) {
 				return Status("response_handler() failed in Server::handle_event(): " +
 							  status.msg());
 			}
+			connection_context->request.body_chunk.clear();
 			if (connection_context->request.is_request_ready()) {
 				find_server_socket_manager(client_socket->get_server_fd(), search);
 				_server_logger.log_access(*client_socket->get_host(),

@@ -7,6 +7,24 @@
 #include "ServerRequest.hpp"
 #include "ServerRequestParserHelpers.hpp"
 
+/*
+	POST /upload HTTP/1.1
+	Host: example.com
+	Content-Type: multipart/form-data; boundary=----WebKitFormBoundary7MA4YWxkTrZu0gW
+	Content-Length: 681
+
+	------WebKitFormBoundary7MA4YWxkTrZu0gW
+	Content-Disposition: form-data; name="username"
+
+	vasya
+	------WebKitFormBoundary7MA4YWxkTrZu0gW
+	Content-Disposition: form-data; name="avatar"; filename="photo.png"
+	Content-Type: image/png
+
+	<данные бинарного файла photo.png>
+	------WebKitFormBoundary7MA4YWxkTrZu0gW--
+*/
+
 ServerRequestParser::ServerRequestParser(t_request* request)
 	: _request(request),
 	  _cursor_pos(0),
@@ -39,25 +57,25 @@ Status ServerRequestParser::parse_chunk(const std::string& chunk) {
 	std::string header;
 	_cache.append(chunk);
 
-	if (!_request_header_parsed) {
-		status = parse_request_header();
-		if (status) {
-			_request_header_parsed = true;
-		}
-	}
-	if (status && !_boundary_header_parsed) {
-		status = internal_server_request_parser::parse_request_body_header(
-			_cache, _cursor_pos, _request->transfered_length, _boundary_start, header);
-		if (status) {
-			get_filename_from_request_body(header, _request->filename);
-			get_mime_from_filename(_request->filename, _request->mime_type);
-			_boundary_header_parsed = true;
-		}
-	}
-	if (status && _boundary_header_parsed && !_request->is_request_ready()) {
-		status = internal_server_request_parser::parse_request_body_chunk(
-			_cache, _cursor_pos, _request->transfered_length, _boundary_end, _request->body_chunk);
-	}
+	// if (!_request_header_parsed) {
+	// 	status = parse_request_header();
+	// 	if (status) {
+	// 		_request_header_parsed = true;
+	// 	}
+	// }
+	// if (status && !_boundary_header_parsed) {
+	// 	// status = internal_server_request_parser::parse_request_body_header(
+	// 	// 	_cache, _cursor_pos, _request->transfered_length, _boundary_start, header);
+	// 	if (status) {
+	// 		get_filename_from_request_body(header, _request->filename);
+	// 		get_mime_from_filename(_request->filename, _request->mime_type);
+	// 		_boundary_header_parsed = true;
+	// 	}
+	// }
+	// if (status && _boundary_header_parsed && !_request->is_request_ready()) {
+	// 	// status = internal_server_request_parser::parse_request_body_chunk(
+	// 	// 	_cache, _cursor_pos, _request->transfered_length, _boundary_end, _request->body_chunk);
+	// }
 	return status;
 }
 
@@ -161,10 +179,10 @@ Status ServerRequestParser::parse_request_line() {
 	}
 	pos = internal_server_request_parser::get_token_with_delim(_cache, pos,
 															   _request->protocol_version, "\r\n");
-	if (_request->method != "POST") {
-		internal_server_request_parser::parse_file_name_with_mime(
-			_request->uri_path, _request->filename, _request->mime_type);
-	}
+	// if (_request->method != "POST") {
+	// 	internal_server_request_parser::parse_file_name_with_mime(
+	// 		_request->uri_path, _request->filename, _request->mime_type);
+	// }
 
 	_cursor_pos = pos;
 	return Status::OK();
