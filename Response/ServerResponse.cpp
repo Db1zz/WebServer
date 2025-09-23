@@ -43,8 +43,6 @@ ServerResponse& ServerResponse::serve_static_page(const t_location& location) {
 }
 
 Status ServerResponse::generate_response() {
-	status.set_status_line(200, "OK");
-
 	const t_location* best_match = _file_utils->find_best_location_match();
 
 	if (best_match != NULL)
@@ -54,6 +52,7 @@ Status ServerResponse::generate_response() {
 
 	header("server", _server_data->server_name[0]);
 	header("content-length", get_body_size());
+	status.set_status_line();
 	_response = WS_PROTOCOL + status.status_line() + get_headers() + "\r\n" + get_body();
 	return status;
 }
@@ -73,7 +72,7 @@ void ServerResponse::serve_default_root() {
 
 bool ServerResponse::serve_file(const std::string& path, bool is_error_page) {
 	std::fstream file;
-	status = fs::open_file(file, path, std::ios::in | std::ios::binary);
+	fs::open_file(file, path, std::ios::in | std::ios::binary);
 
 	if (!status.is_ok()) return _error_handler->handle_file_error(is_error_page, _body, _headers);
 	return _file_utils->read_file_content(file, _body);
@@ -127,32 +126,38 @@ void ServerResponse::handle_file_upload() {
 	std::string file_path = upload_dir + _req_data->filename;
 
 	if (FileUtils::is_file_exists(file_path) && !_req_data->is_file_created) {
-		_json_handler->set_error_response(409, "File already exists", _body, _headers);
+		Status::Conflict();
+		_json_handler->set_error_response("File already exists", _body, _headers);
 		return;
 	}
 
 	bool file_saved = _file_utils->save_uploaded_file(file_path);
 	if (file_saved) {
-		_json_handler->set_success_response(200, "Upload successful", _body, _headers);
+		Status::OK();
+		_json_handler->set_success_response("Upload successful", _body, _headers);
 	} else if (_req_data->is_request_ready()) {
-		_json_handler->set_error_response(400, "No file uploaded or failed to save file(s)", _body,
+		Status::BadRequest();
+		_json_handler->set_error_response("No file uploaded or failed to save file(s)", _body,
 										  _headers);
 	} else {
 		_req_data->is_file_created = true;
-		status.set_status_line(100, "Continue");
+		Status::Continue();
 	}
 }
 
 void ServerResponse::handle_file_delete() {
 	if (access(_resolved_file_path.c_str(), F_OK) != 0) {
-		_json_handler->set_error_response(404, "File not found", _body, _headers);
+		Status::NotFound();
+		_json_handler->set_error_response("File not found", _body, _headers);
 		return;
 	}
 
 	if (unlink(_resolved_file_path.c_str()) == 0) {
-		_json_handler->set_success_response(200, "File deleted successfully", _body, _headers);
+		Status::OK();
+		_json_handler->set_success_response("File deleted successfully", _body, _headers);
 	} else {
-		_json_handler->set_error_response(500, "Failed to delete file", _body, _headers);
+		Status::InternalServerError();
+		_json_handler->set_error_response("Failed to delete file", _body, _headers);
 	}
 }
 
@@ -166,6 +171,7 @@ void ServerResponse::choose_method(const t_location& location) {
 	} else if (_req_data->method == "POST" && location.common.methods.postMethod) {
 		handle_file_upload();
 	} else {
+		Status::MethodNotAllowed();
 		_error_handler->send_error_page(405, "Method Not Allowed", _body, _headers);
 	}
 }

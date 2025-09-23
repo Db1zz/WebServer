@@ -9,7 +9,6 @@ ErrorResponse::~ErrorResponse() {
 
 void ErrorResponse::send_error_page(int code, const std::string& error_msg, std::string& body,
 									std::string& headers) {
-	_status.set_status_line(code, error_msg);
 	add_header("content-type", "text/html", headers);
 
 	std::string error_page_path = get_error_page_path(code);
@@ -67,7 +66,7 @@ std::string ErrorResponse::get_status_text(int code) const {
 
 bool ErrorResponse::handle_file_error(bool is_error_page, std::string& body, std::string& headers) {
 	if (!is_error_page) {
-		_status.set_status_line(404, "Not Found");
+		Status::NotFound();
 		add_header("content-type", "text/html", headers);
 		serve_error_file(_server_data->common.errorPage.at(404), body);
 	}

@@ -39,7 +39,7 @@ std::string JsonResponse::generate_directory(const std::string& directory_path) 
 std::string JsonResponse::create_json_response(const std::string& data, std::string& body,
 											   std::string& headers) {
 	if (data.empty()) {
-		set_error_response(500, "Internal Server Error - No file management location found", body,
+		set_error_response("Internal Server Error - No file management location found", body,
 						   headers);
 		return "";
 	}
@@ -52,36 +52,17 @@ std::string JsonResponse::create_json_response(const std::string& data, std::str
 	return json_response;
 }
 
-void JsonResponse::set_success_response(int code, const std::string& message, std::string& body,
+void JsonResponse::set_success_response(const std::string& message, std::string& body,
 										std::string& headers) {
-	_status.set_status_line(code, "OK");
 	body = "{\"success\": true, \"message\": \"" + message + "\"}";
 	add_header("content-type", "application/json", headers);
 }
 
-void JsonResponse::set_error_response(int code, const std::string& message, std::string& body,
+void JsonResponse::set_error_response( const std::string& message, std::string& body,
 									  std::string& headers) {
-	_status.set_status_line(code, get_status_text(code));
 	body = "{\"success\": false, \"message\": \"" + message + "\"}";
 	add_header("content-type", "application/json", headers);
 	add_header("access-control-allow-origin", "*", headers);
-}
-
-std::string JsonResponse::get_status_text(int code) const {
-	switch (code) {
-		case 404:
-			return "Not Found";
-		case 405:
-			return "Method Not Allowed";
-		case 409:
-			return "Conflict";
-		case 500:
-			return "Internal Server Error";
-		case 400:
-			return "Bad Request";
-		default:
-			return "Error";
-	}
 }
 
 void JsonResponse::add_header(const std::string& key, const std::string& value,
