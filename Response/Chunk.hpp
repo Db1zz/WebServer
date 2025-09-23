@@ -1,13 +1,13 @@
 #ifndef CHUNK_HPP
 #define CHUNK_HPP
 
-#include <string>
 #include <sstream>
+#include <string>
 
 class Chunk {
-public:
+   public:
 	Chunk::Chunk() {}
-	Chunk::~Chunk(){}
+	Chunk::~Chunk() {}
 	static std::string encode(const std::string& data);
 	static std::string decode(const std::string& chunk);
 };

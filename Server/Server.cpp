@@ -197,13 +197,13 @@ Status Server::response_handler(ClientSocket* client_socket) {
 	resp.generate_response();
 	std::string res = resp.get_response();
 
-	if (resp._status == 100) {
+	if (resp.status == 100) {
 		return Status();
 	}
 	if (write(client_socket->get_fd(), res.c_str(), res.size()) < 0) {
 		return Status(strerror(errno));
 	}
-	if (resp._status == 400 || resp._status == 409) {
+	if (resp.status == 400 || resp.status == 409) {
 		std::map<int, ServerSocketManager*>::iterator server_manager_it;
 		find_server_socket_manager(client_socket->get_server_fd(), server_manager_it);
 		server_manager_it->second->close_connection_with_client(client_socket->get_fd());

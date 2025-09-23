@@ -1,5 +1,5 @@
 NAME = ./webserv
-INCLUDE_DIR = -I Sockets -I Server -I Parser -I Utilities -I Logger
+INCLUDE_DIR = -I Sockets -I Server -I Response -I Parser -I Utilities -I Logger
 CXX = c++ -std=c++98 -g -static-libasan
 CXXFLAGS = -Wall -Wextra -Werror $(INCLUDE_DIR)
 
@@ -28,8 +28,11 @@ SRCS = \
 	Server/ClientSocket.cpp \
 	Server/Socket.cpp \
 	Server/Server.cpp \
-	Server/ServerResponse.cpp \
 	Server/ServerEvent.cpp \
+	Response/ServerResponse.cpp \
+	Response/JsonResponse.cpp \
+	Response/ErrorResponse.cpp \
+	Response/FileUtils.cpp \
 	Logger/ServerLogger.cpp \
 	Logger/ErrorLogger.cpp \
 	Logger/AccessLogger.cpp \
@@ -91,5 +94,4 @@ cmake_configure:
 test: all cmake_configure
 	cmake --build $(BUILDDIR) --config Debug --target all -j8	
 	ctest --test-dir $(BUILDDIR)
-
-.PHONY: all clean fclean re run docker_build test install_python_libs prepare_test_env
+: all clean fclean re run docker_build test install_python_libs prepare_test_env

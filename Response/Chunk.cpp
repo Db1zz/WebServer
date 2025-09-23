@@ -1,8 +1,10 @@
 #include "Chunk.hpp"
 
-Chunk::Chunk() {}
+Chunk::Chunk() {
+}
 
-Chunk::~Chunk(){}
+Chunk::~Chunk() {
+}
 
 std::string Chunk::encode(const std::string& data) {
 	std::ostringstream oss;
