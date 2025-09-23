@@ -111,17 +111,17 @@ Status Server::handle_request_event(const epoll_event& request_event) {
 		}
 		if (!connection_context->request.method.empty()) {
 			status = response_handler(client_socket);
-			connection_context->request.body_chunk.clear();
 			if (!status) {
 				return Status("response_handler() failed in Server::handle_event(): " +
-							  status.msg());
-			}
-			if (connection_context->request.is_request_ready()) {
-				find_server_socket_manager(client_socket->get_server_fd(), search);
-				_server_logger.log_access(*client_socket->get_host(),
-										  connection_context->request.method,
-										  connection_context->request.uri_path,
-										  search->second->get_server_socket()->get_port());
+					status.msg());
+				}
+				connection_context->request.body_chunk.clear();
+				if (connection_context->request.is_request_ready()) {
+					find_server_socket_manager(client_socket->get_server_fd(), search);
+					_server_logger.log_access(*client_socket->get_host(),
+					connection_context->request.method,
+					connection_context->request.uri_path,
+					search->second->get_server_socket()->get_port());
 				client_socket->reset_connection_context();
 			}
 		}
@@ -193,7 +193,6 @@ Status Server::request_handler(ClientSocket* client_socket) {
 }
 
 Status Server::response_handler(ClientSocket* client_socket) {
-	// const t_request& request = *client_socket->get_request_data();
 	ServerResponse resp(client_socket, _configs[0]);
 	resp.generate_response();
 	std::string res = resp.get_response();

@@ -252,6 +252,7 @@ ServerResponse& ServerResponse::delete_method(const t_location& loc) {
 		_body =
 			"{\"success\": false, \"message\": \"DELETE method not allowed for this location\"}";
 	} else {
+		std::cout << "resolved path: " << _resolved_file_path << std::endl;
 		if (access(_resolved_file_path.c_str(), F_OK) == 0) {
 			if (unlink(_resolved_file_path.c_str()) == 0) {
 				_status.set_status_line(200, "OK");
@@ -261,6 +262,7 @@ ServerResponse& ServerResponse::delete_method(const t_location& loc) {
 				_body = "{\"success\": false, \"message\": \"Failed to delete file\"}";
 			}
 		} else {
+			std::cout << RED500 << "HERE IN DELETE\n" << RESET;  
 			_status.set_status_line(404, "Not Found");
 			_body = "{\"success\": false, \"message\": \"File not found\"}";
 		}
