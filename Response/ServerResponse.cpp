@@ -126,37 +126,37 @@ void ServerResponse::handle_file_upload() {
 	std::string file_path = upload_dir + _req_data->filename;
 
 	if (FileUtils::is_file_exists(file_path) && !_req_data->is_file_created) {
-		Status::Conflict();
+		status = Status::Conflict();
 		_json_handler->set_error_response("File already exists", _body, _headers);
 		return;
 	}
 
 	bool file_saved = _file_utils->save_uploaded_file(file_path);
 	if (file_saved) {
-		Status::OK();
+		status = Status::OK();
 		_json_handler->set_success_response("Upload successful", _body, _headers);
 	} else if (_req_data->is_request_ready()) {
-		Status::BadRequest();
+		status = Status::BadRequest();
 		_json_handler->set_error_response("No file uploaded or failed to save file(s)", _body,
 										  _headers);
 	} else {
 		_req_data->is_file_created = true;
-		Status::Continue();
+		status = Status::Continue();
 	}
 }
 
 void ServerResponse::handle_file_delete() {
 	if (access(_resolved_file_path.c_str(), F_OK) != 0) {
-		Status::NotFound();
+		status = Status::NotFound();
 		_json_handler->set_error_response("File not found", _body, _headers);
 		return;
 	}
 
 	if (unlink(_resolved_file_path.c_str()) == 0) {
-		Status::OK();
+		status = Status::OK();
 		_json_handler->set_success_response("File deleted successfully", _body, _headers);
 	} else {
-		Status::InternalServerError();
+		status = Status::InternalServerError();
 		_json_handler->set_error_response("Failed to delete file", _body, _headers);
 	}
 }
@@ -171,7 +171,23 @@ void ServerResponse::choose_method(const t_location& location) {
 	} else if (_req_data->method == "POST" && location.common.methods.postMethod) {
 		handle_file_upload();
 	} else {
-		Status::MethodNotAllowed();
+		status = Status::MethodNotAllowed();
 		_error_handler->send_error_page(405, "Method Not Allowed", _body, _headers);
 	}
 }
+
+// bool ServerResponse::is_chunked_response(const t_location* location) const {
+// 	if (location && location->chunked_transfer_encoding) {
+// 		size_t file_size = get_file_size()
+// 		return file_size >= location->chunked_threshold;
+// 	}
+// 	return false;
+// }
+
+// size_t ServerResponse::get_file_size(const std::string& file_path) const {
+// 	std::ifstream file(file_path.c_str(), std::ios::binary | std::ios::ate);
+// 	if (!file.is_open()) {
+// 		return 0;
+// 	}
+// 	return static_cast<size_t>(file.tellg());
+// }

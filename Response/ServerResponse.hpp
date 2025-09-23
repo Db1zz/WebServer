@@ -16,6 +16,7 @@
 #include "../Utilities/colors.hpp"
 #include "../Utilities/fs.hpp"
 #include "../Utilities/status.hpp"
+#include "Chunk.hpp"
 #include "ClientSocket.hpp"
 #include "ErrorResponse.hpp"
 #include "FileUtils.hpp"
@@ -49,6 +50,9 @@ class ServerResponse {
 	const std::string& get_headers() const;
 	const std::string& get_body() const;
 	const std::string& get_response() const;
+
+	// bool is_chunked_response(const t_location* location) const;
+	// size_t get_file_size(const std::string& file_path) const;
 
 	Status status;
 

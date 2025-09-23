@@ -33,6 +33,7 @@ SRCS = \
 	Response/JsonResponse.cpp \
 	Response/ErrorResponse.cpp \
 	Response/FileUtils.cpp \
+	Response/Chunk.cpp \
 	Logger/ServerLogger.cpp \
 	Logger/ErrorLogger.cpp \
 	Logger/AccessLogger.cpp \
