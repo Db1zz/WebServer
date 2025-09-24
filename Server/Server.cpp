@@ -195,13 +195,24 @@ Status Server::request_handler(ClientSocket* client_socket) {
 Status Server::response_handler(ClientSocket* client_socket) {
 	ServerResponse resp(client_socket, _configs[0]);
 	resp.generate_response();
-	std::string res = resp.get_response();
 
 	if (resp.status == 100) {
 		return Status();
 	}
-	if (write(client_socket->get_fd(), res.c_str(), res.size()) < 0) {
-		return Status(strerror(errno));
+	if (resp.needs_streaming()) {
+		std::string headers = resp.get_response();
+		if (write(client_socket->get_fd(), headers.c_str(), headers.size()) < 0) {
+			return Status("failed to send response headers to client");
+		}
+		Status stream_status = resp.stream_chunked_response(client_socket->get_fd());
+		if (!stream_status.is_ok()) {
+			return stream_status;
+		}
+	} else {
+		std::string res = resp.get_response();
+		if (write(client_socket->get_fd(), res.c_str(), res.size()) < 0) {
+			return Status("failed to send response to client");
+		}
 	}
 	if (resp.status == 400 || resp.status == 409) {
 		std::map<int, ServerSocketManager*>::iterator server_manager_it;

@@ -54,6 +54,9 @@ class ServerResponse {
 	bool is_chunked_response(const t_location* location) const;
 	size_t get_file_size(const std::string& file_path) const;
 	bool serve_file_chunked(std::fstream& file, const t_location* location);
+	
+	bool needs_streaming() const;
+	Status stream_chunked_response(int client_fd);
 
 	Status status;
 
@@ -72,6 +75,9 @@ class ServerResponse {
 	std::string _resolved_file_path;
 
 	bool _is_chunked;
+	bool _needs_streaming;
+	std::string _stream_file_path;
+	const t_location* _stream_location;
 
 	void handle_directory(const t_location& location);
 	void handle_file_upload();

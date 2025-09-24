@@ -12,7 +12,9 @@ ServerResponse::ServerResponse(ClientSocket* client_socket, const t_config& serv
 	  _json_handler(NULL),
 	  _error_handler(NULL),
 	  _file_utils(NULL), 
-	  _is_chunked(false) {
+	  _is_chunked(false),
+	  _needs_streaming(false),
+	  _stream_location(NULL) {
 	if (client_socket != NULL) _req_data = &client_socket->get_connection_context()->request;
 	_json_handler = new JsonResponse(_req_data, status);
 	_error_handler = new ErrorResponse(_req_data, status, _server_data);
@@ -57,9 +59,13 @@ Status ServerResponse::generate_response() {
 	else
 		header("content-length", get_body_size());
 	status.set_status_line();
-	_response = WS_PROTOCOL + status.status_line() + get_headers() + "\r\n" + get_body();
-	if (_is_chunked)
-		std::cout << PURPLE300 << "chunked response:\n" << _response <<  RESET << std::endl;
+	if (_needs_streaming) {
+		_response = WS_PROTOCOL + status.status_line() + get_headers() + "\r\n";
+		std::cout << YELLOW300 << "HEADERS PREPARED FOR STREAMING!" << RESET << std::endl;
+	} else {
+		_response = WS_PROTOCOL + status.status_line() + get_headers() + "\r\n" + get_body();
+		std::cout << RED500 << "NEW RESPONSE SENT!" << RESET << std::endl;
+	}
 	return status;
 }
 
@@ -77,17 +83,25 @@ void ServerResponse::serve_default_root() {
 }
 
 bool ServerResponse::serve_file(const std::string& path, bool is_error_page) {
+	std::cout << RED500 << "Serving file: " << path << RESET << std::endl;
+	std::cout << CYAN300 << "Request URI: " << (_req_data ? _req_data->uri_path : "NULL") << RESET << std::endl;
+	
 	std::fstream file;
 	fs::open_file(file, path, std::ios::in | std::ios::binary);
 
 	if (!status.is_ok()) return _error_handler->handle_file_error(is_error_page, _body, _headers);
 
 	const t_location* location = _file_utils->find_best_location_match();
+	std::cout << BLUE300 << "Matched location: " << (location ? location->path.c_str() : "NULL") << RESET << std::endl;
 	_is_chunked = is_chunked_response(location);
 	
 	if (_is_chunked) {
-		std::cout << "is chunked!" << std::endl;
-		return serve_file_chunked(file, location);
+		std::cout << "is chunked - setting up for streaming!" << std::endl;
+		_needs_streaming = true;
+		_stream_file_path = path;
+		_stream_location = location;
+		file.close();
+		return true;
 	}
 	return _file_utils->read_file_content(file, _body);
 }
@@ -215,14 +229,11 @@ void ServerResponse::choose_method(const t_location& location) {
 }
 
 bool ServerResponse::is_chunked_response(const t_location* location) const {
-	std::cout << CYAN300 << "location: " << location
-			  << ", transfer_encoding: " << (location ? location->chunked_transfer_encoding : 0)
-			  << RESET << std::endl;
 	if (location && location->chunked_transfer_encoding) {
 		size_t file_size = get_file_size(_resolved_file_path);
-		return file_size >= location->chunked_threshold;
 		std::cout << GREEN400 << "file_size: " << file_size << RESET << ", "
 				  << PURPLE300 << "chunked_threshold: " << location->chunked_threshold << RESET << std::endl;
+		return file_size >= location->chunked_threshold;
 	}
 	return false;
 }
@@ -233,4 +244,53 @@ size_t ServerResponse::get_file_size(const std::string& file_path) const {
 		return 0;
 	}
 	return static_cast<size_t>(file.tellg());
+}
+
+bool ServerResponse::needs_streaming() const {
+	return _needs_streaming;
+}
+
+Status ServerResponse::stream_chunked_response(int client_fd) {
+	if (!_needs_streaming || _stream_file_path.empty() || !_stream_location) {
+		return Status("Invalid streaming state");
+	}
+
+	std::cout << GREEN400 << "Starting chunked streaming for: " << _stream_file_path << RESET << std::endl;
+	std::fstream file;
+	fs::open_file(file, _stream_file_path, std::ios::in | std::ios::binary);
+	if (!file.is_open()) {
+		return Status("Failed to open file for streaming");
+	}
+
+	size_t chunk_size = (_stream_location && _stream_location->chunked_size > 0) ? 
+		_stream_location->chunked_size : 8192;
+	std::vector<char> buffer(chunk_size);
+	int chunk_count = 0;
+	while (file.good() && !file.eof()) {
+		file.read(buffer.data(), chunk_size);
+		std::streamsize bytes_read = file.gcount();
+		
+		if (bytes_read > 0) {
+			std::string chunk_data(buffer.data(), bytes_read);
+			std::string encoded_chunk = Chunk::encode(chunk_data);
+			
+			std::cout << CYAN300 << "Sending chunk " << ++chunk_count << " (" << bytes_read << " bytes)" << RESET << std::endl;
+			
+			if (write(client_fd, encoded_chunk.c_str(), encoded_chunk.size()) < 0) {
+				file.close();
+				return Status("Failed to write chunk to client");
+			}
+		}
+	}
+
+	std::string final_chunk = Chunk::generate_final_chunk();
+	std::cout << PURPLE300 << "Sending final chunk" << RESET << std::endl;
+	if (write(client_fd, final_chunk.c_str(), final_chunk.size()) < 0) {
+		file.close();
+		return Status("Failed to write final chunk to client");
+	}
+
+	std::cout << GREEN400 << "Chunked streaming completed! Total chunks: " << chunk_count << RESET << std::endl;
+	file.close();
+	return Status::OK();
 }
