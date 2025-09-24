@@ -221,6 +221,10 @@ Status Server::response_handler(ClientSocket* client_socket) {
 		find_server_socket_manager(client_socket->get_server_fd(), server_manager_it);
 		server_manager_it->second->close_connection_with_client(client_socket->get_fd());
 		return Status::CloseConnection();
+		//!IN THIS FUNCTION WE NEED TO DO MODIFICATIONS
+		//TODO: 
+		//1. maybe add a separate function for handling streaming from server
+		//2. add all of the codes (maybe convert it to string and check fisrt char to see if its an error code ot not hmmm, lets discuss)
 	}
 	return Status();
 }
