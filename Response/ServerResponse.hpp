@@ -29,6 +29,7 @@
 #define PAGE_INITIAL "Pages/index.html"
 #define PAGE_404 "Pages/404.html"
 #define STYLESHEET "Pages/styles.css"
+#define DEFAULT_10MB_THRESHOLD 10 * 1024 * 1024
 
 class ClientSocket;
 class JsonResponse;

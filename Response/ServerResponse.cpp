@@ -61,10 +61,8 @@ Status ServerResponse::generate_response() {
 	status.set_status_line();
 	if (_needs_streaming) {
 		_response = WS_PROTOCOL + status.status_line() + get_headers() + "\r\n";
-		std::cout << YELLOW300 << "HEADERS PREPARED FOR STREAMING!" << RESET << std::endl;
 	} else {
 		_response = WS_PROTOCOL + status.status_line() + get_headers() + "\r\n" + get_body();
-		std::cout << RED500 << "NEW RESPONSE SENT!" << RESET << std::endl;
 	}
 	return status;
 }
@@ -83,20 +81,15 @@ void ServerResponse::serve_default_root() {
 }
 
 bool ServerResponse::serve_file(const std::string& path, bool is_error_page) {
-	std::cout << RED500 << "Serving file: " << path << RESET << std::endl;
-	std::cout << CYAN300 << "Request URI: " << (_req_data ? _req_data->uri_path : "NULL") << RESET << std::endl;
-	
 	std::fstream file;
 	fs::open_file(file, path, std::ios::in | std::ios::binary);
 
 	if (!status.is_ok()) return _error_handler->handle_file_error(is_error_page, _body, _headers);
 
 	const t_location* location = _file_utils->find_best_location_match();
-	std::cout << BLUE300 << "Matched location: " << (location ? location->path.c_str() : "NULL") << RESET << std::endl;
 	_is_chunked = is_chunked_response(location);
 	
 	if (_is_chunked) {
-		std::cout << "is chunked - setting up for streaming!" << std::endl;
 		_needs_streaming = true;
 		_stream_file_path = path;
 		_stream_location = location;
@@ -229,13 +222,11 @@ void ServerResponse::choose_method(const t_location& location) {
 }
 
 bool ServerResponse::is_chunked_response(const t_location* location) const {
-	if (location && location->chunked_transfer_encoding) {
-		size_t file_size = get_file_size(_resolved_file_path);
-		std::cout << GREEN400 << "file_size: " << file_size << RESET << ", "
-				  << PURPLE300 << "chunked_threshold: " << location->chunked_threshold << RESET << std::endl;
+	size_t file_size = get_file_size(_resolved_file_path);
+
+	if (location && location->chunked_transfer_encoding)
 		return file_size >= location->chunked_threshold;
-	}
-	return false;
+	return file_size >= DEFAULT_10MB_THRESHOLD;
 }
 
 size_t ServerResponse::get_file_size(const std::string& file_path) const {
@@ -251,19 +242,19 @@ bool ServerResponse::needs_streaming() const {
 }
 
 Status ServerResponse::stream_chunked_response(int client_fd) {
-	if (!_needs_streaming || _stream_file_path.empty() || !_stream_location) {
+	if (!_needs_streaming || _stream_file_path.empty()) {
 		return Status("Invalid streaming state");
 	}
-
-	std::cout << GREEN400 << "Starting chunked streaming for: " << _stream_file_path << RESET << std::endl;
+	size_t chunk_size = 8192;
+	if (_stream_location && _stream_location->chunked_size > 0) {
+		chunk_size = _stream_location->chunked_size;
+	}
+	
 	std::fstream file;
 	fs::open_file(file, _stream_file_path, std::ios::in | std::ios::binary);
 	if (!file.is_open()) {
 		return Status("Failed to open file for streaming");
 	}
-
-	size_t chunk_size = (_stream_location && _stream_location->chunked_size > 0) ? 
-		_stream_location->chunked_size : 8192;
 	std::vector<char> buffer(chunk_size);
 	int chunk_count = 0;
 	while (file.good() && !file.eof()) {
@@ -274,26 +265,21 @@ Status ServerResponse::stream_chunked_response(int client_fd) {
 			std::string chunk_data(buffer.data(), bytes_read);
 			std::string encoded_chunk = Chunk::encode(chunk_data);
 			
-			std::cout << CYAN300 << "Sending chunk " << ++chunk_count << " (" << bytes_read << " bytes)" << RESET << std::endl;
-			
 			if (write(client_fd, encoded_chunk.c_str(), encoded_chunk.size()) < 0) {
 				file.close();
 				return Status("Failed to write chunk to client");
 			}
-			
-			if (chunk_count % 100 == 0)
+			if (++chunk_count % 100 == 0)
 				usleep(1000);
 		}
 	}
 
 	std::string final_chunk = Chunk::generate_final_chunk();
-	std::cout << PURPLE300 << "Sending final chunk" << RESET << std::endl;
 	if (write(client_fd, final_chunk.c_str(), final_chunk.size()) < 0) {
 		file.close();
 		return Status("Failed to write final chunk to client");
 	}
 
-	std::cout << GREEN400 << "Chunked streaming completed! Total chunks: " << chunk_count << RESET << std::endl;
 	file.close();
 	return Status::OK();
 }
