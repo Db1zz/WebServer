@@ -10,3 +10,7 @@ std::string Chunk::encode(const std::string& data) {
 	return oss.str();
 }
 
+std::string Chunk::generate_final_chunk() {
+	return "0\r\n\r\n";
+}
+

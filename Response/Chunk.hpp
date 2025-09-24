@@ -9,6 +9,7 @@ class Chunk {
 	Chunk();
 	~Chunk();
 	static std::string encode(const std::string& data);
+	static std::string generate_final_chunk();
 };
 
 #endif // CHUNK_HPP

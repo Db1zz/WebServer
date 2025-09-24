@@ -41,7 +41,7 @@ class ServerResponse {
 	~ServerResponse();
 
 	ServerResponse& header(const std::string& key, const std::string& value);
-	ServerResponse& serve_static_page(const t_location& loc);
+	ServerResponse& handle_get_method(const t_location& loc);
 	Status generate_response();
 	void serve_default_root();
 	bool serve_file(const std::string& path, bool is_error_page);
@@ -51,8 +51,9 @@ class ServerResponse {
 	const std::string& get_body() const;
 	const std::string& get_response() const;
 
-	// bool is_chunked_response(const t_location* location) const;
-	// size_t get_file_size(const std::string& file_path) const;
+	bool is_chunked_response(const t_location* location) const;
+	size_t get_file_size(const std::string& file_path) const;
+	bool serve_file_chunked(std::fstream& file, const t_location* location);
 
 	Status status;
 
@@ -69,6 +70,8 @@ class ServerResponse {
 	std::string _headers;
 	std::string _response;
 	std::string _resolved_file_path;
+
+	bool _is_chunked;
 
 	void handle_directory(const t_location& location);
 	void handle_file_upload();
