@@ -18,6 +18,7 @@
 #include "ServerSocketManager.hpp"
 #include "Socket.hpp"
 #include "status.hpp"
+#include "Chunk.hpp"
 
 namespace {
 volatile std::sig_atomic_t g_signal_status = 0;
@@ -201,18 +202,19 @@ Status Server::response_handler(ClientSocket* client_socket) {
 	}
 	if (resp.needs_streaming()) {
 		std::string headers = resp.get_response();
-		if (write(client_socket->get_fd(), headers.c_str(), headers.size()) < 0) {
+		if (write(client_socket->get_fd(), headers.c_str(), headers.size()) < 0)
 			return Status("failed to send response headers to client");
-		}
-		Status stream_status = resp.stream_chunked_response(client_socket->get_fd());
-		if (!stream_status.is_ok()) {
+		Status stream_status = Chunk::stream_file_chunked(
+			resp.get_stream_file_path(), 
+			client_socket->get_fd(), 
+			resp.get_stream_location()
+		);
+		if (!stream_status.is_ok())
 			return stream_status;
-		}
 	} else {
 		std::string res = resp.get_response();
-		if (write(client_socket->get_fd(), res.c_str(), res.size()) < 0) {
+		if (write(client_socket->get_fd(), res.c_str(), res.size()) < 0)
 			return Status("failed to send response to client");
-		}
 	}
 	if (resp.status == 400 || resp.status == 409) {
 		std::map<int, ServerSocketManager*>::iterator server_manager_it;

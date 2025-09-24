@@ -87,7 +87,7 @@ bool ServerResponse::serve_file(const std::string& path, bool is_error_page) {
 	if (!status.is_ok()) return _error_handler->handle_file_error(is_error_page, _body, _headers);
 
 	const t_location* location = _file_utils->find_best_location_match();
-	_is_chunked = is_chunked_response(location);
+	_is_chunked = Chunk::is_chunked_response(_resolved_file_path, location);
 	
 	if (_is_chunked) {
 		_needs_streaming = true;
@@ -99,29 +99,7 @@ bool ServerResponse::serve_file(const std::string& path, bool is_error_page) {
 	return _file_utils->read_file_content(file, _body);
 }
 
-bool ServerResponse::serve_file_chunked(std::fstream& file, const t_location* location) {
-	if (!file.is_open()) {
-		return false;
-	}
-	size_t chunk_size = (location && location->chunked_size > 0) ? location->chunked_size : 8192;
-	std::vector<char> buffer(chunk_size);
-	std::string chunked_content;
 
-	while (file.good() && !file.eof()) {
-		file.read(buffer.data(), chunk_size);
-		std::streamsize bytes_read = file.gcount();
-		
-		if (bytes_read > 0) {
-			std::string chunk_data(buffer.data(), bytes_read);
-			chunked_content += Chunk::encode(chunk_data);
-		}
-	}
-	chunked_content += Chunk::generate_final_chunk();
-	_body = chunked_content;
-	
-	file.close();
-	return true;
-}
 
 std::string ServerResponse::get_body_size() const {
 	std::stringstream ss;
@@ -221,65 +199,14 @@ void ServerResponse::choose_method(const t_location& location) {
 	}
 }
 
-bool ServerResponse::is_chunked_response(const t_location* location) const {
-	size_t file_size = get_file_size(_resolved_file_path);
-
-	if (location && location->chunked_transfer_encoding)
-		return file_size >= location->chunked_threshold;
-	return file_size >= DEFAULT_10MB_THRESHOLD;
-}
-
-size_t ServerResponse::get_file_size(const std::string& file_path) const {
-	std::ifstream file(file_path.c_str(), std::ios::binary | std::ios::ate);
-	if (!file.is_open()) {
-		return 0;
-	}
-	return static_cast<size_t>(file.tellg());
-}
-
 bool ServerResponse::needs_streaming() const {
 	return _needs_streaming;
 }
 
-Status ServerResponse::stream_chunked_response(int client_fd) {
-	if (!_needs_streaming || _stream_file_path.empty()) {
-		return Status("Invalid streaming state");
-	}
-	size_t chunk_size = 8192;
-	if (_stream_location && _stream_location->chunked_size > 0) {
-		chunk_size = _stream_location->chunked_size;
-	}
-	
-	std::fstream file;
-	fs::open_file(file, _stream_file_path, std::ios::in | std::ios::binary);
-	if (!file.is_open()) {
-		return Status("Failed to open file for streaming");
-	}
-	std::vector<char> buffer(chunk_size);
-	int chunk_count = 0;
-	while (file.good() && !file.eof()) {
-		file.read(buffer.data(), chunk_size);
-		std::streamsize bytes_read = file.gcount();
-		
-		if (bytes_read > 0) {
-			std::string chunk_data(buffer.data(), bytes_read);
-			std::string encoded_chunk = Chunk::encode(chunk_data);
-			
-			if (write(client_fd, encoded_chunk.c_str(), encoded_chunk.size()) < 0) {
-				file.close();
-				return Status("Failed to write chunk to client");
-			}
-			if (++chunk_count % 100 == 0)
-				usleep(1000);
-		}
-	}
+const std::string& ServerResponse::get_stream_file_path() const {
+	return _stream_file_path;
+}
 
-	std::string final_chunk = Chunk::generate_final_chunk();
-	if (write(client_fd, final_chunk.c_str(), final_chunk.size()) < 0) {
-		file.close();
-		return Status("Failed to write final chunk to client");
-	}
-
-	file.close();
-	return Status::OK();
+const t_location* ServerResponse::get_stream_location() const {
+	return _stream_location;
 }

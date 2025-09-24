@@ -29,7 +29,6 @@
 #define PAGE_INITIAL "Pages/index.html"
 #define PAGE_404 "Pages/404.html"
 #define STYLESHEET "Pages/styles.css"
-#define DEFAULT_10MB_THRESHOLD 10 * 1024 * 1024
 
 class ClientSocket;
 class JsonResponse;
@@ -52,12 +51,9 @@ class ServerResponse {
 	const std::string& get_body() const;
 	const std::string& get_response() const;
 
-	bool is_chunked_response(const t_location* location) const;
-	size_t get_file_size(const std::string& file_path) const;
-	bool serve_file_chunked(std::fstream& file, const t_location* location);
-	
 	bool needs_streaming() const;
-	Status stream_chunked_response(int client_fd);
+	const std::string& get_stream_file_path() const;
+	const t_location* get_stream_location() const;
 
 	Status status;
 
