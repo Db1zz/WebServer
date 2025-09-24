@@ -5,7 +5,6 @@
 [38;2;74;222;128mfile_size: 38318120[0m, [38;2;216;180;254mchunked_threshold: 1024[0m
 is chunked - setting up for streaming!
 [38;2;253;224;71mHEADERS PREPARED FOR STREAMING![0m
-[38;2;147;197;253mSending headers for streaming...[0m
 [38;2;74;222;128mStarting chunked streaming for: Pages/Uploads/Leben_in_de.pdf[0m
 [38;2;165;243;252mSending chunk 1 (8192 bytes)[0m
 [38;2;165;243;252mSending chunk 2 (8192 bytes)[0m

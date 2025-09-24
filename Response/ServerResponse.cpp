@@ -280,6 +280,9 @@ Status ServerResponse::stream_chunked_response(int client_fd) {
 				file.close();
 				return Status("Failed to write chunk to client");
 			}
+			
+			if (chunk_count % 100 == 0)
+				usleep(1000);
 		}
 	}
 
