@@ -58,6 +58,8 @@ Status ServerResponse::generate_response() {
 		header("content-length", get_body_size());
 	status.set_status_line();
 	_response = WS_PROTOCOL + status.status_line() + get_headers() + "\r\n" + get_body();
+	if (_is_chunked)
+		std::cout << PURPLE300 << "chunked response:\n" << _response <<  RESET << std::endl;
 	return status;
 }
 
@@ -83,8 +85,10 @@ bool ServerResponse::serve_file(const std::string& path, bool is_error_page) {
 	const t_location* location = _file_utils->find_best_location_match();
 	_is_chunked = is_chunked_response(location);
 	
-	if (_is_chunked)
+	if (_is_chunked) {
+		std::cout << "is chunked!" << std::endl;
 		return serve_file_chunked(file, location);
+	}
 	return _file_utils->read_file_content(file, _body);
 }
 
@@ -211,9 +215,14 @@ void ServerResponse::choose_method(const t_location& location) {
 }
 
 bool ServerResponse::is_chunked_response(const t_location* location) const {
+	std::cout << CYAN300 << "location: " << location
+			  << ", transfer_encoding: " << (location ? location->chunked_transfer_encoding : 0)
+			  << RESET << std::endl;
 	if (location && location->chunked_transfer_encoding) {
 		size_t file_size = get_file_size(_resolved_file_path);
 		return file_size >= location->chunked_threshold;
+		std::cout << GREEN400 << "file_size: " << file_size << RESET << ", "
+				  << PURPLE300 << "chunked_threshold: " << location->chunked_threshold << RESET << std::endl;
 	}
 	return false;
 }
