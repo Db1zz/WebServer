@@ -10,7 +10,7 @@ include_directories(../../Parser)
 include_directories(../../Utilities)
 
 set(SOURCES
-  tests.cpp
+  ServerResponseTests.cpp
   ServerRequestParserTests.cpp)
 
 include(ExternalProject)
