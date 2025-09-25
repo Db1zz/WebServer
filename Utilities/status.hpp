@@ -169,6 +169,7 @@ class Status {
 	bool is_ok();
 	const std::string& msg();
 	ErrorCode error();
+	int code();
 
 	// DEPRECATED
 	void set_status_line();

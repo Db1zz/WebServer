@@ -1,0 +1,89 @@
+
+=== REQUEST DEBUG INFO ===
+method: GET
+protocol_version: HTTP/1.1
+uri_path: /
+uri_path_params: 
+user_agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36
+accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+host: localhost:90
+language: en-GB,en-US;q=0.9,en;q=0.8,ru;q=0.7,de;q=0.6
+connection: keep-alive
+mime_type: 
+cgi_query_string: 
+content_length: 0
+content_type: 
+boundary: 
+transfered_length: 4
+filename: /
+body_chunk: 
+cache: 
+is_file_created: false
+=========================
+=== REQUEST DEBUG INFO ===
+method: GET
+protocol_version: HTTP/1.1
+uri_path: /styles.css
+uri_path_params: 
+user_agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36
+accept: text/css,*/*;q=0.1
+host: localhost:90
+language: en-GB,en-US;q=0.9,en;q=0.8,ru;q=0.7,de;q=0.6
+connection: keep-alive
+mime_type: .css
+cgi_query_string: 
+content_length: 0
+content_type: 
+boundary: 
+transfered_length: 4
+filename: /styles.css
+body_chunk: 
+cache: 
+is_file_created: false
+=========================
+=== REQUEST DEBUG INFO ===
+method: GET
+protocol_version: HTTP/1.1
+uri_path: /modal.js
+uri_path_params: 
+user_agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36
+accept: */*
+host: localhost:90
+language: en-GB,en-US;q=0.9,en;q=0.8,ru;q=0.7,de;q=0.6
+connection: keep-alive
+mime_type: .js
+cgi_query_string: 
+content_length: 0
+content_type: 
+boundary: 
+transfered_length: 4
+filename: /modal.js
+body_chunk: 
+cache: 
+is_file_created: false
+=========================
+=== REQUEST DEBUG INFO ===
+method: GET
+protocol_version: HTTP/1.1
+uri_path: /hi-kevin.mp3
+uri_path_params: 
+user_agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36
+accept: */*
+host: localhost:90
+language: en-GB,en-US;q=0.9,en;q=0.8,ru;q=0.7,de;q=0.6
+connection: keep-alive
+mime_type: .mp3
+cgi_query_string: 
+content_length: 0
+content_type: 
+boundary: 
+transfered_length: 4
+filename: /hi-kevin.mp3
+body_chunk: 
+cache: 
+is_file_created: false
+=========================
+destroy client
+destroy client
+^C[Server] Fatal Error: wait_event() failed in Server::Launch(): EINTR signal sent
+root@a17ee1fba09f:/app# 

@@ -62,3 +62,7 @@ void Status::set_status_line() {
 const std::string Status::status_line() {
 	return _status_line;
 }
+
+int Status::code() {
+	return _error_code;
+}
