@@ -12,14 +12,13 @@ TEST(HelloTest, BasicAssertions) {
 }
 
 TEST(ServerResponseTest, SimpleGetRequest) {
-	Parser parser(std::string("../default.conf"));
-	parser.scanTokens();
-	parser.parseConfig();
+	Parser parser(std::string("../Tests/unit/unit_test.conf"));
 	std::vector<t_config> configs = parser.getConfigStruct();
 	ASSERT_FALSE(configs.empty());
 	
+	t_config config = configs[0];
 	ClientSocket client_socket;
-	
+
 	t_request& request = client_socket.get_connection_context()->request;
 	request.method = "GET";
 	request.protocol_version = "HTTP/1.1";
@@ -41,9 +40,10 @@ TEST(ServerResponseTest, SimpleGetRequest) {
 	request.cache = "";
 	request.is_file_created = false;
 
-	ServerResponse response(&client_socket, configs[0]);
+	ServerResponse response(&client_socket, config);
 	
-	Status status = response.generate_response();
-	std::cout << CYAN300 << response.status.code() << RESET<<  std::endl;
+	Status status;
+	status = response.generate_response();
+	
 	EXPECT_EQ(status.code(), 200);
 }
