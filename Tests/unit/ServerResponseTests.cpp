@@ -67,64 +67,6 @@ TEST_F(ServerResponseTest, SimpleGetRequest) {
 	EXPECT_EQ(response.get_content_type(), "text/html") << "content type should be text/html";
 }
 
-TEST_F(ServerResponseTest, PostRequest) {
-	ClientSocket client_socket;
-
-	t_request& request = client_socket.get_connection_context()->request;
-	request = createBaseRequest();
-	request.method = "POST";
-	request.uri_path = "../Uploads";
-	request.content_type = "multipart/form-data";
-	request.content_length = 10;
-	request.accept = "*/*";
-	request.filename = "test.txt";
-	request.body_chunk = "aboba";
-
-	ServerResponse response(&client_socket, config);
-	
-	Status status;
-	status = response.generate_response();
-	EXPECT_EQ(status.code(), 200);
-}
-
-TEST_F(ServerResponseTest, PostRequestDuplicate) {
-	ClientSocket client_socket;
-
-	t_request& request = client_socket.get_connection_context()->request;
-	request = createBaseRequest();
-	request.method = "POST";
-	request.uri_path = "../Uploads";
-	request.content_type = "multipart/form-data";
-	request.content_length = 10;
-	request.accept = "*/*";
-	request.filename = "test.txt";
-	request.body_chunk = "aboba";
-
-	ServerResponse response(&client_socket, config);
-	
-	Status status;
-	status = response.generate_response();
-	EXPECT_EQ(status.code(), 409);
-}
-
-TEST_F(ServerResponseTest, DeleteFileRequest) {
-	ClientSocket client_socket;
-
-	t_request& request = client_socket.get_connection_context()->request;
-	request = createBaseRequest();
-	request.method = "DELETE";
-	request.uri_path = "/Uploads/test.txt";
-	request.accept = "*/*";
-	request.mime_type = ".txt";
-	request.filename = "test.txt";
-
-	ServerResponse response(&client_socket, config);
-	
-	Status status;
-	status = response.generate_response();
-	
-	EXPECT_EQ(status.code(), 200);
-}
 
 TEST_F(ServerResponseTest, NonExistentPath) {
 	ClientSocket client_socket;
@@ -230,7 +172,7 @@ TEST_F(ServerResponseTest, UploadsDirectoryRequest) {
 	EXPECT_EQ(status.code(), 200);
 }
 
-TEST_F(ServerResponseTest, FileUploadRequest) {
+TEST_F(ServerResponseTest, PostFileRequest) {
 	ClientSocket client_socket;
 
 	t_request& request = client_socket.get_connection_context()->request;
@@ -243,8 +185,51 @@ TEST_F(ServerResponseTest, FileUploadRequest) {
 	request.content_type = "multipart/form-data; boundary=----WebKitFormBoundaryTj2MepeomC2UszbC";
 	request.boundary = "----WebKitFormBoundaryTj2MepeomC2UszbC";
 	request.transfered_length = 184;
-	request.filename = "1.txt";
+	request.filename = "fileuploadtest.txt";
 	request.is_file_created = false;
+
+	ServerResponse response(&client_socket, config);
+	
+	Status status;
+	status = response.generate_response();
+	
+	EXPECT_EQ(status.code(), 200);
+}
+
+TEST_F(ServerResponseTest, PostDuplicateFileRequest) {
+	ClientSocket client_socket;
+
+	t_request& request = client_socket.get_connection_context()->request;
+	request = createBaseRequest();
+	request.method = "POST";
+	request.uri_path = "/Uploads/";
+	request.accept = "*/*";
+	request.mime_type = ".txt";
+	request.content_length = 184;
+	request.content_type = "multipart/form-data; boundary=----WebKitFormBoundaryTj2MepeomC2UszbC";
+	request.boundary = "----WebKitFormBoundaryTj2MepeomC2UszbC";
+	request.transfered_length = 184;
+	request.filename = "fileuploadtest.txt";
+	request.is_file_created = false;
+
+	ServerResponse response(&client_socket, config);
+	
+	Status status;
+	status = response.generate_response();
+	
+	EXPECT_EQ(status.code(), 409);
+}
+
+TEST_F(ServerResponseTest, DeleteFileRequest) {
+	ClientSocket client_socket;
+
+	t_request& request = client_socket.get_connection_context()->request;
+	request = createBaseRequest();
+	request.method = "DELETE";
+	request.uri_path = "/Uploads/fileuploadtest.txt";
+	request.accept = "*/*";
+	request.mime_type = ".txt";
+	request.filename = "fileuploadtest.txt";
 
 	ServerResponse response(&client_socket, config);
 	
