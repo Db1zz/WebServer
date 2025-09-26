@@ -65,7 +65,6 @@ Status ServerResponse::generate_response() {
 		std::cout << "boundary: " << _req_data->boundary << std::endl;
 		std::cout << "transfered_length: " << _req_data->transfered_length << std::endl;
 		std::cout << "filename: " << _req_data->filename << std::endl;
-		std::cout << "body_chunk: " << _req_data->body_chunk << std::endl;
 		std::cout << "cache: " << _req_data->cache << std::endl;
 		std::cout << "is_file_created: " << (_req_data->is_file_created ? "true" : "false") << std::endl;
 	} else {
