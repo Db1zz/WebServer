@@ -87,3 +87,257 @@ destroy client
 destroy client
 ^C[Server] Fatal Error: wait_event() failed in Server::Launch(): EINTR signal sent
 root@a17ee1fba09f:/app# 
+
+
+
+
+change the variables in the request according to these requests
+
+=== REQUEST DEBUG INFO ===
+method: GET
+protocol_version: HTTP/1.1
+uri_path: /upload.html
+uri_path_params: 
+user_agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36
+accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+host: localhost:90
+language: en-GB,en-US;q=0.9,en;q=0.8,ru;q=0.7,de;q=0.6
+connection: keep-alive
+mime_type: .html
+cgi_query_string: 
+content_length: 0
+content_type: 
+boundary: 
+transfered_length: 4
+filename: /upload.html
+cache: 
+is_file_created: false
+=========================
+=== REQUEST DEBUG INFO ===
+method: GET
+protocol_version: HTTP/1.1
+uri_path: /styles.css
+uri_path_params: 
+user_agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36
+accept: text/css,*/*;q=0.1
+host: localhost:90
+language: en-GB,en-US;q=0.9,en;q=0.8,ru;q=0.7,de;q=0.6
+connection: keep-alive
+mime_type: .css
+cgi_query_string: 
+content_length: 0
+content_type: 
+boundary: 
+transfered_length: 4
+filename: /styles.css
+cache: 
+is_file_created: false
+=========================
+=== REQUEST DEBUG INFO ===
+method: GET
+protocol_version: HTTP/1.1
+uri_path: /upload.js
+uri_path_params: 
+user_agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36
+accept: */*
+host: localhost:90
+language: en-GB,en-US;q=0.9,en;q=0.8,ru;q=0.7,de;q=0.6
+connection: keep-alive
+mime_type: .js
+cgi_query_string: 
+content_length: 0
+content_type: 
+boundary: 
+transfered_length: 4
+filename: /upload.js
+cache: 
+is_file_created: false
+=========================
+destroy client
+destroy client
+=== REQUEST DEBUG INFO ===
+method: GET
+protocol_version: HTTP/1.1
+uri_path: /files.html
+uri_path_params: 
+user_agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36
+accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+host: localhost:90
+language: en-GB,en-US;q=0.9,en;q=0.8,ru;q=0.7,de;q=0.6
+connection: keep-alive
+mime_type: .html
+cgi_query_string: 
+content_length: 0
+content_type: 
+boundary: 
+transfered_length: 4
+filename: /files.html
+cache: 
+is_file_created: false
+=========================
+=== REQUEST DEBUG INFO ===
+method: GET
+protocol_version: HTTP/1.1
+uri_path: /styles.css
+uri_path_params: 
+user_agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36
+accept: text/css,*/*;q=0.1
+host: localhost:90
+language: en-GB,en-US;q=0.9,en;q=0.8,ru;q=0.7,de;q=0.6
+connection: keep-alive
+mime_type: .css
+cgi_query_string: 
+content_length: 0
+content_type: 
+boundary: 
+transfered_length: 4
+filename: /styles.css
+cache: 
+is_file_created: false
+=========================
+=== REQUEST DEBUG INFO ===
+method: GET
+protocol_version: HTTP/1.1
+uri_path: /index.js
+uri_path_params: 
+user_agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36
+accept: */*
+host: localhost:90
+language: en-GB,en-US;q=0.9,en;q=0.8,ru;q=0.7,de;q=0.6
+connection: keep-alive
+mime_type: .js
+cgi_query_string: 
+content_length: 0
+content_type: 
+boundary: 
+transfered_length: 4
+filename: /index.js
+cache: 
+is_file_created: false
+=========================
+=== REQUEST DEBUG INFO ===
+method: GET
+protocol_version: HTTP/1.1
+uri_path: /Uploads/
+uri_path_params: 
+user_agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36
+accept: */*
+host: localhost:90
+language: en-GB,en-US;q=0.9,en;q=0.8,ru;q=0.7,de;q=0.6
+connection: keep-alive
+mime_type: 
+cgi_query_string: 
+content_length: 0
+content_type: 
+boundary: 
+transfered_length: 4
+filename: /
+cache: 
+is_file_created: false
+=========================
+=== REQUEST DEBUG INFO ===
+method: GET
+protocol_version: HTTP/1.1
+uri_path: /upload.html
+uri_path_params: 
+user_agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36
+accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7
+host: localhost:90
+language: en-GB,en-US;q=0.9,en;q=0.8,ru;q=0.7,de;q=0.6
+connection: keep-alive
+mime_type: .html
+cgi_query_string: 
+content_length: 0
+content_type: 
+boundary: 
+transfered_length: 4
+filename: /upload.html
+cache: 
+is_file_created: false
+=========================
+=== REQUEST DEBUG INFO ===
+method: GET
+protocol_version: HTTP/1.1
+uri_path: /styles.css
+uri_path_params: 
+user_agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36
+accept: text/css,*/*;q=0.1
+host: localhost:90
+language: en-GB,en-US;q=0.9,en;q=0.8,ru;q=0.7,de;q=0.6
+connection: keep-alive
+mime_type: .css
+cgi_query_string: 
+content_length: 0
+content_type: 
+boundary: 
+transfered_length: 4
+filename: /styles.css
+cache: 
+is_file_created: false
+=========================
+=== REQUEST DEBUG INFO ===
+method: GET
+protocol_version: HTTP/1.1
+uri_path: /upload.js
+uri_path_params: 
+user_agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36
+accept: */*
+host: localhost:90
+language: en-GB,en-US;q=0.9,en;q=0.8,ru;q=0.7,de;q=0.6
+connection: keep-alive
+mime_type: .js
+cgi_query_string: 
+content_length: 0
+content_type: 
+boundary: 
+transfered_length: 4
+filename: /upload.js
+cache: 
+is_file_created: false
+=========================
+destroy client
+destroy client
+=== REQUEST DEBUG INFO ===
+method: POST
+protocol_version: HTTP/1.1
+uri_path: /Uploads/
+uri_path_params: 
+user_agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36
+accept: */*
+host: localhost:90
+language: en-GB,en-US;q=0.9,en;q=0.8,ru;q=0.7,de;q=0.6
+connection: keep-alive
+mime_type: .txt
+cgi_query_string: 
+content_length: 184
+content_type: multipart/form-data; boundary=----WebKitFormBoundaryTj2MepeomC2UszbC
+boundary: ----WebKitFormBoundaryTj2MepeomC2UszbC
+transfered_length: 184
+filename: 1.txt
+cache: 
+is_file_created: false
+=========================
+destroy client
+=== REQUEST DEBUG INFO ===
+method: POST
+protocol_version: HTTP/1.1
+uri_path: /Uploads/
+uri_path_params: 
+user_agent: Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36
+accept: */*
+host: localhost:90
+language: en-GB,en-US;q=0.9,en;q=0.8,ru;q=0.7,de;q=0.6
+connection: keep-alive
+mime_type: .txt
+cgi_query_string: 
+content_length: 184
+content_type: multipart/form-data;
+boundary=----WebKitFormBoundaryiwyMoTPCliSAsXQh
+boundary: ----WebKitFormBoundaryiwyMoTPCliSAsXQh
+transfered_length: 184
+filename: 1.txt
+cache: 
+is_file_created: false
+
+
+for file upload use 1.txt out of test_files folder with correct path to it

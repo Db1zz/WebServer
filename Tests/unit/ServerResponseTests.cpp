@@ -73,11 +73,12 @@ TEST_F(ServerResponseTest, PostRequest) {
 	t_request& request = client_socket.get_connection_context()->request;
 	request = createBaseRequest();
 	request.method = "POST";
-	request.uri_path = "/";
-	request.content_type = "application/x-www-form-urlencoded";
+	request.uri_path = "../Uploads";
+	request.content_type = "multipart/form-data";
 	request.content_length = 10;
+	request.accept = "*/*";
 	request.filename = "test.txt";
-	request.body_chunk = "test=data";
+	request.body_chunk = "aboba";
 
 	ServerResponse response(&client_socket, config);
 	
@@ -108,7 +109,6 @@ TEST_F(ServerResponseTest, UploadHtmlRequest) {
 	request = createBaseRequest();
 	request.uri_path = "/upload.html";
 	request.mime_type = ".html";
-	// request.filename = "/upload.html";
 
 	ServerResponse response(&client_socket, config);
 	
@@ -126,8 +126,7 @@ TEST_F(ServerResponseTest, StylesCssRequest) {
 	request = createBaseRequest();
 	request.uri_path = "/styles.css";
 	request.mime_type = ".css";
-	// request.filename = "/styles.css";
-
+	
 	ServerResponse response(&client_socket, config);
 	
 	Status status;
