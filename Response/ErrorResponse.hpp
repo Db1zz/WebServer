@@ -20,7 +20,6 @@ class ErrorResponse {
 						 std::string& headers);
 	std::string get_error_page_path(int code) const;
 	void generate_fallback_error_page(int code, const std::string& error_msg, std::string& body);
-	std::string get_status_text(int code) const;
 	bool handle_file_error(bool is_error_page, std::string& body, std::string& headers);
 
    private:

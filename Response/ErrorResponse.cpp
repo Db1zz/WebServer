@@ -16,6 +16,7 @@ void ErrorResponse::send_error_page(int code, const std::string& error_msg, std:
 	if (!serve_error_file(error_page_path, body)) {
 		generate_fallback_error_page(code, error_msg, body);
 	}
+	_status = Status::NotFound();
 }
 
 std::string ErrorResponse::get_error_page_path(int code) const {
@@ -47,28 +48,11 @@ void ErrorResponse::generate_fallback_error_page(int code, const std::string& er
 		"</html>";
 }
 
-std::string ErrorResponse::get_status_text(int code) const {
-	switch (code) {
-		case 404:
-			return "Not Found";
-		case 405:
-			return "Method Not Allowed";
-		case 409:
-			return "Conflict";
-		case 500:
-			return "Internal Server Error";
-		case 400:
-			return "Bad Request";
-		default:
-			return "Error";
-	}
-}
-
 bool ErrorResponse::handle_file_error(bool is_error_page, std::string& body, std::string& headers) {
 	if (!is_error_page) {
-		Status::NotFound();
 		add_header("content-type", "text/html", headers);
 		serve_error_file(_server_data->common.errorPage.at(404), body);
+		Status::NotFound();
 	}
 	return false;
 }

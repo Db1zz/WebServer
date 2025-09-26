@@ -87,6 +87,45 @@ TEST_F(ServerResponseTest, PostRequest) {
 	EXPECT_EQ(status.code(), 200);
 }
 
+TEST_F(ServerResponseTest, PostRequestDuplicate) {
+	ClientSocket client_socket;
+
+	t_request& request = client_socket.get_connection_context()->request;
+	request = createBaseRequest();
+	request.method = "POST";
+	request.uri_path = "../Uploads";
+	request.content_type = "multipart/form-data";
+	request.content_length = 10;
+	request.accept = "*/*";
+	request.filename = "test.txt";
+	request.body_chunk = "aboba";
+
+	ServerResponse response(&client_socket, config);
+	
+	Status status;
+	status = response.generate_response();
+	EXPECT_EQ(status.code(), 409);
+}
+
+TEST_F(ServerResponseTest, DeleteFileRequest) {
+	ClientSocket client_socket;
+
+	t_request& request = client_socket.get_connection_context()->request;
+	request = createBaseRequest();
+	request.method = "DELETE";
+	request.uri_path = "/Uploads/test.txt";
+	request.accept = "*/*";
+	request.mime_type = ".txt";
+	request.filename = "test.txt";
+
+	ServerResponse response(&client_socket, config);
+	
+	Status status;
+	status = response.generate_response();
+	
+	EXPECT_EQ(status.code(), 200);
+}
+
 TEST_F(ServerResponseTest, NonExistentPath) {
 	ClientSocket client_socket;
 
@@ -102,6 +141,25 @@ TEST_F(ServerResponseTest, NonExistentPath) {
 	
 	EXPECT_EQ(status.code(), 404);
 }
+
+TEST_F(ServerResponseTest, NonExistentPathNoFallBack) {
+	ClientSocket client_socket;
+
+	t_request& request = client_socket.get_connection_context()->request;
+	request = createBaseRequest();
+	request.uri_path = "/nonexistent";
+	request.filename = "/nonexistent";
+
+	config.common.errorPage[404] = "nonexistent_error_page.html";
+
+	ServerResponse response(&client_socket, config);
+	
+	Status status;
+	status = response.generate_response();
+	
+	EXPECT_EQ(status.code(), 404);
+}
+
 
 TEST_F(ServerResponseTest, UploadHtmlRequest) {
 	ClientSocket client_socket;
@@ -144,7 +202,6 @@ TEST_F(ServerResponseTest, JavaScriptRequest) {
 	request.uri_path = "/upload.js";
 	request.accept = "*/*";
 	request.mime_type = ".js";
-	// request.filename = "/upload.js";
 
 	ServerResponse response(&client_socket, config);
 	
