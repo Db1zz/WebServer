@@ -93,7 +93,7 @@ document.addEventListener('DOMContentLoaded', function () {
 			} else if (isJson && data && data.message) {
 				alert(data.message);
 			} else {
-				alert('Upload failed. Server did not return a valid response.');
+				alert('upload failed');
 			}
 		} catch (err) {
 			alert('An error occurred while uploading.');

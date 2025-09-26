@@ -93,6 +93,7 @@ TEST_F(ServerResponseTest, NonExistentPath) {
 	t_request& request = client_socket.get_connection_context()->request;
 	request = createBaseRequest();
 	request.uri_path = "/nonexistent";
+	request.filename = "/nonexistent";
 
 	ServerResponse response(&client_socket, config);
 	
@@ -126,7 +127,7 @@ TEST_F(ServerResponseTest, StylesCssRequest) {
 	request = createBaseRequest();
 	request.uri_path = "/styles.css";
 	request.mime_type = ".css";
-	
+
 	ServerResponse response(&client_socket, config);
 	
 	Status status;

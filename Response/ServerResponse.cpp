@@ -111,7 +111,10 @@ bool ServerResponse::serve_file(const std::string& path, bool is_error_page) {
 	std::fstream file;
 	fs::open_file(file, path, std::ios::in | std::ios::binary);
 
-	if (!status.is_ok()) return _error_handler->handle_file_error(is_error_page, _body, _headers);
+	if (!status.is_ok() || !file.is_open()) {
+		if (file.is_open()) file.close();
+		return _error_handler->handle_file_error(is_error_page, _body, _headers);
+	}
 
 	const t_location* location = _file_utils->find_best_location_match();
 	_is_chunked = Chunk::is_chunked_response(_resolved_file_path, location);
@@ -123,7 +126,12 @@ bool ServerResponse::serve_file(const std::string& path, bool is_error_page) {
 		file.close();
 		return true;
 	}
-	return _file_utils->read_file_content(file, _body);
+	
+	bool read_success = _file_utils->read_file_content(file, _body);
+	if (!read_success) {
+		return _error_handler->handle_file_error(is_error_page, _body, _headers);
+	}
+	return true;
 }
 
 

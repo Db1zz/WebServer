@@ -31,8 +31,15 @@ bool FileUtils::is_file_exists(const std::string& file_path) {
 }
 
 bool FileUtils::read_file_content(std::fstream& file, std::string& body) {
+	if (!file.is_open() || !file.good())
+		return false;
 	file.seekg(0, std::ios::end);
 	std::streamsize size = file.tellg();
+
+	if (size == -1) {
+		file.close();
+		return false;
+	}
 	file.seekg(0, std::ios::beg);
 
 	body.resize(static_cast<size_t>(size));
