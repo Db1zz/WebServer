@@ -50,6 +50,7 @@ class ServerResponse {
 	const std::string& get_headers() const;
 	const std::string& get_body() const;
 	const std::string& get_response() const;
+	const std::string& get_content_type() const;
 
 	bool needs_streaming() const;
 	const std::string& get_stream_file_path() const;

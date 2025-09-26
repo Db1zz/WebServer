@@ -146,6 +146,10 @@ const std::string& ServerResponse::get_response() const {
 	return _response;
 }
 
+const std::string& ServerResponse::get_content_type() const {
+	return _resp_content_type;
+}
+
 void ServerResponse::handle_directory(const t_location& location) {
 	if (location.common.auto_index &&
 		(_req_data->mime_type == ".json" || _req_data->accept == "*/*")) {
