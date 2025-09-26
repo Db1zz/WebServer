@@ -46,32 +46,6 @@ ServerResponse& ServerResponse::handle_get_method(const t_location& location) {
 }
 
 Status ServerResponse::generate_response() {
-	// Debug: Print all request variables
-	// std::cout << "=== REQUEST DEBUG INFO ===" << std::endl;
-	// if (_req_data != NULL) {
-	// 	std::cout << "method: " << _req_data->method << std::endl;
-	// 	std::cout << "protocol_version: " << _req_data->protocol_version << std::endl;
-	// 	std::cout << "uri_path: " << _req_data->uri_path << std::endl;
-	// 	std::cout << "uri_path_params: " << _req_data->uri_path_params << std::endl;
-	// 	std::cout << "user_agent: " << _req_data->user_agent << std::endl;
-	// 	std::cout << "accept: " << _req_data->accept << std::endl;
-	// 	std::cout << "host: " << _req_data->host << std::endl;
-	// 	std::cout << "language: " << _req_data->language << std::endl;
-	// 	std::cout << "connection: " << _req_data->connection << std::endl;
-	// 	std::cout << "mime_type: " << _req_data->mime_type << std::endl;
-	// 	std::cout << "cgi_query_string: " << _req_data->cgi_query_string << std::endl;
-	// 	std::cout << "content_length: " << _req_data->content_length << std::endl;
-	// 	std::cout << "content_type: " << _req_data->content_type << std::endl;
-	// 	std::cout << "boundary: " << _req_data->boundary << std::endl;
-	// 	std::cout << "transfered_length: " << _req_data->transfered_length << std::endl;
-	// 	std::cout << "filename: " << _req_data->filename << std::endl;
-	// 	std::cout << "cache: " << _req_data->cache << std::endl;
-	// 	std::cout << "is_file_created: " << (_req_data->is_file_created ? "true" : "false") << std::endl;
-	// } else {
-	// 	std::cout << "_req_data is NULL" << std::endl;
-	// }
-	// std::cout << "=========================" << std::endl;
-	
 	const t_location* best_match = _file_utils->find_best_location_match();
 
 	if (best_match != NULL)

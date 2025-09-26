@@ -52,7 +52,7 @@ bool ErrorResponse::handle_file_error(bool is_error_page, std::string& body, std
 	if (!is_error_page) {
 		add_header("content-type", "text/html", headers);
 		serve_error_file(_server_data->common.errorPage.at(404), body);
-		Status::NotFound();
+		_status = Status::NotFound();
 	}
 	return false;
 }
