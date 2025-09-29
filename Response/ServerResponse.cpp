@@ -194,6 +194,8 @@ void ServerResponse::handle_file_upload() {
 		}
 		if (content_data.is_finished)
 			_req_data->content_data.pop_front();
+		else if (!content_data.is_finished)
+			_req_data->content_data.clear();
 	}
 }
 
