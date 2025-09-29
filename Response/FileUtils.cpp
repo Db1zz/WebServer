@@ -80,14 +80,14 @@ bool FileUtils::is_file_location(const t_location& location) const {
 	return (dot_pos > last_slash_pos);
 }
 
-bool FileUtils::save_uploaded_file(const std::string& file_path) {
+bool FileUtils::save_uploaded_file(const std::string& file_path, std::string &content_data) {
 	std::ofstream outfile(file_path.c_str(), std::ios::app | std::ios::binary);
 
 	if (!outfile) {
 		return false;
 	}
 
-	outfile.write(_req_data->body_chunk.c_str(), _req_data->body_chunk.size());
+	outfile.write(content_data.c_str(), content_data.size());
 
 	if (_req_data->is_request_ready()) {
 		outfile.close();

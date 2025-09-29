@@ -166,28 +166,34 @@ void ServerResponse::set_binary_headers() {
 }
 
 void ServerResponse::handle_file_upload() {
-	std::string upload_dir = _resolved_file_path;
-	FileUtils::ensureTrailingSlash(upload_dir);
-
-	std::string file_path = upload_dir + _req_data->filename;
-
-	if (FileUtils::is_file_exists(file_path) && !_req_data->is_file_created) {
-		status = Status::Conflict();
-		_json_handler->set_error_response("File already exists", _body, _headers);
-		return;
-	}
-
-	bool file_saved = _file_utils->save_uploaded_file(file_path);
-	if (file_saved) {
-		status = Status::OK();
-		_json_handler->set_success_response("Upload successful", _body, _headers);
-	} else if (_req_data->is_request_ready()) {
-		status = Status::BadRequest();
-		_json_handler->set_error_response("No file uploaded or failed to save file(s)", _body,
-										  _headers);
-	} else {
-		_req_data->is_file_created = true;
-		status = Status::Continue();
+	while (!_req_data->content_data.empty() || !_req_data->content_data.front().is_finished ) {
+		t_request_content &content_data = _req_data->content_data.front();
+		// std::cout << "file data:" << content_data.data << std::endl;
+		std::string upload_dir = _resolved_file_path; //?call resolve_file_path again?
+		FileUtils::ensureTrailingSlash(upload_dir);
+	
+		std::string file_path = upload_dir + content_data.filename;
+	
+		if (FileUtils::is_file_exists(file_path) && !content_data.is_file_created) {
+			status = Status::Conflict();
+			_json_handler->set_error_response("File already exists", _body, _headers);
+			return;
+		}
+	
+		bool file_saved = _file_utils->save_uploaded_file(file_path, content_data.data);
+		if (file_saved) {
+			status = Status::OK();
+			_json_handler->set_success_response("Upload successful", _body, _headers);
+		} else if (_req_data->is_request_ready()) {
+			status = Status::BadRequest();
+			_json_handler->set_error_response("No file uploaded or failed to save file(s)", _body,
+											  _headers);
+		} else {
+			content_data.is_file_created = true;
+			status = Status::Continue();
+		}
+		if (content_data.is_finished)
+			_req_data->content_data.pop_front();
 	}
 }
 

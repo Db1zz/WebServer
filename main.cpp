@@ -27,7 +27,7 @@ int main(int argc, char** argv) {
 		std::cerr << e.what() << '\n';
 		return 1;
 	}
-	try {
+	// try {
 		ServerLogger server_logger("./Logs/");
 		Status status = server_logger.init();
 		if (!status) {
@@ -42,9 +42,9 @@ int main(int argc, char** argv) {
 					  << std::endl;
 			return 1;
 		}
-	} catch (const std::exception& e) {
-		std::cout << "[Server] " << RED300 << "Fatal Error: " << RESET << e.what() << std::endl;
-		return 1;
-	}
+	// } catch (const std::exception& e) {
+	// 	std::cout << "[Server] " << RED300 << "Fatal Error: " << RESET << e.what() << std::endl;
+	// 	return 1;
+	// }
 	return 0;
 }
