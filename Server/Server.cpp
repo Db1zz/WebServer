@@ -194,7 +194,7 @@ Status Server::response_handler(ClientSocket* client_socket) {
 	ServerResponse resp(client_socket, _configs[0]);
 	resp.generate_response();
 
-	if (resp.status == 100) {
+	if (resp.status.code() == 100) {
 		return Status();
 	}
 	if (resp.needs_streaming()) {
@@ -213,7 +213,7 @@ Status Server::response_handler(ClientSocket* client_socket) {
 		if (write(client_socket->get_fd(), res.c_str(), res.size()) < 0)
 			return Status("failed to send response to client");
 	}
-	if (resp._status == BadRequest || resp._status == Conflict) {
+	if (resp.status.code() == BadRequest || resp.status.code() == Conflict) {
 		ServerSocketManager* manager = find_server_socket_manager(client_socket->get_server_fd());
 		manager->close_connection_with_client(client_socket->get_fd());
 		return Status::CloseConnection();

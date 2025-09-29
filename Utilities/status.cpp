@@ -103,7 +103,3 @@ void Status::set_status_line(int error_code, std::string error_msg) {
 const std::string Status::status_line() {
 	return _status_line;
 }
-
-int Status::code() {
-	return _error_code;
-}
