@@ -1,62 +1,103 @@
 #include "status.hpp"
 
-Status::Status() {
-	*this = Status::OK();
+#include <sstream>
+
+Status::Status()
+	: _error_type(::OK),
+	  _error_code(static_cast<int>(::OK)),
+	  _error_msg("OK"),
+	  _status_line("200 OK"),
+	  _is_error(false) {
 }
 
-Status::Status(std::string error_msg)
-	: _error_type(::CustomError), _error_code((int) _error_type), _error_msg(error_msg) {
+Status::Status(const std::string& error_msg)
+	: _error_type(CustomError),
+	  _error_code(static_cast<int>(CustomError)),
+	  _error_msg(error_msg),
+	  _status_line(error_msg),
+	  _is_error(true) {
 }
 
-Status::Status(ErrorCode error_type, int error_code, std::string error_msg)
-	: _error_type(error_type), _error_code(error_code), _error_msg(error_msg) {
+Status::Status(ErrorCode error_type, int error_code, const std::string& error_msg, bool is_error)
+	: _error_type(error_type),
+	  _error_code(error_code),
+	  _error_msg(error_msg),
+	  _is_error(is_error) {
+
+	set_status_line(error_code, error_msg);
+	// If caller didn't explicitly set is_error (passed false), we still use
+	// our heuristic: treat 4xx/5xx as errors; 1xx/2xx/3xx as success;
+	// 6xx+ are treated as non-error (control codes) by default.
+	if (!is_error) {
+		_is_error = default_is_error_for_code(error_code);
+	}
 }
 
-Status::Status(const Status& to_copy) {
-	*this = to_copy;
+Status::Status(const Status& to_copy)
+	: _error_type(to_copy._error_type),
+	  _error_code(to_copy._error_code),
+	  _error_msg(to_copy._error_msg),
+	  _status_line(to_copy._status_line),
+	  _is_error(to_copy._is_error) {
 }
 
 Status& Status::operator=(const Status& to_copy) {
-	if (this != &to_copy) {
-		_error_type = to_copy._error_type;
-		_error_code = to_copy._error_code;
-		_error_msg = to_copy._error_msg;
+	if (this == &to_copy) {
+		return *this;
 	}
+	_error_type = to_copy._error_type;
+	_error_code = to_copy._error_code;
+	_error_msg = to_copy._error_msg;
+	_status_line = to_copy._status_line;
+	_is_error = to_copy._is_error;
 	return *this;
 }
 
-bool Status::operator==(int error_code) {
-	return _error_code == error_code;
+bool Status::default_is_error_for_code(int code) {
+	// By default:
+	//  - 4xx and 5xx are considered errors.
+	//  - 1xx/2xx/3xx are considered success.
+	//  - 6xx+ (internal/control) are NOT errors by default (they're signals).
+	return (code >= 400 && code < 600);
 }
 
-bool Status::operator==(ErrorCode error_type) {
+bool Status::operator==(int code) const {
+	return _error_code == code;
+}
+bool Status::operator==(ErrorCode error_type) const {
 	return _error_type == error_type;
 }
-
-bool Status::operator==(Status status) {
-	return _error_type == status._error_type;
+bool Status::operator==(const Status& status) const {
+	return _error_type == status._error_type && _error_code == status._error_code;
 }
 
 Status::operator bool() const {
-	return _error_type == ::OK;
+	return !_is_error;
 }
 
-bool Status::is_ok() {
-	return _error_type == ::OK;
+bool Status::is_ok() const {
+	return !_is_error;
 }
 
-const std::string& Status::msg() {
+const std::string& Status::msg() const {
 	return _error_msg;
 }
-
-ErrorCode Status::error() {
+ErrorCode Status::error() const {
 	return _error_type;
 }
+int Status::code() const {
+	return _error_code;
+}
 
-void Status::set_status_line() {
+void Status::set_status_line(int error_code, std::string error_msg) {
 	std::stringstream code_str;
-	code_str << _error_code;
-	_status_line = " " + code_str.str() + " " + _error_msg + "\r\n";
+	code_str << error_code;
+
+	// _error_type = static_cast<ErrorCode>(error_code);
+	// _error_code = error_code;
+	// _error_msg = error_msg;
+
+	_status_line = " " + code_str.str() + " " + error_msg + "\r\n";
 }
 
 const std::string Status::status_line() {

@@ -12,7 +12,7 @@
 #include "ServerConfig.hpp"
 #include "ServerLogger.hpp"
 #include "ServerRequest.hpp"
-#include "ServerRequestParser.hpp"
+#include "RequestParser/ServerRequestParser.hpp"
 #include "ServerResponse.hpp"
 #include "ServerSocket.hpp"
 #include "ServerSocketManager.hpp"
@@ -67,23 +67,21 @@ Status Server::launch() {
 
 bool Server::is_a_new_connection(const epoll_event& event) {
 	Socket* event_socket = static_cast<Socket*>(event.data.ptr);
-	std::map<int, ServerSocketManager*>::iterator search;
-
-	return find_server_socket_manager(event_socket->get_fd(), search);
+	return find_server_socket_manager(event_socket->get_fd()) == NULL;
 }
 
 Status Server::handle_new_connection_event(const epoll_event& connection_event) {
 	Status status;
 	Socket* socket;
-	std::map<int, ServerSocketManager*>::iterator search;
 
 	socket = static_cast<Socket*>(connection_event.data.ptr);
-	if (!find_server_socket_manager(socket->get_fd(), search)) {
+	ServerSocketManager* manager = find_server_socket_manager(socket->get_fd());
+	if (!manager) {
 		return Status(
 			"Server failed to handle new connection event: ServerSocketManager was not found");
 	}
 
-	status = search->second->accept_connection();
+	status = manager->accept_connection();
 	if (!status) {
 		return status;
 	}
@@ -93,36 +91,35 @@ Status Server::handle_new_connection_event(const epoll_event& connection_event) 
 
 Status Server::handle_request_event(const epoll_event& request_event) {
 	Status status;
-	ClientSocket* client_socket;
-	std::map<int, ServerSocketManager*>::iterator search;
+	ClientSocket* client_socket = NULL;
+	ServerSocketManager* manager = NULL;
 
 	client_socket = static_cast<ClientSocket*>(request_event.data.ptr);
 	if (request_event.events & (EPOLLERR | EPOLLRDHUP)) {
-		if (!find_server_socket_manager(client_socket->get_server_fd(), search)) {
+		manager = find_server_socket_manager(client_socket->get_server_fd());
+		if (!manager) {
 			return Status("Server cannot find a server to close connection with");
 		}
-		search->second->close_connection_with_client(client_socket->get_fd());
+		manager->close_connection_with_client(client_socket->get_fd());
 		std::cout << "destroy client\n";
 	} else if (request_event.events & EPOLLIN) {
 		status = request_handler(client_socket);
-		ClientConnectionContext* connection_context = client_socket->get_connection_context();
-		// std::cout << connection_context->request.body_chunk.size() << std::endl;;
-		if (!status && connection_context->request.body_chunk.empty()) {
-			return Status("request_handler() failed in Server::handle_event(): " + status.msg());
-		}
-		if (!connection_context->request.method.empty()) {
+
+		if (status.error() != DataIsNotReady) {
 			status = response_handler(client_socket);
 			if (!status) {
 				return Status("response_handler() failed in Server::handle_event(): " +
-					status.msg());
-				}
-				connection_context->request.body_chunk.clear();
-				if (connection_context->request.is_request_ready()) {
-					find_server_socket_manager(client_socket->get_server_fd(), search);
-					_server_logger.log_access(*client_socket->get_host(),
-					connection_context->request.method,
-					connection_context->request.uri_path,
-					search->second->get_server_socket()->get_port());
+							  status.msg());
+			}
+
+			ClientConnectionContext* connection_context = client_socket->get_connection_context();
+			connection_context->request.body_chunk.clear();
+			if (connection_context->request.is_request_ready()) {
+				manager = find_server_socket_manager(client_socket->get_server_fd());
+				_server_logger.log_access(*client_socket->get_host(),
+										  connection_context->request.method,
+										  connection_context->request.uri_path,
+										  manager->get_server_socket()->get_port());
 				client_socket->reset_connection_context();
 			}
 		}
@@ -157,10 +154,10 @@ Status Server::read_data(ClientSocket* client_socket, std::string& buff, int& rd
 
 	rd_bytes = read(client_socket->get_fd(), read_buff, read_buff_size);
 	if (rd_bytes == 0) {
-		return Status("EOF is found");
+		return Status::InternalServerError();
 	}
 	if (rd_bytes < 0) {
-		return Status("read did not read anything");
+		return Status::InternalServerError();
 	}
 	buff.append(read_buff, rd_bytes);
 	return Status::OK();
@@ -185,9 +182,9 @@ Status Server::request_handler(ClientSocket* client_socket) {
 		return Status("Server::read_data " + status.msg());
 	}
 
-	status = connection_context->parser.parse_chunk(buffer);
+	status = connection_context->parser.feed(buffer);
 	if (!status) {
-		return Status("ServerRequestParser::parse_chunk " + status.msg());
+		return status;
 	}
 
 	return Status::OK();
@@ -216,10 +213,9 @@ Status Server::response_handler(ClientSocket* client_socket) {
 		if (write(client_socket->get_fd(), res.c_str(), res.size()) < 0)
 			return Status("failed to send response to client");
 	}
-	if (resp.status == 400 || resp.status == 409) {
-		std::map<int, ServerSocketManager*>::iterator server_manager_it;
-		find_server_socket_manager(client_socket->get_server_fd(), server_manager_it);
-		server_manager_it->second->close_connection_with_client(client_socket->get_fd());
+	if (resp._status == BadRequest || resp._status == Conflict) {
+		ServerSocketManager* manager = find_server_socket_manager(client_socket->get_server_fd());
+		manager->close_connection_with_client(client_socket->get_fd());
 		return Status::CloseConnection();
 		//!IN THIS FUNCTION WE NEED TO DO MODIFICATIONS
 		//TODO: 
@@ -274,13 +270,13 @@ Status Server::create_sockets_from_configs(const std::vector<t_config>& configs)
 	return Status::OK();
 }
 
-Status Server::find_server_socket_manager(
-	int server_socket_fd, std::map<int, ServerSocketManager*>::iterator& search_result) {
-	search_result = _server_socket_managers.find(server_socket_fd);
-	if (search_result == _server_socket_managers.end()) {
-		return Status("Server failed to find ServerSocketManager");
+ServerSocketManager* Server::find_server_socket_manager(int server_socket_fd) {
+	std::map<int, ServerSocketManager*>::iterator it =
+		_server_socket_managers.find(server_socket_fd);
+	if (it == _server_socket_managers.end()) {
+		return NULL;
 	}
-	return Status::OK();
+	return it->second;
 }
 
 void Server::destroy_all_server_socket_managers() {
