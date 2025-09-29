@@ -58,7 +58,7 @@ Status ServerResponse::generate_response() {
 		header("transfer-encoding", "chunked");
 	else
 		header("content-length", get_body_size());
-	status.set_status_line();
+	status.set_status_line(status.code(), status.msg());
 	if (_needs_streaming) {
 		_response = WS_PROTOCOL + status.status_line() + get_headers() + "\r\n";
 	} else {
