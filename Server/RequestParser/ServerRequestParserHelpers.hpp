@@ -43,7 +43,7 @@ bool is_quoted_pair_char(unsigned char c);
 size_t char_to_hex(char c);
 
 void extract_filename(const std::string& full_path, std::string& out);
-void extract_mime(const std::string& filename);
+void extract_mime(const std::string& filename, std::string& out);
 
 // TODO:
 // Status normalize_uri(const t_commonConfig& common_server_config, std::string& uri);

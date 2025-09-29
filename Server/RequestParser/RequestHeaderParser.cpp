@@ -899,7 +899,7 @@ Status RequestHeaderParser::parse_absolute_path(const std::string& uri_path, t_r
 
 	request.uri_path = path;
 	internal_server_request_parser::extract_filename(request.uri_path, request.filename);
-	internal_server_request_parser::extract_filename(request.filename, request.mime_type);
+	internal_server_request_parser::extract_mime(request.filename, request.mime_type);
 	return Status::OK();
 }
 

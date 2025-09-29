@@ -46,6 +46,8 @@ ServerResponse& ServerResponse::handle_get_method(const t_location& location) {
 }
 
 Status ServerResponse::generate_response() {
+	if (_req_data == NULL)
+		std::cout << "NULL" << std::endl;
 	const t_location* best_match = _file_utils->find_best_location_match();
 
 	if (best_match != NULL)
