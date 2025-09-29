@@ -58,8 +58,7 @@ enum ErrorCode {
 	HTTPVersionNotSupported = 505,
 	// END HTTP Error Codes
 
-	// 6xx to 9xx - Internal Server Errors
-	// These errors are used to control internal state of the server
+	// 6xx to 9xx - Internal Server Errors / Control codes
 	Incomplete = 600, // need more data
 	IncompleteRequestHeader = 601,
 	IncompleteRequestBodyHeader = 602,
@@ -70,6 +69,9 @@ enum ErrorCode {
 	InvalidPath = 607,
 	CloseConnection = 608,
 	InvalidFilenameFormat = 609,
+	DataIsNotReady = 610,
+	DataIsReady = 611,
+
 	// 1xxx - Special error codes
 	// !!! DO NOT ADD ANYTHING BELOW THIS LINE !!!
 	UnknownError = 998,
@@ -80,14 +82,11 @@ enum ErrorCode {
 class Status {
    public:
 	Status();
-	Status(std::string error_msg); // Custom error constructor
-	Status(ErrorCode error_type, int error_code, std::string error_msg);
-	// Status(std::string error);
-	// Status(std::string error, int code);
-	// Status(std::string error, int code, bool ok);
-	// Status(std::string func_name, const char *errmsg);
-	Status(const Status& to_copy);
+	Status(const std::string& error_msg); 
+	Status(ErrorCode error_type, int error_code, const std::string& error_msg,
+		   bool is_error = false);
 
+	Status(const Status& to_copy);
 	Status& operator=(const Status& to_copy);
 
 #define DEFINE_STATUS_FACTORY(NAME) \
@@ -146,32 +145,38 @@ class Status {
 
 #undef DEFINE_STATUS_FACTORY
 
-#define DEFINE_STATUS_FACTORY(NAME, MSG) \
-	static Status NAME() { return Status(::NAME, ::NAME, std::string(MSG)); }
+	// Internal control / helper factories: allow custom message
+#define DEFINE_STATUS_FACTORY_MSG(NAME, MSG) \
+	static Status NAME() { return Status(::NAME, (int) ::NAME, std::string(MSG)); }
 
-	DEFINE_STATUS_FACTORY(Incomplete, "not enough data")
-	// DEFINE_STATUS_FACTORY(IncompleteRequestHeader, "incomplete request")
-	DEFINE_STATUS_FACTORY(IncompleteRequestBodyHeader, "request body header is incomplete")
-	DEFINE_STATUS_FACTORY(RequestBoundaryIsNotProvided, "request boundary is not provided")
-	DEFINE_STATUS_FACTORY(NoMime, "mime not found")
-	DEFINE_STATUS_FACTORY(NoFilename, "filename not found")
-	DEFINE_STATUS_FACTORY(EndBoundaryNotFound, "end boundary not found")
-	DEFINE_STATUS_FACTORY(InvalidPath, "invalid path")
+	DEFINE_STATUS_FACTORY_MSG(Incomplete, "not enough data")
+	DEFINE_STATUS_FACTORY_MSG(IncompleteRequestBodyHeader, "request body header is incomplete")
+	DEFINE_STATUS_FACTORY_MSG(RequestBoundaryIsNotProvided, "request boundary is not provided")
+	DEFINE_STATUS_FACTORY_MSG(NoMime, "mime not found")
+	DEFINE_STATUS_FACTORY_MSG(NoFilename, "filename not found")
+	DEFINE_STATUS_FACTORY_MSG(EndBoundaryNotFound, "end boundary not found")
+	DEFINE_STATUS_FACTORY_MSG(InvalidPath, "invalid path")
 
-	DEFINE_STATUS_FACTORY(Interrupted, "EINTR signal sent")
-	DEFINE_STATUS_FACTORY(CloseConnection, "closed connection")
-	DEFINE_STATUS_FACTORY(InvalidFilenameFormat, "invalid filename format");
+	DEFINE_STATUS_FACTORY_MSG(Interrupted, "EINTR signal sent")
+	DEFINE_STATUS_FACTORY_MSG(CloseConnection, "closed connection")
+	DEFINE_STATUS_FACTORY_MSG(InvalidFilenameFormat, "invalid filename format");
+	DEFINE_STATUS_FACTORY_MSG(DataIsNotReady, "the data is not ready for processing");
+	DEFINE_STATUS_FACTORY_MSG(DataIsReady, "the data is ready for processing");
+#undef DEFINE_STATUS_FACTORY_MSG
 
-#undef DEFINE_STATUS_FACTORY
+	// comparisons
+	bool operator==(int code) const;
+	bool operator==(ErrorCode error_type) const;
+	bool operator==(const Status& status) const;
 
-	bool operator==(int code);
-	bool operator==(ErrorCode error_type);
-	bool operator==(Status status);
-
+	// bool semantics: true == success, false == failure
 	operator bool() const;
-	bool is_ok();
-	const std::string& msg();
-	ErrorCode error();
+	bool is_ok() const;
+
+	// getters
+	const std::string& msg() const;
+	ErrorCode error() const; // enum type
+	int code() const;		 // numeric code — use this when comparing to errno constants
 
 	// DEPRECATED
 	void set_status_line(int error_code, std::string error_msg);
@@ -179,10 +184,13 @@ class Status {
 
    private:
 	ErrorCode _error_type;
-	int _error_code;
+	int _error_code; // numeric code
 	std::string _error_msg;
-
 	std::string _status_line;
+	bool _is_error; // false == success, true == failure
+
+	// helper
+	static bool default_is_error_for_code(int code);
 };
 
 #endif // WEBSERVER_UTILITIES_STATUS_HPP

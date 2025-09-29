@@ -3,43 +3,32 @@
 
 #include <string>
 
+#include "RequestHeaderParser.hpp"
+
 class Status;
+class ServerLogger;
+class IRequestBodyParser;
 typedef struct s_request t_request;
 
 class ServerRequestParser {
    public:
-	// Public Functions
-	explicit ServerRequestParser(t_request* request);
-	ServerRequestParser(const ServerRequestParser& copy);
-	ServerRequestParser& operator=(const ServerRequestParser& copy);
+	explicit ServerRequestParser(t_request* request, ServerLogger* logger = NULL);
+	~ServerRequestParser();
 
-	Status parse_chunk(const std::string& chunk);
-
-	// void reset();
-	// void set_request(t_request* request);
+	Status feed(const std::string& content);
 
    private:
-	// Internal Functions
-	bool is_method_valid(const std::string& method);
-
-	Status parse_request_header();
-	Status parse_request_line();
-	Status parse_boundary();
-	Status get_filename_from_request_body(const std::string& request_string, std::string& result);
-	Status get_mime_from_filename(const std::string& filename, std::string& result);
+	void create_body_parser();
 
    private:
-	// Internal Variables
+	ServerLogger* _logger;
+
+	RequestHeaderParser _header_parser;
+	IRequestBodyParser* _body_parser;
+
+	bool _header_found;
+
 	t_request* _request;
-	size_t _cursor_pos;
-
-	bool _request_header_parsed;
-	bool _boundary_header_parsed;
-
-	std::string _boundary_start;
-	std::string _boundary_end;
-
-	std::string _cache;
 };
 
 #endif // SERVER_SERVER_REQUEST_PARSER

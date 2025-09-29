@@ -25,6 +25,7 @@ SRCS = \
 	Server/RequestParser/ServerRequestParserHelpers.cpp \
 	Server/RequestParser/RequestMultipartBodyParser.cpp \
 	Server/RequestParser/RequestRawBodyParser.cpp \
+	Server/RequestParser/RequestHeaderParser.cpp \
 	Server/ServerSocketManager.cpp \
 	Server/ServerSocket.cpp \
 	Server/ClientSocket.cpp \

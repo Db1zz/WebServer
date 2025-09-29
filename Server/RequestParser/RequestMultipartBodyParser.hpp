@@ -23,11 +23,9 @@ class RequestMultipartParser : public IRequestBodyParser {
 	Status parse_and_finish_content(size_t boundary_pos);
 	Status parse_body_header(size_t boundary_pos);
 	Status parse_filename(const std::string& line, std::string& filename);
-	Status parse_quoted_filename(const std::string& line, size_t pos, std::string& filename);
 	Status parse_unquoted_filename(const std::string& line, size_t pos, std::string& filename);
 	Status parse_name(const std::string& content_disposition, std::string& name);
 	Status parse_content_type(const std::string& content_type, std::string& mime);
-	bool is_quoted_pair_char(unsigned char c);
 
 	void update_last_content();
 	const int _content_length;

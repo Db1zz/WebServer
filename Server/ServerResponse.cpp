@@ -208,7 +208,7 @@ ServerResponse& ServerResponse::post_method(const t_location& loc) {
 	bool file_saved = false;
 	std::string file_path = upload_dir + _req_data->filename;
 	struct stat file_stat;
-	
+
 	if (!upload_dir.empty() && upload_dir[upload_dir.size() - 1] != '/')
 		upload_dir += "/";
 

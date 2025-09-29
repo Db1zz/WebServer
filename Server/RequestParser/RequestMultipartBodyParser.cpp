@@ -20,6 +20,7 @@
 	dfsgsdfglksdjfg;lkdsjfg;lknsd;lfgjds;lkfgj
 	------WebKitFormBoundary7MA4YWxkTrZu0gW--
 */
+
 RequestMultipartParser::RequestMultipartParser(const std::string& boundary, int content_length)
 	: _content_length(content_length), _data_size(0), _last_content(NULL), _is_end_boundary_found(false) {
 	_start_boundary = "--" + boundary + "\r\n";
@@ -42,15 +43,16 @@ Status RequestMultipartParser::feed(const std::string& content, size_t start_pos
 			}
 			if (_last_content != NULL && !_last_content->is_finished) {
 				status = parse_and_finish_content(boundary_pos);
+				if (!status) {
+					break;
+				}
 			}
 			status = parse_body_with_header(boundary_pos);
-			if (status == Incomplete) {
-				break;
-			}
 		} else {
 			status = parse_body_without_any_boundary();
 		}
-	} while (_buffer.size() > _end_boundary.size() && (status != BadRequest));
+	} while (_buffer.size() > _end_boundary.size() && status && status.error() != DataIsNotReady);
+
 	return status;
 }
 
@@ -91,14 +93,14 @@ size_t RequestMultipartParser::search_boundary() {
 
 Status RequestMultipartParser::parse_body_without_any_boundary() {
 	if (_end_boundary.size() > _buffer.size()) {
-		return Status::Incomplete();
+		return Status::DataIsNotReady();
 	}
 
 	size_t content_size = _buffer.size() - _end_boundary.size();
 	_last_content->data.append(_buffer.begin(), _buffer.begin() + content_size);
 
 	_buffer.erase(0, content_size);
-	return Status::Incomplete();
+	return Status::DataIsNotReady();
 }
 
 Status RequestMultipartParser::parse_body_with_header(size_t boundary_pos) {
@@ -107,7 +109,7 @@ Status RequestMultipartParser::parse_body_with_header(size_t boundary_pos) {
 	size_t header_end = _buffer.find(header_end_key);
 
 	if (header_end == std::string::npos) {
-		return Status::Incomplete();
+		return Status::DataIsNotReady();
 	}
 	if (_buffer.size() >= MAX_REQUEST_BODY_HEADER_LENGTH) {
 		return Status::RequestEntityTooLarge();
@@ -134,11 +136,7 @@ Status RequestMultipartParser::parse_body_header(size_t boundary_pos) {
 	std::string content_disposition;
 	std::string content_type;
 	pos = internal_server_request_parser::get_token_with_delim(_buffer, pos, content_disposition,
-															   "\r\n");
-	if (pos == std::string::npos) {
-		return Status::BadRequest();
-	}
-
+															   "\r\n", true);
 	status = parse_filename(content_disposition, _last_content->filename);
 	if (status == BadRequest) {
 		return status;
@@ -149,9 +147,10 @@ Status RequestMultipartParser::parse_body_header(size_t boundary_pos) {
 		return status;
 	}
 
-	pos = internal_server_request_parser::get_token_with_delim(_buffer, pos, content_type, "\r\n");
-	if (pos != std::string::npos) {
-		status = parse_content_type(content_type, _last_content->content_type);
+	pos = internal_server_request_parser::get_token_with_delim(_buffer, pos, content_type, "\r\n", true);
+	status = parse_content_type(content_type, _last_content->content_type);
+	if (status == NoMime) {
+		return Status::OK();
 	}
 
 	return status;
@@ -178,8 +177,7 @@ Status RequestMultipartParser::parse_content_type(const std::string& content_typ
 	const std::string content_type_key("Content-Type: ");
 
 	size_t start = content_type.find(content_type_key);
-	size_t end = content_type.find("\r\n");
-	if (start == std::string::npos || end == std::string::npos) {
+	if (start == std::string::npos) {
 		return Status::NoMime();
 	}
 
@@ -187,7 +185,8 @@ Status RequestMultipartParser::parse_content_type(const std::string& content_typ
 	if (slash_pos == std::string::npos) {
 		return Status::NoMime();
 	}
-	if (slash_pos - start > MIME_TYPE_MAX_SIZE || end - slash_pos > MIME_SUBTYPE_MAX_SIZE) {
+
+	if (slash_pos - start > MIME_TYPE_MAX_SIZE || content_type.size() - slash_pos > MIME_SUBTYPE_MAX_SIZE) {
 		return Status::RequestHeaderFieldsTooLarge();
 	}
 
@@ -199,7 +198,7 @@ Status RequestMultipartParser::parse_content_type(const std::string& content_typ
 		return Status::BadRequest();
 	}
 
-	mime = content_type.substr(start, end - start);
+	mime = content_type.substr(start, content_type.size() - start);
 
 	return Status::OK();
 }
@@ -214,7 +213,7 @@ static void skip_ows_and_folds(const std::string& line, size_t& pos) {
 				++pos;
 			}
 			continue;
-		} 
+		}
 
 		if (!internal_server_request_parser::is_ws(line[pos])) {
 			break;
@@ -239,58 +238,18 @@ Status RequestMultipartParser::parse_filename(const std::string& line, std::stri
 
 	skip_ows_and_folds(line, pos);
 	if (line[pos] != '=') {
-		return Status::InvalidFilenameFormat();
+		return Status::BadRequest();
 	}
 	++pos; // aboba skip '='
 	skip_ows_and_folds(line, pos);
 
 	if (line[pos] == '\"') {
-		status = parse_quoted_filename(line, pos, filename);
+		status = internal_server_request_parser::parse_quoted_string(line, pos, pos, filename);
 	} else {
 		status = parse_unquoted_filename(line, pos, filename);
 	}
 
 	return status;
-}
-
-Status RequestMultipartParser::parse_quoted_filename(const std::string& line, size_t pos, std::string& filename) {
-	const size_t ows_last_char_pos = 2;
-	const size_t escape_last_char_pos = 1;
-	const size_t len = line.size();
-	std::string buffer;
-
-	if (line[pos] != '\"') {
-		return Status::InvalidFilenameFormat();
-	}
-	++pos;
-
-	while (pos < len && line[pos] != '\"') {
-		if (pos + escape_last_char_pos < len && line[pos] == '\\') {
-			if (!is_quoted_pair_char(line[pos + escape_last_char_pos])) {
-				return Status::InvalidFilenameFormat();
-			}
-			buffer.push_back(line[pos + escape_last_char_pos]);
-			pos += escape_last_char_pos + 1;
-			continue;
-		} 
-		if (pos + ows_last_char_pos < len && internal_server_request_parser::is_ows(line.c_str() + pos)) {
-			pos = line.find_first_not_of("	 ", pos + ows_last_char_pos + 1);
-			if (pos == std::string::npos) {
-				return Status::InvalidFilenameFormat();
-			}
-			buffer.push_back(' ');
-			continue;
-		} else if (!internal_server_request_parser::is_qd_text(line[pos])) {
-			return Status::InvalidFilenameFormat();
-		}
-		buffer.push_back(line[pos]);
-		++pos;
-	}
-	if (line[pos] != '\"') {
-		return Status::InvalidFilenameFormat();
-	}
-	filename = buffer;
-	return Status::OK();
 }
 
 Status RequestMultipartParser::parse_unquoted_filename(const std::string& line, size_t pos, std::string& filename) {
@@ -303,20 +262,14 @@ Status RequestMultipartParser::parse_unquoted_filename(const std::string& line, 
 
 	if (end == std::string::npos ||
 		!internal_server_request_parser::is_string_valid_token(line.c_str() + pos, end)) {
-		return Status::InvalidFilenameFormat();
+		return Status::BadRequest();
 	}
 
 	filename = line.substr(pos, end);
 	if (filename.empty()) {
-		return Status::InvalidFilenameFormat();
+		return Status::BadRequest();
 	}
 	return Status::OK();
-}
-
-bool RequestMultipartParser::is_quoted_pair_char(unsigned char c) {
-	return (c == ' ' || c == '	') ||
-			internal_server_request_parser::is_vchar(c) ||
-			internal_server_request_parser::is_obs_text(c);
 }
 
 void RequestMultipartParser::update_last_content() {
@@ -325,3 +278,5 @@ void RequestMultipartParser::update_last_content() {
 		_last_content = &_content_data.back();
 	}
 }
+
+

@@ -13,7 +13,9 @@ include_directories(../../Utilities)
 set(SOURCES
   ServerRequestParserTests.cpp
   RequestMultipartBodyParserTests.cpp
-  ServerRequestParserHelpersTests.cpp)
+  ServerRequestParserHelpersTests.cpp
+  RequestHeaderParserTests.cpp
+)
 
 include(ExternalProject)
 

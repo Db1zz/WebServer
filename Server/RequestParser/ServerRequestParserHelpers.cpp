@@ -10,7 +10,7 @@ bool is_unreserved(char c) {
 	return (isdigit(c) || isalpha(c) || c == '-' || c == '.' || c == '_' || c == '~');
 }
 
-bool is_sub_delims(char c) {
+bool is_sub_delim(char c) {
 	return (c == '!' || c == '$' || c == '&' || c == '\'' || c == '(' || c == ')' || c == '*' ||
 			c == '+' || c == ',' || c == ';' || c == '=');
 }
@@ -19,7 +19,7 @@ bool is_path_valid(const std::string& path) {
 	const size_t path_size = path.size();
 
 	for (size_t i = 0; i < path_size; ++i) {
-		if (is_sub_delims(path[i]) || is_unreserved(path[i]) || path[i] == ':' || path[i] == '@') {
+		if (is_sub_delim(path[i]) || is_unreserved(path[i]) || path[i] == ':' || path[i] == '@') {
 			continue;
 		} else if (is_pos_hex(path, i)) {
 			i += 3;
@@ -31,45 +31,13 @@ bool is_path_valid(const std::string& path) {
 }
 
 bool is_pos_hex(const std::string& str, size_t pos) {
-	if (str[pos] == '%' && str.size() - pos >= 3) {
+	if (pos + 3 <= str.size() && str[pos] == '%') {
 		std::string hex(str.begin() + pos + 1, str.begin() + pos + 3);
 		if (hex.find_first_not_of("0123456789abcdefABCDEF", 1) == std::string::npos) {
 			return true;
 		}
 	}
 	return false;
-}
-
-size_t get_token_with_delims(const std::string& data, size_t start, std::string& result,
-							 const char* delims) {
-	size_t end = data.find_first_of(delims, start);
-	if (end == std::string::npos) {
-		result = data;
-		return result.size();
-	}
-	result = std::string(data.begin() + start, data.begin() + end);
-	end = data.find_first_not_of(delims, end);
-	if (end != std::string::npos) {
-		return end;
-	}
-
-	return start + result.size();
-}
-
-size_t get_token_with_delim(const std::string& data, size_t start, std::string& result,
-							const char* delim) {
-	size_t end = data.find(delim, start);
-	if (end == std::string::npos) {
-		result = data;
-		return result.size();
-	}
-	result = std::string(data.begin() + start, data.begin() + end);
-	end = data.find_first_not_of(delim, end);
-	if (end != std::string::npos) {
-		return end;
-	}
-
-	return start + result.size();
 }
 
 bool is_string_valid_token(const char* c, size_t len) {
@@ -110,6 +78,10 @@ bool is_ws(unsigned char c) {
 	return c == ' ' || c == '	';
 }
 
+bool is_obs_fold(const char* c) {
+	return c[0] == '\r' && c[1] == '\n' && is_ws(c[2]);
+}
+
 bool is_crlf(const char* c) {
 	return (*c == '\r') && (*(c + 1) == '\n');
 }
@@ -120,6 +92,62 @@ bool is_ows(const char* c) {
 
 bool is_qd_text(unsigned char c) {
 	return c == '!' || (c >= 35 && c <= 91) || (c >= 93 && c <= 126) || is_obs_text(c) || is_ws(c);
+}
+
+bool is_pchar(char c) {
+	return is_unreserved(c) || is_sub_delim(c) || c == ':' || c == '@';
+}
+
+size_t get_token_with_delims(const std::string& data, size_t start, std::string& result,
+							 const char* delims, bool skip_delims) {
+	size_t end = data.find_first_of(delims, start);
+	if (end == std::string::npos) {
+		result = data.substr(start);
+		return result.size() + start;
+	}
+	result = std::string(data.begin() + start, data.begin() + end);
+	if (skip_delims) {
+		end = data.find_first_not_of(delims, end);
+		if (end != std::string::npos) {
+			return end;
+		}
+	}
+	return result.size() + start;
+}
+
+void unfold_string(std::string& string) {
+	const size_t len = string.size();
+	std::string buffer;
+	size_t pos = 0;
+
+	while (pos < len) {
+		if (pos + 2 < len && is_obs_fold(string.c_str() + pos)) {
+			pos += 3;
+			buffer.push_back(' ');
+			continue;
+		}
+		buffer.push_back(string[pos]);
+		++pos;
+	}
+	string = buffer;
+}
+
+size_t get_token_with_delim(const std::string& data, size_t start, std::string& result,
+							const char* delim, bool skip_delims) {
+	size_t end = data.find(delim, start);
+	if (end == std::string::npos) {
+		result = data.substr(start);
+		return result.size() + start;
+	}
+	result = std::string(data.begin() + start, data.begin() + end);
+	if (skip_delims) {
+		end = data.find_first_not_of(delim, end);
+		if (end != std::string::npos) {
+			return end;
+		}
+	}
+
+	return start + result.size();
 }
 
 Status parse_nonencoded_filename(const std::string& filename) {
@@ -236,6 +264,71 @@ Status utf8_char_decoder(const std::string& string, size_t char_pos, std::string
 	consumed_chars = (curr_char_pos + 3) - char_pos;
 	decoded = buffer;
 	return Status::OK();
+}
+
+bool is_quoted_pair_char(unsigned char c) {
+	return (c == ' ' || c == '	') || is_vchar(c) || is_obs_text(c);
+}
+
+Status parse_quoted_string(const std::string& s, size_t pos, size_t& next_pos, std::string& out) {
+	const size_t ows_last_char_pos = 2;
+	const size_t escape_last_char_pos = 1;
+	const size_t len = s.size();
+	std::string buffer;
+
+	if (s[pos] != '\"') {
+		return Status::InvalidFilenameFormat();
+	}
+	++pos;
+
+	while (pos < len && s[pos] != '\"') {
+		if (pos + escape_last_char_pos < len && s[pos] == '\\') {
+			if (!is_quoted_pair_char(s[pos + escape_last_char_pos])) {
+				return Status::InvalidFilenameFormat();
+			}
+			buffer.push_back(s[pos + escape_last_char_pos]);
+			pos += escape_last_char_pos + 1;
+			continue;
+		}
+		if (pos + ows_last_char_pos < len && is_ows(s.c_str() + pos)) {
+			pos = s.find_first_not_of("	 ", pos + ows_last_char_pos + 1);
+			if (pos == std::string::npos) {
+				return Status::InvalidFilenameFormat();
+			}
+			buffer.push_back(' ');
+			continue;
+		} else if (!is_qd_text(s[pos])) {
+			return Status::InvalidFilenameFormat();
+		}
+		buffer.push_back(s[pos]);
+		++pos;
+	}
+	if (s[pos] != '\"') {
+		return Status::InvalidFilenameFormat();
+	}
+	next_pos = pos;
+	out = buffer;
+	return Status::OK();
+}
+
+void extract_filename(const std::string& full_path, std::string& out) {
+	size_t last_slash_pos = 0;
+
+	last_slash_pos = full_path.find_last_of("/");
+	if (last_slash_pos == std::string::npos) {
+		return;
+	}
+	out = full_path.substr(last_slash_pos + 1);
+}
+
+void extract_mime(const std::string& filename, std::string& out) {
+	size_t last_slash_pos = 0;
+
+	last_slash_pos = filename.find_last_of(".");
+	if (last_slash_pos == std::string::npos) {
+		return;
+	}
+	out = filename.substr(last_slash_pos);
 }
 
 } // namespace internal_server_request_parser

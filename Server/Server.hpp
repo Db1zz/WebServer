@@ -48,8 +48,7 @@ class Server {
 	Status create_sockets_from_config(const t_config& server_config);
 	Status create_sockets_from_configs(const std::vector<t_config>& configs);
 	void print_debug_addr(const std::string& address, int port);
-	Status find_server_socket_manager(int server_socket_fd,
-									  std::map<int, ServerSocketManager*>::iterator& search_result);
+	ServerSocketManager* find_server_socket_manager(int server_socket_fd);
 	void destroy_all_server_socket_managers();
 
 	std::vector<t_config> _configs;
