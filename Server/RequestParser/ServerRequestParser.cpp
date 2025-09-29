@@ -28,6 +28,7 @@ void ServerRequestParser::create_body_parser() {
 Status ServerRequestParser::feed(const std::string& content) {
 	Status status;
 	size_t cursor_pos = 0;
+	std::cout << "test1" << std::endl;
 
 	if (!_header_found) {
 		status = _header_parser.feed(content, cursor_pos);
@@ -35,10 +36,12 @@ Status ServerRequestParser::feed(const std::string& content) {
 			return status;
 		}
 		status = _header_parser.apply(*_request);
+		std::cout << "test2: "  << status.error() << std::endl;
 		if (!status || status.error() == DataIsNotReady) {
 			return status;
 		}
-
+		std::cout << "test3" << std::endl;
+		std::cout << "ACCEPT:"  << _request->accept << std::endl;
 		_header_found = true;
 
 		if (_request->method == "POST") {

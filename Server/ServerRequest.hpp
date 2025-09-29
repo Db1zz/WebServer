@@ -10,13 +10,13 @@
 #include <vector>
 
 typedef struct s_request_content {
-	std::string filename;
-	std::string name;
-	std::string content_type;
-	std::string data;
+	std::string filename; // only filename extracted from the bottom part of the header 
+	std::string name; //dont use
+	std::string content_type; // image/png
+	std::string data; //content
 
-	bool is_file_created;
-	bool is_finished;
+	bool is_file_created; //i modify
+	bool is_finished; // all data is sent to response, request finished
 	s_request_content() : is_file_created(false), is_finished(false) {}
 } t_request_content;
 
@@ -65,7 +65,7 @@ typedef struct s_request {
 	std::string connection;
 	uint64_t content_length;
 	t_media_type content_type;
-	std::string boundary;
+	// std::string boundary;
 
 	uint64_t transfered_length; // length of the whole body that was transfered
 
@@ -73,11 +73,11 @@ typedef struct s_request {
 	std::string cache;
 	// t_uri_path uri_path_data;
 
-	std::string filename;
+	std::string filename; //filename extracted from filename, dint use 
 	std::string mime_type;
 	std::string uri_path;
-	std::string path_parameter;
-	std::vector<std::string> path_queries;
+	std::string path_parameter; //dont use for now
+	std::vector<std::string> path_queries; //cgi
 	std::vector<std::string> transfer_encoding;
 
 	std::list<t_request_content> content_data;

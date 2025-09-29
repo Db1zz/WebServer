@@ -67,7 +67,7 @@ Status Server::launch() {
 
 bool Server::is_a_new_connection(const epoll_event& event) {
 	Socket* event_socket = static_cast<Socket*>(event.data.ptr);
-	return find_server_socket_manager(event_socket->get_fd()) == NULL;
+	return find_server_socket_manager(event_socket->get_fd()) != NULL;
 }
 
 Status Server::handle_new_connection_event(const epoll_event& connection_event) {
@@ -191,6 +191,7 @@ Status Server::request_handler(ClientSocket* client_socket) {
 }
 
 Status Server::response_handler(ClientSocket* client_socket) {
+	std::cout << "request" << client_socket->get_connection_context()->request.accept << std::endl;
 	ServerResponse resp(client_socket, _configs[0]);
 	resp.generate_response();
 
