@@ -189,11 +189,11 @@ bool RequestHeaderParser::is_valid_ipv4_addr(const std::string& addr) {
 
 // TODO: add domains support like example.com
 Status RequestHeaderParser::parse_host(const std::string& field_value, t_request& request) {
-	if (!is_valid_ipv4_addr(field_value)) {
-		log_error("RequestHeaderParser::parse_host",
-				  std::string("invalid host: '") + field_value + "'");
-		return Status::BadRequest();
-	}
+	// if (!is_valid_ipv4_addr(field_value)) {
+	// 	log_error("RequestHeaderParser::parse_host",
+	// 			  std::string("invalid host: '") + field_value + "'");
+	// 	return Status::BadRequest();
+	// }
 
 	request.host = field_value;
 
