@@ -166,10 +166,9 @@ void ServerResponse::set_binary_headers() {
 }
 
 void ServerResponse::handle_file_upload() {
-	while (!_req_data->content_data.empty() || !_req_data->content_data.front().is_finished ) {
+	while (!_req_data->content_data.empty()) {
 		t_request_content &content_data = _req_data->content_data.front();
-		// std::cout << "file data:" << content_data.data << std::endl;
-		std::string upload_dir = _resolved_file_path; //?call resolve_file_path again?
+		std::string upload_dir = _resolved_file_path;
 		FileUtils::ensureTrailingSlash(upload_dir);
 	
 		std::string file_path = upload_dir + content_data.filename;
@@ -177,7 +176,6 @@ void ServerResponse::handle_file_upload() {
 		if (FileUtils::is_file_exists(file_path) && !content_data.is_file_created) {
 			status = Status::Conflict();
 			_json_handler->set_error_response("File already exists", _body, _headers);
-			return;
 		}
 	
 		bool file_saved = _file_utils->save_uploaded_file(file_path, content_data.data);
@@ -194,8 +192,10 @@ void ServerResponse::handle_file_upload() {
 		}
 		if (content_data.is_finished)
 			_req_data->content_data.pop_front();
-		else if (!content_data.is_finished)
-			_req_data->content_data.clear();
+		else if (!content_data.is_finished) {
+			content_data.data.clear();
+			break ;
+		}
 	}
 }
 
