@@ -185,7 +185,7 @@ void ServerResponse::handle_file_upload() {
 			std::cout << "file saved enter, next step is set json response" << std::endl;
 			status = Status::OK();
 			_json_handler->set_success_response("Upload successful", _body, _headers);
-		} else if (_req_data->is_request_ready()) {
+		} else if (content_data.is_finished) {
 			std::cout <<"request is ready, set badrequest" << std::endl;
 			status = Status::BadRequest();
 			_json_handler->set_error_response("No file uploaded or failed to save file(s)", _body,
