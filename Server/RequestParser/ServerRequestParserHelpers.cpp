@@ -136,6 +136,7 @@ size_t get_token_with_delim(const std::string& data, size_t start, std::string& 
 							const char* delim, bool skip_delims) {
 	size_t end = data.find(delim, start);
 	if (end == std::string::npos) {
+		std::cout << "size: " << data.size() << " start: " << start << std::endl;
 		result = data.substr(start);
 		return result.size() + start;
 	}

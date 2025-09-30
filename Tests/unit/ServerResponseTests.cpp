@@ -33,7 +33,6 @@ protected:
 		// request.cgi_query_string = "";
 		request.content_length = 0;
 		// request.content_type = "";
-		request.boundary = "";
 		request.transfered_length = 4;
 		request.filename = "/";
 		request.body_chunk = "";
@@ -186,7 +185,6 @@ TEST_F(ServerResponseTest, PostFileRequest) {
 	request.content_type.type = "multipart";
 	request.content_type.subtype = "form-data";
 	request.content_type.parameters.insert({"boundary","----WebKitFormBoundaryTj2MepeomC2UszbC"});
-	request.boundary = "----WebKitFormBoundaryTj2MepeomC2UszbC";
 	request.transfered_length = 184;
 	request.filename = "fileuploadtest.txt";
 	request.is_file_created = false;

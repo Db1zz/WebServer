@@ -144,3 +144,35 @@ TEST(FeedTests, ParseTheWholeRequestByFeedingSingleChar) {
 	EXPECT_EQ(request.content_data.front().name, "aboba");
 	EXPECT_EQ(request.content_data.front().filename, "myra\"re_file\"name.txt");
 }
+
+TEST(FeedTests, ParseBigFileWithTinyOne) {
+	Status status;
+	std::string body =
+		"------WebKitFormBoundary7MA4YWxkTrZu0gW\r\n"
+		"Content-Disposition: form-data; name=\"username\"\r\n"
+		"\r\n"
+		"vasya\r\n"
+		"------WebKitFormBoundary7MA4YWxkTrZu0gW\r\n"
+		"Content-Disposition: form-data; name=\"aboba\"; filename=\"myrare_filename.txt\"\r\n"
+		"\r\n";
+
+	std::string content;
+	const size_t megabytes = 1000000 * 100;
+	for (size_t i = 0; i < megabytes; ++i) {
+		content.push_back('a');
+	}
+
+	body.append(content);
+	body.append("\r\n------WebKitFormBoundary7MA4YWxkTrZu0gW--\r\n");
+	RequestMultipartParser parser("----WebKitFormBoundary7MA4YWxkTrZu0gW", 143);
+	status = parser.feed(body, 0);
+	EXPECT_NE(status, BadRequest);
+	t_request request;
+	parser.apply(request);
+	EXPECT_EQ(request.content_data.front().data, "vasya");
+	EXPECT_EQ(request.content_data.front().name, "username");
+	request.content_data.pop_front();
+	EXPECT_EQ(request.content_data.front().data, content);
+	EXPECT_EQ(request.content_data.front().name, "aboba");
+	EXPECT_EQ(request.content_data.front().filename, "myrare_filename.txt");
+}

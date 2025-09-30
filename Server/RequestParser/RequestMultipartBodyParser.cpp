@@ -31,8 +31,8 @@ Status RequestMultipartParser::feed(const std::string& content, size_t start_pos
 	Status status;
 	_data_size += content.size() - start_pos;
 	_buffer.append(content.substr(start_pos));
-
 	do {
+
 		size_t boundary_pos = search_boundary();
 		if (boundary_pos != std::string::npos) {
 			if (_is_end_boundary_found) {
@@ -46,6 +46,7 @@ Status RequestMultipartParser::feed(const std::string& content, size_t start_pos
 				if (!status) {
 					break;
 				}
+				continue;
 			}
 			status = parse_body_with_header(boundary_pos);
 		} else {
