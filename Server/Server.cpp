@@ -8,17 +8,17 @@
 #include <cstdio>
 #include <sstream>
 
+#include "Chunk.hpp"
 #include "ClientSocket.hpp"
+#include "RequestParser/ServerRequestParser.hpp"
 #include "ServerConfig.hpp"
 #include "ServerLogger.hpp"
 #include "ServerRequest.hpp"
-#include "RequestParser/ServerRequestParser.hpp"
 #include "ServerResponse.hpp"
 #include "ServerSocket.hpp"
 #include "ServerSocketManager.hpp"
 #include "Socket.hpp"
 #include "status.hpp"
-#include "Chunk.hpp"
 
 namespace {
 volatile std::sig_atomic_t g_signal_status = 0;
@@ -113,13 +113,11 @@ Status Server::handle_request_event(const epoll_event& request_event) {
 			}
 
 			ClientConnectionContext* connection_context = client_socket->get_connection_context();
-			connection_context->request.body_chunk.clear();
 			if (connection_context->request.is_request_ready()) {
 				manager = find_server_socket_manager(client_socket->get_server_fd());
-				_server_logger.log_access(*client_socket->get_host(),
-										  connection_context->request.method,
-										  connection_context->request.uri_path,
-										  manager->get_server_socket()->get_port());
+				_server_logger.log_access(
+					*client_socket->get_host(), connection_context->request.method,
+					connection_context->request.uri_path, manager->get_server_socket()->get_port());
 				client_socket->reset_connection_context();
 			}
 		}
@@ -177,7 +175,7 @@ Status Server::request_handler(ClientSocket* client_socket) {
 	int rd_bytes;
 
 	status = read_data(client_socket, buffer, rd_bytes);
-	//std::cout << GREEN300 << "REQUEST:" << buffer << RESET << std::endl;
+	// std::cout << GREEN300 << "REQUEST:" << buffer << RESET << std::endl;
 	if (!status) {
 		return Status("Server::read_data " + status.msg());
 	}
@@ -203,12 +201,8 @@ Status Server::response_handler(ClientSocket* client_socket) {
 		if (write(client_socket->get_fd(), headers.c_str(), headers.size()) < 0)
 			return Status("failed to send response headers to client");
 		Status stream_status = Chunk::stream_file_chunked(
-			resp.get_stream_file_path(), 
-			client_socket->get_fd(), 
-			resp.get_stream_location()
-		);
-		if (!stream_status.is_ok())
-			return stream_status;
+			resp.get_stream_file_path(), client_socket->get_fd(), resp.get_stream_location());
+		if (!stream_status.is_ok()) return stream_status;
 	} else {
 		std::string res = resp.get_response();
 		if (write(client_socket->get_fd(), res.c_str(), res.size()) < 0)
@@ -218,10 +212,11 @@ Status Server::response_handler(ClientSocket* client_socket) {
 		ServerSocketManager* manager = find_server_socket_manager(client_socket->get_server_fd());
 		manager->close_connection_with_client(client_socket->get_fd());
 		return Status::CloseConnection();
-		//!IN THIS FUNCTION WE NEED TO DO MODIFICATIONS
-		//TODO: 
-		//1. maybe add a separate function for handling streaming from server
-		//2. add all of the codes (maybe convert it to string and check fisrt char to see if its an error code ot not hmmm, lets discuss)
+		//! IN THIS FUNCTION WE NEED TO DO MODIFICATIONS
+		// TODO:
+		// 1. maybe add a separate function for handling streaming from server
+		// 2. add all of the codes (maybe convert it to string and check fisrt char to see if its an
+		// error code ot not hmmm, lets discuss)
 	}
 	return Status();
 }

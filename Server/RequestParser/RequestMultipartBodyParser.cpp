@@ -78,6 +78,8 @@ void RequestMultipartParser::apply(t_request& request) {
 		request.content_data.push_back(_content_data.front());
 		_content_data.pop_front();
 	}
+	request.transfered_length = _data_size;
+	std::cout << "ABOBA: " << request.transfered_length << std::endl;
 }
 
 size_t RequestMultipartParser::search_boundary() {
