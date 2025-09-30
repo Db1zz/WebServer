@@ -174,25 +174,33 @@ void ServerResponse::handle_file_upload() {
 		std::string file_path = upload_dir + content_data.filename;
 	
 		if (FileUtils::is_file_exists(file_path) && !content_data.is_file_created) {
+			std::cout << "enter file exists" << std::endl;
 			status = Status::Conflict();
 			_json_handler->set_error_response("File already exists", _body, _headers);
 		}
 	
-		bool file_saved = _file_utils->save_uploaded_file(file_path, content_data.data);
+		bool file_saved = _file_utils->save_uploaded_file(file_path, content_data);
+		std::cout << "is file saved: " << (file_saved == true ? "TRUE" : "FALSE") << std::endl;
 		if (file_saved) {
+			std::cout << "file saved enter, next step is set json response" << std::endl;
 			status = Status::OK();
 			_json_handler->set_success_response("Upload successful", _body, _headers);
 		} else if (_req_data->is_request_ready()) {
+			std::cout <<"request is ready, set badrequest" << std::endl;
 			status = Status::BadRequest();
 			_json_handler->set_error_response("No file uploaded or failed to save file(s)", _body,
 											  _headers);
 		} else {
+			std::cout << "file created, continue" << std::endl;
 			content_data.is_file_created = true;
 			status = Status::Continue();
 		}
-		if (content_data.is_finished)
+		if (content_data.is_finished) {
+			std::cout << "pop front block" << std::endl;
 			_req_data->content_data.pop_front();
+		}
 		else if (!content_data.is_finished) {
+			std::cout << "data clear and break block" << std::endl;
 			content_data.data.clear();
 			break ;
 		}

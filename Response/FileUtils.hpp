@@ -19,7 +19,7 @@ class FileUtils {
 	static void ensureTrailingSlash(std::string& path);
 	static bool is_file_exists(const std::string& file_path);
 	bool read_file_content(std::fstream& file, std::string& body);
-	bool save_uploaded_file(const std::string& file_path, std::string &content_data);
+	bool save_uploaded_file(const std::string& file_path, t_request_content &content_data);
 	bool is_binary(const std::string& mime_type) const;
 	std::string identify_mime_type() const;
 	const t_location* find_best_location_match() const;
