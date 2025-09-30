@@ -113,9 +113,9 @@ Status RequestMultipartParser::parse_body_with_header(size_t boundary_pos) {
 	if (header_end == std::string::npos) {
 		return Status::DataIsNotReady();
 	}
-	if (_buffer.size() >= MAX_REQUEST_BODY_HEADER_LENGTH) {
-		return Status::RequestEntityTooLarge();
-	}
+	// if (_buffer.size() >= MAX_REQUEST_BODY_HEADER_LENGTH) {
+	// 	return Status::RequestEntityTooLarge();
+	// }
 	update_last_content();
 	status = parse_body_header(boundary_pos);
 	_buffer = _buffer.substr(header_end + header_end_key.size());

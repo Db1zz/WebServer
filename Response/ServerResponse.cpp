@@ -46,16 +46,8 @@ ServerResponse& ServerResponse::handle_get_method(const t_location& location) {
 }
 
 Status ServerResponse::generate_response() {
-	// if (_req_data) {
-	// 	std::cout << "Request Debug Info:" << std::endl;
-	// 	std::cout << "method: " << _req_data->method << std::endl;
-	// 	std::cout << "uri_path: " << _req_data->uri_path << std::endl;
-	// 	std::cout << "mime_type: " << _req_data->mime_type << std::endl;
-	// 	std::cout << "accept: " << _req_data->accept << std::endl;
-	// 	std::cout << "filename: " << _req_data->filename << std::endl;
-	// 	std::cout << "is_file_created: " << _req_data->is_file_created << std::endl;
-	// 	// std::cout << "body: " << _req_data->content_data. << std::endl;
-	// }
+	if (_req_data->content_data.empty())
+		std::cout << "content data empty" << std::endl;
 	const t_location* best_match = _file_utils->find_best_location_match();
 
 	if (best_match != NULL)
@@ -166,6 +158,8 @@ void ServerResponse::set_binary_headers() {
 }
 
 void ServerResponse::handle_file_upload() {
+	std::cout << "enter handle file upload" << std::endl;
+
 	while (!_req_data->content_data.empty()) {
 		t_request_content &content_data = _req_data->content_data.front();
 		std::string upload_dir = _resolved_file_path;
