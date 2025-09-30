@@ -21,6 +21,7 @@ TEST(FeedTests, ParseCorrectBodyWithSingleHeader) {
 
 	EXPECT_EQ(request.content_data.front().data, "vasya");
 	EXPECT_EQ(request.content_data.front().name, "username");
+	EXPECT_TRUE(request.content_data.front().is_finished);
 }
 
 TEST(FeedTests, ParseMultiplePartsOfASingleRequestBody) {
@@ -64,10 +65,12 @@ TEST(FeedTests, ParseWholeMultipartBody) {
 	parser.apply(request);
 	EXPECT_EQ(request.content_data.front().data, "vasya");
 	EXPECT_EQ(request.content_data.front().name, "username");
+	EXPECT_TRUE(request.content_data.front().is_finished);
 	request.content_data.pop_front();
 	EXPECT_EQ(request.content_data.front().data, "pizdec kontenta");
 	EXPECT_EQ(request.content_data.front().name, "aboba");
 	EXPECT_EQ(request.content_data.front().filename, "myrare_filename.txt");
+	EXPECT_TRUE(request.content_data.front().is_finished);
 }
 
 TEST(FeedTests, ParseSplittedMultipartBody) {
@@ -110,10 +113,12 @@ TEST(FeedTests, ParseSplittedMultipartBody) {
 	parser.apply(request);
 	EXPECT_EQ(request.content_data.front().data, "vasya");
 	EXPECT_EQ(request.content_data.front().name, "username");
+	EXPECT_TRUE(request.content_data.front().is_finished);
 	request.content_data.pop_front();
 	EXPECT_EQ(request.content_data.front().data, "pizdec kontenta");
 	EXPECT_EQ(request.content_data.front().name, "aboba");
 	EXPECT_EQ(request.content_data.front().filename, "myrare_filename.txt");
+	EXPECT_TRUE(request.content_data.front().is_finished);
 }
 
 TEST(FeedTests, ParseTheWholeRequestByFeedingSingleChar) {

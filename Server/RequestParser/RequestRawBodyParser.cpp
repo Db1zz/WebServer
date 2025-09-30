@@ -1,7 +1,7 @@
 #include "RequestRawBodyParser.hpp"
 
-RequestRawBodyParser::RequestRawBodyParser(int content_length)
-	: _data_size(0), _content_length(content_length) {
+RequestRawBodyParser::RequestRawBodyParser(int content_length, RequestBodyStorageType type)
+	: _data_size(0), _content_length(content_length), _type(type) {
 }
 
 Status RequestRawBodyParser::feed(const std::string& content, size_t start_pos) {

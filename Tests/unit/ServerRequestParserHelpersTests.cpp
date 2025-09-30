@@ -58,7 +58,6 @@ TEST(UTF8CharDecoder, DecodeInvalidSequenceWithNoContinuationBytes) {
 
 	status = internal_server_request_parser::utf8_char_decoder(encoded_sequence, char_pos,
 															   decoded_sequence, consumed_chars);
-	std::cout << static_cast<int>(status.error()) << std::endl;
 	EXPECT_EQ(status.error(), BadRequest);
 }
 

@@ -3,14 +3,20 @@
 
 #include "IRequestBodyParser.hpp"
 
+enum RequestBodyStorageType {
+	InFile,
+	InBuffer
+};
+
 class RequestRawBodyParser : public IRequestBodyParser {
    public:
-	RequestRawBodyParser(int content_length);
+	RequestRawBodyParser(int content_length, RequestBodyStorageType type);
 	Status feed(const std::string& content, size_t start_pos);
 	void apply(t_request& request);
 
    private:
 	std::string _data;
+	RequestBodyStorageType _type;
 	int _data_size;
 	const int _content_length;
 };

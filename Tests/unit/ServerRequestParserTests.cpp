@@ -111,6 +111,7 @@ TEST(ServerRequestParserTest, ParsePartitionedPostRequest) {
 
 	status = parser.feed(request_string);
 	EXPECT_EQ(request.content_data.front().data, "(some huge filecontent");
+	EXPECT_FALSE(request.content_data.front().is_finished);
 
 	request_string =
 		"3456789 ABOBA)\r\n"
@@ -124,4 +125,5 @@ TEST(ServerRequestParserTest, ParsePartitionedPostRequest) {
 			  "(some huge filecontent pizdec nahuy 123456789 ABOBA)");
 	EXPECT_EQ(request.filename, "upload");
 	EXPECT_EQ(request.content_length, 148u);
+	EXPECT_TRUE(request.content_data.front().is_finished);
 }

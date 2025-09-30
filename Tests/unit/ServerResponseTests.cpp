@@ -33,6 +33,7 @@ protected:
 		// request.cgi_query_string = "";
 		request.content_length = 0;
 		// request.content_type = "";
+		// request.boundary = "";
 		request.transfered_length = 4;
 		request.filename = "/";
 		request.body_chunk = "";
@@ -165,10 +166,10 @@ TEST_F(ServerResponseTest, UploadsDirectoryRequest) {
 	request.filename = "/";
 
 	ServerResponse response(&client_socket, config);
-	
+
 	Status status;
 	status = response.generate_response();
-	
+
 	EXPECT_EQ(status.code(), 200);
 }
 

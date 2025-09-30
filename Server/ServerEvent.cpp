@@ -8,7 +8,7 @@
 #include "Socket.hpp"
 
 ServerEvent::ServerEvent()
-    : _events_arr(NULL), _events_size(0), _events_capacity(5)
+    : _events_arr(NULL), _events_size(100024), _events_capacity(5)
 {
     init();
 }

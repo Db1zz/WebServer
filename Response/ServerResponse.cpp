@@ -64,6 +64,7 @@ Status ServerResponse::generate_response() {
 	} else {
 		_response = WS_PROTOCOL + status.status_line() + get_headers() + "\r\n" + get_body();
 	}
+	// std::cout << RED400 << "status: " << status.code() << RESET << std::endl;
 	return status;
 }
 
@@ -157,7 +158,7 @@ void ServerResponse::set_binary_headers() {
 void ServerResponse::handle_file_upload() {
 	while (!_req_data->content_data.empty()) {
 		t_request_content &content_data = _req_data->content_data.front();
-		std::string upload_dir = _resolved_file_path;
+		std::string upload_dir = _resolved_file_path; //?call resolve_file_path again?
 		FileUtils::ensureTrailingSlash(upload_dir);
 	
 		std::string file_path = upload_dir + content_data.filename;
@@ -184,7 +185,7 @@ void ServerResponse::handle_file_upload() {
 		}
 		else if (!content_data.is_finished) {
 			content_data.data.clear();
-			break ;
+			break;	
 		}
 	}
 }

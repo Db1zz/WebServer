@@ -18,7 +18,7 @@ Status ServerSocket::open_socket() {
 
 	status = create_server_socket();
 	if (!status) {
-		return status;
+	return status;
 	}
 
 	status = set_socket_option(kReuseAddr, kSet);
