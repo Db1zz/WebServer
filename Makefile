@@ -11,11 +11,14 @@ LIBDIR = $(BUILDDIR)/Lib
 LIB = webservlib.a
 
 LOGSDIR = Logs
-SCRIPTS = mkdir -p $(LOGSDIR)
 
 UNIT_TESTS_DIR = Tests/unit
 TESTS_DIR = Tests/global
 VENV_DIR = $(TESTS_DIR)/venv
+
+TEMP_FILES_DIR = .tempfiles
+
+PROJECT_DIRS = $(LOGSDIR) $(LIBDIR) $(TEMP_FILES_DIR)
 
 TESTS_SRCS = \
 	Tests/test.py
@@ -49,7 +52,7 @@ SRCS = \
 
 OBJS = $(patsubst %.cpp, $(OBJSDIR)/%.o, $(SRCS))
 
-all: $(NAME) scripts
+all: create_project_dirs $(NAME)
 
 $(OBJS): $(OBJSDIR)/%.o: %.cpp
 	mkdir -p $(BUILDDIR) $(dir $@)
@@ -66,14 +69,14 @@ $(OBJSDIR)/main.o: main.cpp
 $(NAME): $(OBJSDIR)/main.o $(LIBDIR)/$(LIB)
 	$(CXX) $(OBJSDIR)/main.o $(LIBDIR)/$(LIB) -o $@
 
-scripts:
-	$(SCRIPTS)
+create_project_dirs:
+	mkdir -p $(PROJECT_DIRS)
 
 clean:
 	rm -rf $(OBJSDIR)/$(dir $(OBJS))
 
 fclean:
-	rm -rf $(BUILDDIR) $(LOGSDIR) $(NAME)
+	rm -rf $(BUILDDIR) $(PROJECT_DIRS) $(NAME)
 
 re: fclean all
 

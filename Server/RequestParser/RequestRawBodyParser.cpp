@@ -1,7 +1,20 @@
 #include "RequestRawBodyParser.hpp"
+#include <fstream>
 
 RequestRawBodyParser::RequestRawBodyParser(int content_length, RequestBodyStorageType type)
 	: _data_size(0), _content_length(content_length), _type(type) {
+	static uint64_t i;
+	if (_type == InFile) {
+		std::stringstream ss;
+		ss << i;
+		++i;
+		_temp_file_name = ss.str();
+		_fstream.open(_temp_file_name);
+	}
+}
+
+RequestRawBodyParser::~RequestRawBodyParser() {
+	_fstream.close();
 }
 
 Status RequestRawBodyParser::feed(const std::string& content, size_t start_pos) {
@@ -20,6 +33,5 @@ Status RequestRawBodyParser::feed(const std::string& content, size_t start_pos) 
 }
 
 void RequestRawBodyParser::apply(t_request& request) {
-	request.body_chunk.append(_data);
 	request.transfered_length += _data_size;
 }
