@@ -189,7 +189,6 @@ Status Server::request_handler(ClientSocket* client_socket) {
 }
 
 Status Server::response_handler(ClientSocket* client_socket) {
-	std::cout << "request" << client_socket->get_connection_context()->request.accept << std::endl;
 	ServerResponse resp(client_socket, _configs[0]);
 	resp.generate_response();
 

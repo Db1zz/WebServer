@@ -46,8 +46,6 @@ ServerResponse& ServerResponse::handle_get_method(const t_location& location) {
 }
 
 Status ServerResponse::generate_response() {
-	if (_req_data->content_data.empty())
-		std::cout << "content data empty" << std::endl;
 	const t_location* best_match = _file_utils->find_best_location_match();
 
 	if (best_match != NULL)
@@ -66,7 +64,6 @@ Status ServerResponse::generate_response() {
 	} else {
 		_response = WS_PROTOCOL + status.status_line() + get_headers() + "\r\n" + get_body();
 	}
-	std::cout << RED400 << "status: " << status.code() << RESET << std::endl;
 	return status;
 }
 
@@ -158,8 +155,6 @@ void ServerResponse::set_binary_headers() {
 }
 
 void ServerResponse::handle_file_upload() {
-	std::cout << "enter handle file upload" << std::endl;
-
 	while (!_req_data->content_data.empty()) {
 		t_request_content &content_data = _req_data->content_data.front();
 		std::string upload_dir = _resolved_file_path;
@@ -168,33 +163,26 @@ void ServerResponse::handle_file_upload() {
 		std::string file_path = upload_dir + content_data.filename;
 	
 		if (FileUtils::is_file_exists(file_path) && !content_data.is_file_created) {
-			std::cout << "enter file exists" << std::endl;
 			status = Status::Conflict();
 			_json_handler->set_error_response("File already exists", _body, _headers);
 		}
 	
 		bool file_saved = _file_utils->save_uploaded_file(file_path, content_data);
-		std::cout << "is file saved: " << (file_saved == true ? "TRUE" : "FALSE") << std::endl;
 		if (file_saved) {
-			std::cout << "file saved enter, next step is set json response" << std::endl;
 			status = Status::OK();
 			_json_handler->set_success_response("Upload successful", _body, _headers);
 		} else if (content_data.is_finished) {
-			std::cout <<"request is ready, set badrequest" << std::endl;
 			status = Status::BadRequest();
 			_json_handler->set_error_response("No file uploaded or failed to save file(s)", _body,
 											  _headers);
 		} else {
-			std::cout << "file created, continue" << std::endl;
 			content_data.is_file_created = true;
 			status = Status::Continue();
 		}
 		if (content_data.is_finished) {
-			std::cout << "pop front block" << std::endl;
 			_req_data->content_data.pop_front();
 		}
 		else if (!content_data.is_finished) {
-			std::cout << "data clear and break block" << std::endl;
 			content_data.data.clear();
 			break ;
 		}
