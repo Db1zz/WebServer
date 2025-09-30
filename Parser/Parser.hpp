@@ -10,7 +10,7 @@
 #include <iostream>
 #include <sstream>
 
-#include "ServerConfig.hpp"
+#include "../Server/ServerConfig.hpp"
 #include "Token.hpp"
 
 class Parser {

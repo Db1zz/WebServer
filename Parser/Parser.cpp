@@ -332,6 +332,8 @@ t_location Parser::parseLocation() {
 	tempLocation.chunked_size = 0;
 	tempLocation.chunked_threshold = 0;
 	tempLocation.chunked_transfer_encoding = false;
+	if (tempLocation.path == "")
+		throw std::runtime_error("Location path cannot be empty!");
 	consume(LEFT_BRACE, "expected opening '{' for location block");
 	while (!check(RIGHT_BRACE)) {
 		if (match(ROOT)) {
@@ -489,13 +491,13 @@ std::vector<t_config> Parser::getConfigStruct() {
 	// for (size_t i = 0; i < _configVector.size(); i++) {
 	// 	t_config temp = _configVector.at(i);
 
-	// 	// Print hosts
-	// 	for (size_t host_i = 0; host_i < temp.host.size(); host_i++)
-	// 		std::cout << "Host: " << temp.host.at(host_i) << '\n';
+	// 	// Print host and port
+	// 	for (size_t temp_i = 0; temp_i < temp.listen.size(); temp_i++)
+	// 	{
+	// 		std::cout << "Host: " << temp.listen.at(temp_i).host << '\n';
+	// 		std::cout << "Port: " << temp.listen.at(temp_i).port << '\n';
+	// 	}
 
-	// 	// Print ports
-	// 	for (size_t port_i = 0; port_i < temp.port.size(); port_i++)
-	// 		std::cout << "Port: " << temp.port.at(port_i) << '\n';
 
 	// 	// Print server names
 	// 	for (size_t sn_i = 0; sn_i < temp.server_name.size(); sn_i++)
