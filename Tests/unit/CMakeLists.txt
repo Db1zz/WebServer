@@ -16,6 +16,7 @@ set(SOURCES
   ServerRequestParserHelpersTests.cpp
   RequestHeaderParserTests.cpp
   ServerResponseTests.cpp
+  HashTest.cpp
 )
 
 include(ExternalProject)

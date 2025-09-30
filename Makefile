@@ -43,6 +43,7 @@ SRCS = \
 	Logger/ALogger.cpp \
 	Utilities/fs.cpp \
 	Utilities/status.cpp \
+	Utilities/hash.cpp \
 	Parser/Parser.cpp \
 	Parser/Token.cpp \
 
