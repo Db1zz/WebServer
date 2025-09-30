@@ -6,7 +6,12 @@
 #include "status.hpp"
 
 ServerRequestParser::ServerRequestParser(t_request* request, ServerLogger* logger)
-	: _logger(logger), _header_parser(logger), _body_parser(NULL), _header_found(false), _request(request) {
+	: _logger(logger),
+	  _header_parser(logger),
+	  _body_parser(NULL),
+	  _header_found(false),
+	  _is_cgi(false),
+	  _request(request) {
 }
 
 ServerRequestParser::~ServerRequestParser() {
@@ -16,26 +21,17 @@ ServerRequestParser::~ServerRequestParser() {
 	}
 }
 
-void ServerRequestParser::create_body_parser() {
-	if (_request->content_type.type == "multipart" && _request->content_type.subtype == "form-data") {
-		const std::string* boundary = _request->content_type.find_parameter("boundary");
-		_body_parser = new RequestMultipartParser(*boundary, _request->content_length);
-	} else {
-		_body_parser = new RequestRawBodyParser(_request->content_length);
-	}
-}
-
 /*
 	Implementing CGI
 	The CGI Routine:
-		Questions: 
+		Questions:
 		1. Do we need to read the whole object body before passing it in a cgi process???
 
-		2. where do we store request data? 
-		2.1 UPD 1 Storing file in a temporary file is not the best thing, the response class will copy the whole thing in order to create 
-		2.2 UPD 2 moving files within same partition in linux is instant. We can use this advantage.
-		2.3 UPD 3 we need to check if we can change name of the file and move it around.
-		2.4 UPD 4 we cannot rename file, the subject doesn't allow us to change it.
+		2. where do we store request data?
+		2.1 UPD 1 Storing file in a temporary file is not the best thing, the response class will
+   copy the whole thing in order to create 2.2 UPD 2 moving files within same partition in linux is
+   instant. We can use this advantage. 2.3 UPD 3 we need to check if we can change name of the file
+   and move it around. 2.4 UPD 4 we cannot rename file, the subject doesn't allow us to change it.
 		2.5 Answer - store data in tiny chunks = bullshit, because then we have to implement
 			stream consumer in CGI script that will handle decoding and storing somewhere the data.
 
@@ -71,12 +67,14 @@ Status ServerRequestParser::feed(const std::string& content) {
 		}
 		_header_found = true;
 
-		if (_request->method == "POST") {
+		_is_cgi = (_request->uri_path.find("cgi-bin/") != std::string::npos);
+
+		if (_request->method == "POST" || _is_cgi == true) {
 			create_body_parser();
 		}
 	}
 
-	if (_request->method == "POST") {
+	if (_request->method == "POST" || _is_cgi == true) {
 		status = _body_parser->feed(content, cursor_pos);
 		if (!status) {
 			return status;
@@ -87,4 +85,20 @@ Status ServerRequestParser::feed(const std::string& content) {
 	}
 
 	return Status::OK();
+}
+
+bool ServerRequestParser::is_cgi_request() const {
+	return _is_cgi;
+}
+
+void ServerRequestParser::create_body_parser() {
+	if (_is_cgi) {
+		_body_parser = new RequestRawBodyParser(_request->content_length, InFile);
+	} else if (_request->content_type.type == "multipart" &&
+			   _request->content_type.subtype == "form-data") {
+		const std::string* boundary = _request->content_type.find_parameter("boundary");
+		_body_parser = new RequestMultipartParser(*boundary, _request->content_length);
+	} else {
+		_body_parser = new RequestRawBodyParser(_request->content_length, InBuffer);
+	}
 }

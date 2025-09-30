@@ -16,6 +16,7 @@ class ServerRequestParser {
 	~ServerRequestParser();
 
 	Status feed(const std::string& content);
+	bool is_cgi_request() const;
 
    private:
 	void create_body_parser();
@@ -27,6 +28,7 @@ class ServerRequestParser {
 	IRequestBodyParser* _body_parser;
 
 	bool _header_found;
+	bool _is_cgi;
 
 	t_request* _request;
 };

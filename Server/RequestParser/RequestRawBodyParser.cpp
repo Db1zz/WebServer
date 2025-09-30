@@ -1,5 +1,6 @@
 #include "RequestRawBodyParser.hpp"
 #include <fstream>
+#include <unistd.h> // REMOVE ME
 
 RequestRawBodyParser::RequestRawBodyParser(int content_length, RequestBodyStorageType type)
 	: _data_size(0), _content_length(content_length), _type(type) {
@@ -8,13 +9,19 @@ RequestRawBodyParser::RequestRawBodyParser(int content_length, RequestBodyStorag
 		std::stringstream ss;
 		ss << i;
 		++i;
-		_temp_file_name = ss.str();
+		_temp_file_name = std::string("./tempfiles/") + ss.str(); // temporary solution in reality we need to create a hash value!!
 		_fstream.open(_temp_file_name);
+		if (!_fstream.is_open()) { // shit thing ... (just doing it for fun)
+			std::cout << "ABOBA\n";
+			exit(-1); // REMOVE ME(it's insane bro2)
+		}
 	}
 }
 
 RequestRawBodyParser::~RequestRawBodyParser() {
-	_fstream.close();
+	if (_fstream.is_open()) {
+		_fstream.close();
+	}
 }
 
 Status RequestRawBodyParser::feed(const std::string& content, size_t start_pos) {
@@ -26,7 +33,11 @@ Status RequestRawBodyParser::feed(const std::string& content, size_t start_pos) 
 		status = Status::OK();
 	}
 
-	_data = content.substr(start_pos, content_size);
+	if (_type == InBuffer) {
+		_data.append(content.substr(start_pos, content_size));
+	} else if (_type == InFile) {
+		_fstream.write(content.c_str() + start_pos, content_size);
+	}
 	_data_size += content_size;
 
 	return status;
