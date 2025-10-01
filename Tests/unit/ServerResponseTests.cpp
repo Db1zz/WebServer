@@ -186,8 +186,16 @@ TEST_F(ServerResponseTest, PostFileRequest) {
 	request.content_type.subtype = "form-data";
 	request.content_type.parameters.insert({"boundary","----WebKitFormBoundaryTj2MepeomC2UszbC"});
 	request.transfered_length = 184;
-	request.filename = "fileuploadtest.txt";
-	request.is_file_created = false;
+
+	t_request_content content;
+	content.filename = "fileuploadtest.txt";
+	content.name = "file";
+	content.content_type = "text/plain";
+	content.data = "This is test file content for upload testing.";
+	content.is_file_created = false;
+	content.is_finished = true;
+	
+	request.content_data.push_back(content);
 
 	ServerResponse response(&client_socket, config);
 	
@@ -211,8 +219,15 @@ TEST_F(ServerResponseTest, PostDuplicateFileRequest) {
 	request.content_type.subtype = "form-data";
 	request.content_type.parameters.insert({"boundary","----WebKitFormBoundaryTj2MepeomC2UszbC"});
 	request.transfered_length = 184;
-	request.filename = "fileuploadtest.txt";
-	request.is_file_created = false;
+	t_request_content content;
+	content.filename = "fileuploadtest.txt";
+	content.name = "file";
+	content.content_type = "text/plain";
+	content.data = "This is duplicate file content.";
+	content.is_file_created = false;
+	content.is_finished = true;
+	
+	request.content_data.push_back(content);
 
 	ServerResponse response(&client_socket, config);
 	
@@ -239,4 +254,36 @@ TEST_F(ServerResponseTest, DeleteFileRequest) {
 	status = response.generate_response();
 	
 	EXPECT_EQ(status.code(), 200);
+}
+
+TEST_F(ServerResponseTest, PostChunkedUploadRequest) {
+	ClientSocket client_socket;
+
+	t_request& request = client_socket.get_connection_context()->request;
+	request = createBaseRequest();
+	request.method = "POST";
+	request.uri_path = "/Uploads/";
+	request.accept = "*/*";
+	request.mime_type = ".txt";
+	request.content_length = 500;
+	request.content_type.type = "multipart";
+	request.content_type.subtype = "form-data";
+	request.content_type.parameters.insert({"boundary","----WebKitFormBoundaryTj2MepeomC2UszbC"});
+
+	t_request_content content;
+	content.filename = "chunkedfile.txt";
+	content.name = "file";
+	content.content_type = "text/plain";
+	content.data = "This is first chunk of data...";
+	content.is_file_created = false;
+	content.is_finished = false;
+	
+	request.content_data.push_back(content);
+
+	ServerResponse response(&client_socket, config);
+	
+	Status status;
+	status = response.generate_response();
+	
+	EXPECT_EQ(status.code(), 100);
 }
