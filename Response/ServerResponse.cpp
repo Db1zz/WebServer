@@ -165,6 +165,7 @@ void ServerResponse::handle_file_upload() {
 		if (FileUtils::is_file_exists(file_path) && !content_data.is_file_created) {
 			status = Status::Conflict();
 			_json_handler->set_error_response("File already exists", _body, _headers);
+			return ;
 		}
 	
 		bool file_saved = _file_utils->save_uploaded_file(file_path, content_data);
