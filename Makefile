@@ -56,4 +56,4 @@ $(PARSER_TEST_EXEC): $(PARSER_TEST_SRCS)
 test_parser: $(PARSER_TEST_EXEC)
 	./$(PARSER_TEST_EXEC)
 
-.PHONY: all clean fclean re run docker_build
+.PHONY: all clean fclean re run docker_build test_parser
