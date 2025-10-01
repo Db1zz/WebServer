@@ -60,6 +60,7 @@ class Parser {
 	void parseReturn(std::string& path, int* code);
 	size_t parseMaxClientBody();
 	void checkDuplicateListen(t_listen check);
+	void checkForEmpty(t_config &parsedConfig);
 
 	t_config tempConfig;
 };
