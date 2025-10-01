@@ -237,24 +237,6 @@ TEST_F(ServerResponseTest, PostDuplicateFileRequest) {
 	EXPECT_EQ(status.code(), 409);
 }
 
-TEST_F(ServerResponseTest, DeleteFileRequest) {
-	ClientSocket client_socket;
-
-	t_request& request = client_socket.get_connection_context()->request;
-	request = createBaseRequest();
-	request.method = "DELETE";
-	request.uri_path = "/Uploads/fileuploadtest.txt";
-	request.accept = "*/*";
-	request.mime_type = ".txt";
-	request.filename = "fileuploadtest.txt";
-
-	ServerResponse response(&client_socket, config);
-	
-	Status status;
-	status = response.generate_response();
-	
-	EXPECT_EQ(status.code(), 200);
-}
 
 TEST_F(ServerResponseTest, PostChunkedUploadRequest) {
 	ClientSocket client_socket;
@@ -286,4 +268,264 @@ TEST_F(ServerResponseTest, PostChunkedUploadRequest) {
 	status = response.generate_response();
 	
 	EXPECT_EQ(status.code(), 100);
+}
+
+TEST_F(ServerResponseTest, DeleteChunkedFileRequest) {
+	ClientSocket client_socket;
+
+	t_request& request = client_socket.get_connection_context()->request;
+	request = createBaseRequest();
+	request.method = "DELETE";
+	request.uri_path = "/Uploads/chunkedfile.txt";
+	request.accept = "*/*";
+	request.mime_type = ".txt";
+	request.filename = "chunkedfile.txt";
+
+	ServerResponse response(&client_socket, config);
+	
+	Status status;
+	status = response.generate_response();
+	
+	EXPECT_EQ(status.code(), 200);
+}
+
+TEST_F(ServerResponseTest, UploadTwoFilesOneLineEach) {
+	ClientSocket client_socket;
+
+	t_request& request = client_socket.get_connection_context()->request;
+	request = createBaseRequest();
+	request.method = "POST";
+	request.uri_path = "/Uploads/";
+	request.accept = "*/*";
+	request.mime_type = ".txt";
+	request.content_length = 300;
+	request.content_type.type = "multipart";
+	request.content_type.subtype = "form-data";
+	request.content_type.parameters.insert({"boundary","----WebKitFormBoundaryTj2MepeomC2UszbC"});
+	request.transfered_length = 300;
+
+	t_request_content content1;
+	content1.filename = "firstline.txt";
+	content1.name = "file1";
+	content1.content_type = "text/plain";
+	content1.data = "First file with single line content.";
+	content1.is_file_created = false;
+	content1.is_finished = true;
+	
+	t_request_content content2;
+	content2.filename = "secondline.txt";
+	content2.name = "file2";
+	content2.content_type = "text/plain";
+	content2.data = "Second file with single line content.";
+	content2.is_file_created = false;
+	content2.is_finished = true;
+	
+	request.content_data.push_back(content1);
+	request.content_data.push_back(content2);
+
+	ServerResponse response(&client_socket, config);
+	
+	Status status;
+	status = response.generate_response();
+	
+	EXPECT_EQ(status.code(), 200);
+}
+
+TEST_F(ServerResponseTest, UploadMixedSizeFiles) {
+	ClientSocket client_socket;
+
+	t_request& request = client_socket.get_connection_context()->request;
+	request = createBaseRequest();
+	request.method = "POST";
+	request.uri_path = "/Uploads/";
+	request.accept = "*/*";
+	request.mime_type = ".txt";
+	request.content_length = 1048650;
+	request.content_type.type = "multipart";
+	request.content_type.subtype = "form-data";
+	request.content_type.parameters.insert({"boundary","----WebKitFormBoundaryTj2MepeomC2UszbC"});
+	request.transfered_length = 1048650;
+
+	t_request_content content1;
+	content1.filename = "smallfile.txt";
+	content1.name = "file1";
+	content1.content_type = "text/plain";
+	content1.data = "Small file with just one line.";
+	content1.is_file_created = false;
+	content1.is_finished = true;
+	
+	t_request_content content2;
+	content2.filename = "bigfile.txt";
+	content2.name = "file2";
+	content2.content_type = "text/plain";
+	content2.data = std::string(1048600, 'L');
+	content2.is_file_created = false;
+	content2.is_finished = true;
+	
+	request.content_data.push_back(content1);
+	request.content_data.push_back(content2);
+
+	ServerResponse response(&client_socket, config);
+	
+	Status status;
+	status = response.generate_response();
+	
+	EXPECT_EQ(status.code(), 200);
+}
+
+TEST_F(ServerResponseTest, UploadFilesWithDuplicate) {
+	ClientSocket client_socket;
+
+	t_request& request = client_socket.get_connection_context()->request;
+	request = createBaseRequest();
+	request.method = "POST";
+	request.uri_path = "/Uploads/";
+	request.accept = "*/*";
+	request.mime_type = ".txt";
+	request.content_length = 400;
+	request.content_type.type = "multipart";
+	request.content_type.subtype = "form-data";
+	request.content_type.parameters.insert({"boundary","----WebKitFormBoundaryTj2MepeomC2UszbC"});
+	request.transfered_length = 400;
+
+	t_request_content content1;
+	content1.filename = "uniquefile.txt";
+	content1.name = "file1";
+	content1.content_type = "text/plain";
+	content1.data = "Unique file content for duplicate test.";
+	content1.is_file_created = false;
+	content1.is_finished = true;
+
+	t_request_content content2;
+	content2.filename = "fileuploadtest.txt";
+	content2.name = "file2";
+	content2.content_type = "text/plain";
+	content2.data = "Attempting to upload duplicate file.";
+	content2.is_file_created = false;
+	content2.is_finished = true;
+	
+	request.content_data.push_back(content1);
+	request.content_data.push_back(content2);
+
+	ServerResponse response(&client_socket, config);
+	
+	Status status;
+	status = response.generate_response();
+	
+	EXPECT_EQ(status.code(), 409);
+}
+
+TEST_F(ServerResponseTest, DeleteFileRequest) {
+	ClientSocket client_socket;
+
+	t_request& request = client_socket.get_connection_context()->request;
+	request = createBaseRequest();
+	request.method = "DELETE";
+	request.uri_path = "/Uploads/fileuploadtest.txt";
+	request.accept = "*/*";
+	request.mime_type = ".txt";
+	request.filename = "fileuploadtest.txt";
+
+	ServerResponse response(&client_socket, config);
+	
+	Status status;
+	status = response.generate_response();
+	
+	EXPECT_EQ(status.code(), 200);
+}
+
+
+TEST_F(ServerResponseTest, DeleteFirstLineFile) {
+	ClientSocket client_socket;
+
+	t_request& request = client_socket.get_connection_context()->request;
+	request = createBaseRequest();
+	request.method = "DELETE";
+	request.uri_path = "/Uploads/firstline.txt";
+	request.accept = "*/*";
+	request.mime_type = ".txt";
+	request.filename = "firstline.txt";
+
+	ServerResponse response(&client_socket, config);
+	
+	Status status;
+	status = response.generate_response();
+	
+	EXPECT_EQ(status.code(), 200);
+}
+
+TEST_F(ServerResponseTest, DeleteSecondLineFile) {
+	ClientSocket client_socket;
+
+	t_request& request = client_socket.get_connection_context()->request;
+	request = createBaseRequest();
+	request.method = "DELETE";
+	request.uri_path = "/Uploads/secondline.txt";
+	request.accept = "*/*";
+	request.mime_type = ".txt";
+	request.filename = "secondline.txt";
+
+	ServerResponse response(&client_socket, config);
+	
+	Status status;
+	status = response.generate_response();
+	
+	EXPECT_EQ(status.code(), 200);
+}
+
+TEST_F(ServerResponseTest, DeleteSmallFile) {
+	ClientSocket client_socket;
+
+	t_request& request = client_socket.get_connection_context()->request;
+	request = createBaseRequest();
+	request.method = "DELETE";
+	request.uri_path = "/Uploads/smallfile.txt";
+	request.accept = "*/*";
+	request.mime_type = ".txt";
+	request.filename = "smallfile.txt";
+
+	ServerResponse response(&client_socket, config);
+	
+	Status status;
+	status = response.generate_response();
+	
+	EXPECT_EQ(status.code(), 200);
+}
+
+TEST_F(ServerResponseTest, DeleteBigFile) {
+	ClientSocket client_socket;
+
+	t_request& request = client_socket.get_connection_context()->request;
+	request = createBaseRequest();
+	request.method = "DELETE";
+	request.uri_path = "/Uploads/bigfile.txt";
+	request.accept = "*/*";
+	request.mime_type = ".txt";
+	request.filename = "bigfile.txt";
+
+	ServerResponse response(&client_socket, config);
+	
+	Status status;
+	status = response.generate_response();
+	
+	EXPECT_EQ(status.code(), 200);
+}
+
+TEST_F(ServerResponseTest, DeleteUniqueFile) {
+	ClientSocket client_socket;
+
+	t_request& request = client_socket.get_connection_context()->request;
+	request = createBaseRequest();
+	request.method = "DELETE";
+	request.uri_path = "/Uploads/uniquefile.txt";
+	request.accept = "*/*";
+	request.mime_type = ".txt";
+	request.filename = "uniquefile.txt";
+
+	ServerResponse response(&client_socket, config);
+	
+	Status status;
+	status = response.generate_response();
+	
+	EXPECT_EQ(status.code(), 200);
 }
