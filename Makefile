@@ -24,6 +24,9 @@ SRC = \
 	main.cpp
 
 OBJ = $(SRC:.cpp=.o)
+PARSER_TEST_EXEC = parser_test
+PARSER_TEST_SRCS = Tests/parser/parser_test.cpp Parser/Parser.cpp Parser/Token.cpp
+PARSER_TEST_FLAGS = -std=c++14 -Wall -Werror -Wextra -fsanitize=address -lgtest -lgtest_main -lpthread
 
 all: $(NAME) scripts
 
@@ -37,7 +40,7 @@ clean:
 	rm -rf $(OBJ) 
 
 fclean: clean
-	rm -rf $(NAME) $(LOGSDIR)
+	rm -rf $(NAME) $(LOGSDIR) $(PARSER_TEST_EXEC)
 
 re: fclean all
 
@@ -46,5 +49,11 @@ docker_build:
 
 run: docker_build
 	docker attach webserv
+
+$(PARSER_TEST_EXEC): $(PARSER_TEST_SRCS)
+	$(CXX) $(PARSER_TEST_SRCS) $(PARSER_TEST_FLAGS) -o $(PARSER_TEST_EXEC)
+
+test_parser: $(PARSER_TEST_EXEC)
+	./$(PARSER_TEST_EXEC)
 
 .PHONY: all clean fclean re run docker_build
