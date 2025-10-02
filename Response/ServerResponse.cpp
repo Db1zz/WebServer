@@ -49,8 +49,10 @@ ServerResponse& ServerResponse::handle_get_method(const t_location& location) {
 Status ServerResponse::generate_response() {
 	const t_location* best_match = _file_utils->find_best_location_match();
 
-	if (_context->state == ConnectionState::HANDLE_CGI_REQUEST)
+	if (_context->state == ConnectionState::HANDLE_CGI_REQUEST){
+		std::cout << CYAN500 << "entered cgi block" << RESET << std::endl;
 		return generate_cgi_response();
+	}
 
 	if (best_match != NULL)
 		choose_method(*best_match);
@@ -137,12 +139,13 @@ Status ServerResponse::generate_cgi_response() {
 	//check if all body receive, if not, receive status continue? var ton check if cgi received?
 	header("server", _server_data->server_name[0]);
 	header("content-type", "text/html");
-	// _body = cgi_body;
+	_body = _req_data->content_data.front().data;
 	status = Status::OK();
 	_body = "test";
 	header("content-length", get_body_size());
 	status.set_status_line(status.code(), status.msg());
 	_response = WS_PROTOCOL + status.status_line() + get_headers() + "\r\n" + get_body();
+	std::cout << GREEN300 << "cgi_response:" << _response << std::endl;
 	return status;
 	
 }
