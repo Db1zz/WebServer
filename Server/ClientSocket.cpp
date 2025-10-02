@@ -5,7 +5,10 @@ ClientConnectionContext::ClientConnectionContext()
 }
 
 void ClientConnectionContext::reset() {
-	*this = ClientConnectionContext(); // idk if it will work correctly
+	request = t_request();
+	parser = ServerRequestParser(&request);
+	state = ConnectionState::IDLE;
+	cgi_started = false;
 }
 
 ClientSocket::ClientSocket() : Socket(), _server_fd(-1) {

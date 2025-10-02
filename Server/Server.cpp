@@ -297,7 +297,7 @@ Status Server::handle_request_event(const epoll_event& request_event) {
 			}
 		}
 		if (connection_context->state == ConnectionState::HANDLE_CGI_REQUEST) {
-			status = handle_cgi_request(client_socket);
+			status = handle_cgi_request(client_socket, 123);
 		} else if (connection_context->state == ConnectionState::HANDLE_NORMAL_REQUEST) {
 			status = handle_normal_request(client_socket);
 		}
