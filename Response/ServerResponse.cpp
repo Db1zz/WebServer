@@ -131,6 +131,19 @@ const std::string& ServerResponse::get_response() const {
 	return _response;
 }
 
+Status ServerResponse::generate_cgi_response(Status cgi_status, std::string& cgi_body) {
+	//check if all body receive, if not, receive status continue? var ton check if cgi received?
+	header("server", _server_data->server_name[0]);
+	header("content-type", "text/html");
+	_body = cgi_body;
+	status = cgi_status;
+	header("content-length", get_body_size());
+	status.set_status_line(status.code(), status.msg());
+	_response = WS_PROTOCOL + status.status_line() + get_headers() + "\r\n" + get_body();
+	return status;
+	
+}
+
 const std::string& ServerResponse::get_content_type() const {
 	return _resp_content_type;
 }

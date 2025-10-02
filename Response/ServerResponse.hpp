@@ -43,6 +43,7 @@ class ServerResponse {
 	ServerResponse& header(const std::string& key, const std::string& value);
 	ServerResponse& handle_get_method(const t_location& loc);
 	Status generate_response();
+	Status generate_cgi_response(Status status, std::string& cgi_body);
 	void serve_default_root();
 	bool serve_file(const std::string& path, bool is_error_page);
 
