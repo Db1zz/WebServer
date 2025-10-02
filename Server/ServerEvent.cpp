@@ -8,7 +8,7 @@
 #include "Socket.hpp"
 
 ServerEvent::ServerEvent()
-    : _events_arr(NULL), _events_size(0), _events_capacity(5)
+    : _events_arr(NULL), _events_size(100024), _events_capacity(5)
 {
     init();
 }
@@ -26,6 +26,27 @@ ServerEvent::~ServerEvent() {
     }
 }
 
+// Register an event_fd that will be associated with the socket.
+// The event_fd can be any other fd that is not part of a TCP connection or SOCKET FD.
+// For example, we want to register some process and use a pipe to communicate with it.
+// To do this, we can set up pipes, use fork(), and with add_event, the user can associate the pipe fd with any socket.
+Status ServerEvent::add_event(uint32_t events, int event_fd, Socket* socket) {
+	epoll_event new_event;
+
+	new_event.data.ptr = socket;
+	new_event.events = events;
+
+	if (_events_size == _events_capacity) {
+		resize_events_arr(_events_capacity * 2);
+	}
+
+	if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, event_fd, &new_event) < 0) {
+		return Status(strerror(errno));
+	}
+	++_events_size;
+	return Status::OK();
+}
+
 Status ServerEvent::add_event(uint32_t events, Socket *socket) {
     epoll_event new_event;
 
@@ -40,7 +61,7 @@ Status ServerEvent::add_event(uint32_t events, Socket *socket) {
 		return Status(strerror(errno));
 	}
 	++_events_size;
-    return Status();
+    return Status::OK();
 }
 
 Status ServerEvent::add_event(uint32_t events, int event_fd) {
@@ -57,7 +78,7 @@ Status ServerEvent::add_event(uint32_t events, int event_fd) {
         return Status(strerror(errno));
     }
     ++_events_size;
-    return Status();
+    return Status::OK();
 }
 
 Status ServerEvent::remove_event(int event_fd) {
@@ -71,7 +92,7 @@ Status ServerEvent::remove_event(int event_fd) {
         return Status(strerror(errno));
     }
     --_events_size;
-    return Status();
+    return Status::OK();
 }
 
 /*
@@ -82,9 +103,12 @@ Status ServerEvent::remove_event(int event_fd) {
 Status ServerEvent::wait_event(int timeout, int *nfds) {
     *nfds = epoll_wait(_epoll_fd, _events_arr, _events_capacity, timeout);
     if (*nfds < 0) {
-        return Status(strerror(errno), errno);
-    }
-    return Status();
+        if (errno == EINTR) {
+			return Status::Interrupted();
+		}
+		return Status(UnknownError, errno, strerror(errno));
+	}
+    return Status::OK();
 }
 
 epoll_event *ServerEvent::operator[](size_t index) {
@@ -106,7 +130,7 @@ Status ServerEvent::init() {
         return Status(e.what());
     }
 
-    return Status();
+    return Status::OK();
 }
 
 Status ServerEvent::resize_events_arr(size_t new_size) {
@@ -122,7 +146,7 @@ Status ServerEvent::resize_events_arr(size_t new_size) {
         return Status(e.what());
     }
 
-    return Status();
+    return Status::OK();
 }
 
 void ServerEvent::copy_events_arr(size_t src_size, const epoll_event *src, epoll_event *dst) {
@@ -143,5 +167,5 @@ Status ServerEvent::event_mod(uint32_t events, int event_fd) {
         return Status(strerror(errno));
     }
 
-    return Status();
+    return Status::OK();
 }

@@ -2,12 +2,16 @@
 
 #include <errno.h>
 #include <string.h>
+#include <unistd.h>
 
+#include <cassert>
 #include <csignal>
 #include <cstdio>
 #include <sstream>
 
+#include "Chunk.hpp"
 #include "ClientSocket.hpp"
+#include "RequestParser/ServerRequestParser.hpp"
 #include "ServerConfig.hpp"
 #include "ServerLogger.hpp"
 #include "ServerRequest.hpp"
@@ -46,7 +50,7 @@ Status Server::launch() {
 	std::signal(SIGINT, sigint_handler);
 	while (g_signal_status != SIGINT) {
 		status = _event.wait_event(-1, &amount_of_events);
-		if (!status && status.code() != EINTR) {
+		if (!status && status.error() != EINTR) {
 			throw std::runtime_error("wait_event() failed in Server::Launch(): " + status.msg());
 		}
 
@@ -59,62 +63,259 @@ Status Server::launch() {
 		}
 	}
 	std::cout << "[Server] shutdown..." << std::endl;
-	return Status();
+	return Status::OK();
 }
 
 bool Server::is_a_new_connection(const epoll_event& event) {
 	Socket* event_socket = static_cast<Socket*>(event.data.ptr);
-	std::map<int, ServerSocketManager*>::iterator search;
-
-	return find_server_socket_manager(event_socket->get_fd(), search);
+	return find_server_socket_manager(event_socket->get_fd()) != NULL;
 }
 
 Status Server::handle_new_connection_event(const epoll_event& connection_event) {
 	Status status;
 	Socket* socket;
-	std::map<int, ServerSocketManager*>::iterator search;
 
 	socket = static_cast<Socket*>(connection_event.data.ptr);
-	if (!find_server_socket_manager(socket->get_fd(), search)) {
+	ServerSocketManager* manager = find_server_socket_manager(socket->get_fd());
+	if (!manager) {
 		return Status(
 			"Server failed to handle new connection event: ServerSocketManager was not found");
 	}
 
-	status = search->second->accept_connection();
+	status = manager->accept_connection();
 	if (!status) {
 		return status;
 	}
 
-	return Status();
+	return Status::OK();
+}
+
+Status Server::create_cgi_process(ClientSocket* client_socket) {
+	ClientConnectionContext* connection_context = client_socket->get_connection_context();
+	t_request& request = connection_context->request;
+	pid_t cgi_process;
+
+	// fd[0] == read, fd[1] == write
+	int server_read_pipe[2]; // this pipe is used to read stream of data from a client
+	// int stdout_pipe[2];
+
+	if (pipe(server_read_pipe) < 0) {
+		perror("pipe");
+		return Status("pipe() failed in create_cgi_process");
+	}
+
+	cgi_process = fork();
+	if (cgi_process < 0) {
+		perror("fork");
+		close(server_read_pipe[0]);
+		close(server_read_pipe[1]);
+		return Status("fork() failed in create_cgi_process");
+	}
+
+	if (cgi_process > 0) {
+		close(server_read_pipe[1]);
+
+		_event.add_event(SERVER_EVENT_CLIENT_EVENTS, server_read_pipe[0], client_socket);
+
+		return Status::OK();
+	} else {
+		const std::string python_bin = "/usr/bin/python3";
+		const std::string script_path = "./cgi-bin/aboba.py";
+
+		std::vector<std::string> argv_strs;
+		argv_strs.push_back("python3");	  // argv[0]
+		argv_strs.push_back(script_path); // argv[1]
+		std::vector<char*> argv;
+		for (size_t i = 0; i < argv_strs.size(); ++i) {
+			argv.push_back(const_cast<char*>(argv_strs[i].c_str()));
+		}
+		argv.push_back(NULL);
+
+		std::vector<std::string> env_strs;
+		{
+			std::stringstream content_length;
+			content_length << request.content_length;
+			env_strs.push_back(std::string("REQUEST_METHOD=") + request.method);
+			env_strs.push_back(std::string("CONTENT_LENGTH=") + content_length.str());
+			env_strs.push_back(std::string("CONTENT_TYPE="));
+			env_strs.push_back(std::string("SERVER_PROTOCOL=HTTP/1.1"));
+			env_strs.push_back(std::string("SCRIPT_NAME="));
+			env_strs.push_back(std::string("PATH_INFO="));
+			env_strs.push_back(std::string("QUERY_STRING="));
+			env_strs.push_back(std::string("REMOTE_ADDR="));
+			env_strs.push_back(std::string("SERVER_NAME="));
+			env_strs.push_back(std::string("SERVER_PORT="));
+			env_strs.push_back(std::string("HTTP_USER_AGENT="));
+			env_strs.push_back(std::string("HTTP_ACCEPT="));
+			env_strs.push_back(std::string("SERVER_SOFTWARE=unravelThePuzzle"));
+			env_strs.push_back(std::string("AUTH_TYPE=Basic"));
+		}
+		std::vector<char*> envp;
+		for (size_t i = 0; i < env_strs.size(); ++i) {
+			envp.push_back(const_cast<char*>(env_strs[i].c_str()));
+		}
+		envp.push_back(NULL);
+
+		if (dup2(server_read_pipe[1], STDOUT_FILENO) < 0) {
+			perror("dup2 in cgi child");
+			_exit(127);
+		}
+
+		close(server_read_pipe[0]);
+		close(server_read_pipe[1]);
+
+		execve(python_bin.c_str(), argv.data(), envp.data());
+
+		perror("execve");
+		_exit(127);
+	}
+}
+
+Status Server::handle_cgi_request(ClientSocket* client_socket, int event_fd) {
+	Status status;
+	ClientConnectionContext* connection_context = client_socket->get_connection_context();
+
+	if (client_socket->get_fd() != event_fd) { // means that the event comes from the pipe.
+
+	} else {
+		if (connection_context->parser.is_body_parsed()) {
+			status = receive_request_body_chunk(client_socket);
+		}
+	
+		if (connection_context->cgi_started == false && connection_context->request.is_request_ready()) {
+			status = create_cgi_process(client_socket);
+			if (!status) {
+				_server_logger.log_error("Server::handle_cgi_request",
+										 std::string("create_cgi_process failed with error: '") +
+											 "TODO: Status error code!!!" + "'");
+				return status;
+			}
+			connection_context->cgi_started = true;
+			status = response_handler(client_socket);
+		}
+	}
+
+	return Status::OK();
+}
+
+Status Server::handle_normal_request(ClientSocket* client_socket) {
+	ClientConnectionContext* connection_context = client_socket->get_connection_context();
+	ServerSocketManager* manager = NULL;
+	Status status;
+
+	if (connection_context->parser.is_finished() == false) {
+		status = receive_request_body_chunk(client_socket);
+	}
+	if (status.code() != DataIsNotReady) {
+		ClientConnectionContext* connection_context = client_socket->get_connection_context();
+		status = response_handler(client_socket);
+		if (!status) {
+			return Status("response_handler() failed in Server::handle_event(): " + status.msg());
+		}
+		if (connection_context->request.is_request_ready()) {
+			manager = find_server_socket_manager(client_socket->get_server_fd());
+			_server_logger.log_access(
+				*client_socket->get_host(), connection_context->request.method,
+				connection_context->request.uri_path, manager->get_server_socket()->get_port());
+			client_socket->reset_connection_context();
+		}
+	}
+	return Status::OK();
+}
+
+Status Server::receive_request_header(ClientSocket* client_socket) {
+	ClientConnectionContext* connection_context = client_socket->get_connection_context();
+	Status status;
+	std::string buffer;
+	int rd_bytes = 0;
+
+	status = read_data(client_socket, buffer, rd_bytes);
+	if (!status) {
+		_server_logger.log_error("Server::receive_request_header", "failed to read data");
+		return status;
+	}
+	status = connection_context->parser.parse_header(buffer, connection_context->buffer);
+	if (!status) {
+		_server_logger.log_error("Server::receive_request_header", "failed to parse header");
+		return status;
+	}
+
+	return status;
+}
+
+Status Server::receive_request_body_chunk(ClientSocket* client_socket) {
+	ClientConnectionContext* connection_context = client_socket->get_connection_context();
+	Status status;
+	int rd_bytes = 0;
+
+	if (connection_context->buffer.empty() == false) {
+		status = connection_context->parser.parse_body(connection_context->buffer);
+		if (!status) {
+			_server_logger.log_error("Server::receive_request_header", "failed to parse header");
+			return status;
+		}
+		connection_context->buffer.clear();
+	}
+
+	if (connection_context->parser.is_body_parsed() == false) {
+		status = read_data(client_socket, connection_context->buffer, rd_bytes);
+		if (!status) {
+			_server_logger.log_error("Server::receive_request_header", "failed to read data");
+			return status;
+		}
+		status = connection_context->parser.parse_body(connection_context->buffer);
+		if (!status) {
+			_server_logger.log_error("Server::receive_request_header", "failed to parse header");
+			return status;
+		}
+	}	
+	connection_context->buffer.clear();
+
+	return status;
 }
 
 Status Server::handle_request_event(const epoll_event& request_event) {
 	Status status;
-	ClientSocket* client_socket;
-	std::map<int, ServerSocketManager*>::iterator search;
+	ClientSocket* client_socket = static_cast<ClientSocket*>(request_event.data.ptr);
+	ClientConnectionContext* connection_context = client_socket->get_connection_context();
 
-	client_socket = static_cast<ClientSocket*>(request_event.data.ptr);
-	if (request_event.events & (EPOLLERR | EPOLLHUP | EPOLLRDHUP)) {
-		if (!find_server_socket_manager(client_socket->get_server_fd(), search)) {
+	if (request_event.events & (EPOLLERR | EPOLLRDHUP)) {
+		ServerSocketManager* manager = find_server_socket_manager(client_socket->get_server_fd());
+		if (!manager) {
 			return Status("Server cannot find a server to close connection with");
 		}
-		search->second->close_connection_with_client(client_socket->get_fd());
+		manager->close_connection_with_client(client_socket->get_fd());
+		std::cout << "destroy client\n";
 	} else if (request_event.events & EPOLLIN) {
-		t_request request;
-		status = request_handler(client_socket, request);
-		if (!status) {
-			return Status("request_handler() failed in Server::handle_event(): " + status.msg());
+		if (connection_context->state == ConnectionState::IDLE) {
+			connection_context->state = ConnectionState::RECEIVING_REQUEST_HEADER_FROM_CLIENT;
 		}
-		status = response_handler(client_socket, request);
-		if (!status) {
-			return Status("response_handler() failed in Server::handle_event(): " + status.msg());
+		if (connection_context->state == ConnectionState::RECEIVING_REQUEST_HEADER_FROM_CLIENT) {
+			status = receive_request_header(client_socket);
+			if (!status) {
+				_server_logger.log_error("Server::handle_request_event",
+										 "failed to receive request header");
+				return status;
+			}
+			if (connection_context->parser.is_header_parsed() == true) {
+				if (connection_context->parser.is_cgi_request() == true) {
+					connection_context->state = ConnectionState::HANDLE_CGI_REQUEST;
+				} else {
+					connection_context->state = ConnectionState::HANDLE_NORMAL_REQUEST;
+				}
+			}
 		}
-
-		find_server_socket_manager(client_socket->get_server_fd(), search);
-		_server_logger.log_access(*client_socket->get_host(), request.method, request.uri_path,
-								  search->second->get_server_socket()->get_port());
+		if (connection_context->state == ConnectionState::HANDLE_CGI_REQUEST) {
+			status = handle_cgi_request(client_socket, 123);
+		} else if (connection_context->state == ConnectionState::HANDLE_NORMAL_REQUEST) {
+			status = handle_normal_request(client_socket);
+		}
+		if (!status) {
+			_server_logger.log_error("Server::handle_request_event", "failed to handle request");
+			return status;
+		}
 	}
-	return Status();
+	return Status::OK();
 }
 
 Status Server::handle_event(int amount_of_events) {
@@ -135,214 +336,71 @@ Status Server::handle_event(int amount_of_events) {
 			continue;
 		}
 	}
-	return Status();
+	return Status::OK();
 }
 
-Status Server::request_parser(std::string request, t_request& requestStruct) {
-	t_request newRequestStruct;
-	Status status;
-	newRequestStruct.mime_type = ""; // if there no mime found -> empty string
-	std::stringstream iss(request);
-	std::string extract;
-	iss >> extract;
-	newRequestStruct.method = extract; // if method is not GET DELETE POST -> error
-	if (newRequestStruct.method.compare("GET") != 0 &&
-		newRequestStruct.method.compare("DELETE") != 0 &&
-		newRequestStruct.method.compare("POST") != 0) {
-		status.set_status_line(405, "Method not allowed " + newRequestStruct.method);
-		status.set_ok(false);
-		return status;
-	}
-	iss >> extract;
-	newRequestStruct.uri_path = extract;
-	if (extract.find('.') != std::string::npos) {
-		size_t dotPos = extract.find('.');
-		size_t questionMarkPos = extract.find('?', dotPos);
-		if (questionMarkPos != std::string::npos && questionMarkPos > dotPos) {
-			newRequestStruct.mime_type = extract.substr(dotPos, questionMarkPos - dotPos);
-			newRequestStruct.cgi_query_string = extract.substr(questionMarkPos + 1);
-			newRequestStruct.uri_path =
-				extract.substr(0, questionMarkPos); // update uri_path without query
-		} else {
-			newRequestStruct.mime_type = extract.substr(dotPos);
-		}
-	}
-	else if (extract == "/")
-		newRequestStruct.mime_type = ".html";
-	iss >> extract; // if it's not HTTP/1.1 error
-	if (extract.compare("HTTP/1.1") != 0) {
-		status.set_status_line(400, "This server only supports HTTP/1.1");
-		status.set_ok(false);
-		return status;
-	}
-	std::getline(iss, extract);
-	while (std::getline(iss, extract) || extract != "\r") {
-		if (extract.empty() || extract == "\r\n") break;
-		if (extract.find("Host: ", 0) != std::string::npos)
-			newRequestStruct.host = extract.substr(6);
-		else if (extract.find("User-Agent: ", 0) != std::string::npos)
-			newRequestStruct.user_agent = extract.substr(12);
-		else if (extract.find("Accept: ", 0) != std::string::npos) {
-			std::string value = extract.substr(8);
-			value.erase(value.find_last_not_of(" \r\n") + 1);
-			newRequestStruct.accept = value;
-		}
-		else if (extract.find("Accept-Language: ", 0) != std::string::npos)
-			newRequestStruct.language = extract.substr(17);
-		else if (extract.find("Connection: ", 0) != std::string::npos)
-			newRequestStruct.connection = extract.substr(12);
-		else if (extract.find("Content-Length: ") != std::string::npos)
-			newRequestStruct.content_length = atol(extract.substr(16).c_str());
-		else if (extract.find("Content-Type: ") != std::string::npos)
-			newRequestStruct.content_type = extract.substr(14);
-		if (!extract.empty() && extract[extract.size()-1] == '\r')
-			extract.erase(extract.size()-1);
-		if (extract.empty()) break; // End of headers
+Status Server::read_data(ClientSocket* client_socket, std::string& buff, int& rd_bytes) {
+	const ssize_t read_buff_size = READ_BUFFER_SIZE;
+	char read_buff[read_buff_size];
 
+	rd_bytes = read(client_socket->get_fd(), read_buff, read_buff_size);
+	if (rd_bytes == 0) {
+		return Status::InternalServerError();
 	}
-	requestStruct = newRequestStruct;
-	if (requestStruct.method.compare("POST") == 0 || requestStruct.method.compare("DELETE") == 0) {
-		status = handle_post_or_delete(request, requestStruct);
-		return status;
+	if (rd_bytes < 0) {
+		return Status::InternalServerError();
+	}
+	buff.append(read_buff, rd_bytes);
+	return Status::OK();
+}
+
+Status Server::response_handler(ClientSocket* client_socket) {
+	ServerResponse resp(client_socket, _configs[0]);
+		resp.generate_response();
+	// ClientConnectionContext* context = &client_socket->get_connection_context();
+	// if (context->state == ConnectionState::HANDLE_CGI_REQUEST)
+	// 	resp.generate_cgi_response(Status, cgi_body); // + headers received from cgi!! where is status saved and where is cgi_body and headers  saved? ask goshanchik
+	// 	//maybe pass status from handle_cgi-request, so it can be used in response
+	// // -> body is saved by chunks in the same data, keep calling generate_response, check if all data is receive(which var? cgi is a file?)
+	// else
+		// status = resp.generate_response()
+	if (resp.status.code() == 100) {
+		return Status();
+	}
+	//move this one to generate_streaming_response() after cgi is fixed and done:
+	if (resp.needs_streaming()) {
+		std::string headers = resp.get_response();
+		if (write(client_socket->get_fd(), headers.c_str(), headers.size()) < 0)
+			return Status("failed to send response headers to client");
+		Status stream_status = Chunk::stream_file_chunked(
+			resp.get_stream_file_path(), client_socket->get_fd(), resp.get_stream_location());
+		if (!stream_status.is_ok()) return stream_status;
+	} else {
+		std::string res = resp.get_response();
+		if (write(client_socket->get_fd(), res.c_str(), res.size()) < 0)
+			return Status("failed to send response to client");
+	}
+	if (resp.status.code() == BadRequest || resp.status.code() == Conflict) {
+		ServerSocketManager* manager = find_server_socket_manager(client_socket->get_server_fd());
+		(void)manager; //? change this block entirely after finishing cgi
+		//instead of this, after receiving a status from any of the responses(chunked, cgi or normal, return resp.status)
 	}
 	return Status();
 }
 
-std::string extract_filename(std::string extractee)
-{
-	std::string filename = "";
-	size_t filename_pos = extractee.find("filename=\"");
-	if (filename_pos != std::string::npos) {
-		size_t start = filename_pos + 10; // length of 'filename="'
-		size_t end = extractee.find("\"", start);
-		if (end != std::string::npos) {
-			filename = extractee.substr(start, end - start);
-		}
-	}
-	return filename;
-}
-
-std::string extract_file_content(std::string request, std::string boundary)
-{
-	std::string file_content = "";
-	std::string delimiter = "--" + boundary;
-	size_t part_start = request.find(delimiter);
-	if (part_start == std::string::npos)
-		return file_content;
-
-	// Move to the start of the part after the boundary line
-	part_start += delimiter.length();
-	// Skip possible \r\n after boundary
-	if (request.substr(part_start, 2) == "\r\n")
-		part_start += 2;
-
-	// Find the end of the part headers
-	size_t header_end = request.find("\r\n\r\n", part_start);
-	if (header_end == std::string::npos)
-		return file_content;
-
-	// File content starts after the part headers
-	size_t content_start = header_end + 4;
-
-	// Find the next boundary (end of file content)
-	size_t content_end = request.find(delimiter, content_start);
-	if (content_end == std::string::npos)
-		content_end = request.length();
-
-	file_content = request.substr(content_start, content_end - content_start);
-
-	// Remove possible trailing \r\n
-	while (!file_content.empty() && (file_content[file_content.size()-1] == '\n' || file_content[file_content.size()-1] == '\r'))
-		file_content.erase(file_content.size()-1);
-
-	return file_content;
-}
-
-Status Server::handle_post_or_delete(std::string request, t_request& requestStruct)
-{
-	Status status;
-	size_t boundaryPos = request.find("boundary=");
-	if (boundaryPos != std::string::npos)
-	{
-		size_t boundaryStart = boundaryPos + 9; // length of "boundary="
-		size_t boundaryEnd = request.find("\r\n", boundaryStart);
-		if (boundaryEnd != std::string::npos) {
-			requestStruct.bound = request.substr(boundaryStart, boundaryEnd - boundaryStart);
-		}
-	}
-	else {
-		status.set_status_line(400, "Bad request, boundary must be provided");
-		status.set_ok(false);
-		return status;
-	}
-	std::string filename = extract_filename(request);
-	std::string tempFileContent;
-	if (filename != "")
-		tempFileContent = extract_file_content(request, requestStruct.bound);
-	requestStruct.files[filename] = tempFileContent;
-	// std::cout << "Filename: " << filename << "\n";
-	// std::cout << "File Content: " << tempFileContent << "\n";
-	// std::cout << "BOUND: " << requestStruct.bound << "\n";
-
-	return status;
-}
-
-Status Server::read_request(const ClientSocket* client_socket, std::string& result) {
-	const size_t read_buff_size = 4096;
-	char read_buff[read_buff_size + 1];
-	ssize_t rd_bytes;
-
-	do {
-		rd_bytes = read(client_socket->get_fd(), read_buff, read_buff_size);
-		if (rd_bytes > 0) {
-			read_buff[rd_bytes] = 0;
-			result.append(read_buff);
-		}
-	} while (rd_bytes > 0);
-	std::cout << CYAN300 << "REQUEST:\n" << result << RESET << std::endl;
-	return Status();
-}
-
-Status Server::request_handler(const ClientSocket* client_socket, t_request& req) {
-	Status status;
-	Status parseStatus;
-	std::string request_string;
-	Status readStatus;
-
-	readStatus = read_request(client_socket, request_string);
-	if (!readStatus) {
-		return Status("Error in Server::request_handler(): " + readStatus.msg());
-	}
-	parseStatus = request_parser(request_string, req);
-	if (!parseStatus) {
-		std::cout << "Continue with the next request\n";
-	}
-	return Status();
-}
-
-Status Server::response_handler(const ClientSocket* client_socket, const t_request& request) {
-	ServerResponse resp(request, _configs[0]);
-	std::string res = resp.generate_response();
-
-	if (write(client_socket->get_fd(), res.c_str(), res.size()) < 0) {
-		return Status(strerror(errno));
-	}
-
-	return Status();
-}
-
-Status Server::create_server_socket_manager(const std::string& host, int port) {
+Status Server::create_server_socket_manager(const std::string& host, int port,
+											const t_config& server_config) {
 	Status status;
 	ServerSocketManager* manager;
 
-	manager = new ServerSocketManager(host, port, &_event);
+	manager = new ServerSocketManager(host, port, &_event, server_config);
 	status = manager->start();
 	if (!status) {
 		delete manager;
 		return status;
 	}
 	_server_socket_managers.insert(std::make_pair(manager->get_server_socket()->get_fd(), manager));
-	return Status();
+	return Status::OK();
 }
 
 Status Server::create_sockets_from_config(const t_config& server_config) {
@@ -353,13 +411,12 @@ Status Server::create_sockets_from_config(const t_config& server_config) {
 		const std::string& host = server_config.listen[i].host;
 		int port = server_config.listen[i].port;
 
-		status = create_server_socket_manager(host, port);
+		status = create_server_socket_manager(host, port, server_config);
 		if (!status) {
 			return status;
 		}
-		// print_debug_addr(host, port);
 	}
-	return Status();
+	return Status::OK();
 }
 
 Status Server::create_sockets_from_configs(const std::vector<t_config>& configs) {
@@ -373,16 +430,16 @@ Status Server::create_sockets_from_configs(const std::vector<t_config>& configs)
 			return status;
 		}
 	}
-	return Status();
+	return Status::OK();
 }
 
-Status Server::find_server_socket_manager(
-	int server_socket_fd, std::map<int, ServerSocketManager*>::iterator& search_result) {
-	search_result = _server_socket_managers.find(server_socket_fd);
-	if (search_result == _server_socket_managers.end()) {
-		return Status("Server failed to find ServerSocketManager");
+ServerSocketManager* Server::find_server_socket_manager(int server_socket_fd) {
+	std::map<int, ServerSocketManager*>::iterator it =
+		_server_socket_managers.find(server_socket_fd);
+	if (it == _server_socket_managers.end()) {
+		return NULL;
 	}
-	return Status();
+	return it->second;
 }
 
 void Server::destroy_all_server_socket_managers() {

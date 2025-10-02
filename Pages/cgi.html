@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<link rel="stylesheet" href="styles.css">
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>CGI SCRIPTS</title>
+</head>
+
+<body>
+	<div class="header">
+		<a href="/" class="home">home</a>
+		<div class="header-right">
+			<a href="form.html">form</a>
+			<a href="upload.html">upload</a>
+			<a href="files.html">files</a>
+			<a class="active" href="cgi.html">cgi</a>
+		</div>
+	</div>
+
+	<div class="container">
+		<h1>CGI scripts (aboba)</script>
+		</h1>
+
+		<div class="cgi-section">
+			<h2>script with output</h2>
+			<p>this script prints "hello aboba" to the browser:</p>
+			<button class="cgi-button" onclick="runScript('printhello.py')">run printhello.py</button>
+		</div>
+
+		<div class="cgi-section">
+			<h2>script without output</h2>
+			<p>this script creates a file but returns no output:</p>
+			<button class="cgi-button" onclick="runScript('createaboba.py')">run createaboba.py</button>
+			<p><small>check the server logs or file system to see the result!</small></p>
+		</div>
+
+		<div id="result-container">
+			<h3>script output:</h3>
+			<div id="script-output"></div>
+		</div>
+	</div>
+
+	<script>
+		async function runScript(scriptName) {
+			const outputDiv = document.getElementById('script-output');
+			outputDiv.innerHTML = 'Running script...';
+
+			try {
+				const response = await fetch(`/cgi-bin/${scriptName}`, {
+					method: 'GET'
+				});
+
+				if (response.ok) {
+					const text = await response.text();
+					if (text.trim() === '') {
+						outputDiv.innerHTML = '<em>Script executed successfully (no output returned)</em>';
+					} else {
+						outputDiv.innerHTML = text;
+					}
+				} else {
+					outputDiv.innerHTML = `<em>Error: ${response.status} ${response.statusText}</em>`;
+				}
+			} catch (error) {
+				outputDiv.innerHTML = `<em>Error: ${error.message}</em>`;
+			}
+		}
+	</script>
+
+</body>
+
+</html>

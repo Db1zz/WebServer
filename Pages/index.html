@@ -4,6 +4,7 @@
 
 <head>
 	<link rel="stylesheet" href="styles.css">
+	<script src="modal.js" defer></script>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>INITIAL PAGE</title>
@@ -11,22 +12,31 @@
 
 <body>
 
-<div class="header">
-  <a class="active" href="/" class="home">home</a>
-  <div class="header-right">
-    <a href="form.html">form</a>
-    <a href="upload.html">upload</a>
-    <a href="files.html">files</a>
-  </div>
-</div>
+	<div class="header">
+		<a class="active" href="/" class="home">home</a>
+		<div class="header-right">
+			<a href="form.html">form</a>
+			<a href="upload.html">upload</a>
+			<a href="files.html">files</a>
+			<a href="cgi.html">cgi</a>
+		</div>
+	</div>
 
-<div class="welcome">
-  <h1>WELCOME TO WEBSERV</h1>
-</div>
+	<div class="welcome">
+		<h1>WELCOME TO WEBSERV</h1>
+	</div>
 
-<button onclick="document.getElementById('audio').play()">Play Audio</button>
-<audio id="audio" src="hi-kevin.mp3"></audio>
-<img src="init_pic.jpg" class="welcome" style="max-width: 100%; height: auto;">
+	<button onclick="document.getElementById('audio').play()" class="main_button">play audio</button>
+	<audio id="audio" src="hi-kevin.mp3"></audio>
+	<button id="displayPictureBtn" class="main_button">display picture</button>
+
+	<!-- Modal Window -->
+	<div id="modal" class="modal" style="display:none;">
+		<div class="modal-content">
+			<span class="modal-close">&times;</span>
+			<img id="modal-img" src="init_pic.jpg" alt="Picture" class="modal-img" />
+		</div>
+	</div>
 
 </body>
 

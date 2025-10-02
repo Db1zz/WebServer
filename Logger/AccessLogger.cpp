@@ -19,7 +19,7 @@ Status AccessLogger::write_logger_header() {
 
 	status = write_data_to_logfile(logger_header);
 	if (!status) {
-		Status("failed write_data_to_logfile(): " + status.msg());
+		Status(std::string("failed write_data_to_logfile(): ") + status.msg());
 	}
 	return Status();
 }

@@ -20,6 +20,7 @@
 #define WS_PROTOCOL "HTTP/1.1"
 #define IPV4_STR_MAX_SIZE 15
 #define IPV4_OCTETS_SIZE 4
+#define READ_BUFFER_SIZE 100000
 
 class Status;
 class Socket;
@@ -36,27 +37,32 @@ class Server {
 
    private:
 	bool is_a_new_connection(const epoll_event& event);
-	Status request_parser(std::string request, t_request& requestStruct);
 	Status handle_new_connection_event(const epoll_event& connection_event);
 	Status handle_request_event(const epoll_event& request_event);
+
+	Status receive_request_header(ClientSocket* client_socket);
+
+	Status receive_request_body_chunk(ClientSocket* client_socket);
+	Status create_cgi_process(ClientSocket* client_socket);
+	Status handle_cgi_request(ClientSocket* client_socket, int event_fd);
+
+	Status handle_normal_request(ClientSocket* client_socket);
 	Status handle_event(int amount_of_events);
-	Status read_request(const ClientSocket* client_socket, std::string& result);
-	Status request_handler(const ClientSocket* client_socket, t_request& req);
-	Status handle_post_or_delete(std::string request, t_request& requestStruct);
-	Status response_handler(const ClientSocket* client_socket, const t_request& request);
-	Status create_server_socket_manager(const std::string& host, int port);
+	Status read_data(ClientSocket* client_socket, std::string& buff, int& rd_bytes);
+	Status response_handler(ClientSocket* client_socket);
+	Status create_server_socket_manager(const std::string& host, int port,
+										const t_config& server_config);
 	Status create_sockets_from_config(const t_config& server_config);
 	Status create_sockets_from_configs(const std::vector<t_config>& configs);
 	void print_debug_addr(const std::string& address, int port);
-
-	Status find_server_socket_manager(int server_socket_fd,
-									  std::map<int, ServerSocketManager*>::iterator& search_result);
+	ServerSocketManager* find_server_socket_manager(int server_socket_fd);
 	void destroy_all_server_socket_managers();
 
 	std::vector<t_config> _configs;
 	std::map<int, ServerSocketManager*> _server_socket_managers;
 	ServerEvent _event;
 	ServerLogger& _server_logger;
+
 };
 
 #endif // SERVER_SERVER_HPP

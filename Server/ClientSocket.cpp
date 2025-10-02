@@ -1,6 +1,18 @@
 #include "ClientSocket.hpp"
 
-ClientSocket::ClientSocket() : Socket(), _request_ready(false), _server_fd(-1) {
+ClientConnectionContext::ClientConnectionContext()
+	: request(), parser(&request), state(ConnectionState::IDLE), cgi_started(false) {
+}
+
+void ClientConnectionContext::reset() {
+	request = t_request();
+	parser = ServerRequestParser(&request);
+	state = ConnectionState::IDLE;
+	cgi_started = false;
+	buffer.clear();
+}
+
+ClientSocket::ClientSocket() : Socket(), _server_fd(-1) {
 }
 
 ClientSocket::~ClientSocket() {
@@ -14,15 +26,10 @@ int ClientSocket::get_server_fd() {
 	return _server_fd;
 }
 
-std::string& ClientSocket::get_data_buffer() {
-	return _request_buffer;
+void ClientSocket::reset_connection_context() {
+	_connection_context.reset();
 }
 
-void ClientSocket::reset_request_buffer() {
-	_request_ready = false;
-	_request_buffer.clear();
-}
-
-bool ClientSocket::is_request_ready() {
-	return _request_ready;
+ClientConnectionContext* ClientSocket::get_connection_context() {
+	return &_connection_context;
 }

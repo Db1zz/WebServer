@@ -3,6 +3,7 @@
 
 <head>
 	<link rel="stylesheet" href="styles.css">
+	<script src="upload.js" defer></script>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>UPLOAD FILES</title>
@@ -13,19 +14,22 @@
 		<a href="/" class="home">home</a>
 		<div class="header-right">
 			<a href="form.html">form</a>
-			<a class="active" href="upload.html">upload</a>
+			<a class="active" action="/Uploads/" href="upload.html">upload</a>
 			<a href="files.html">files</a>
+			<a href="cgi.html">cgi</a>
 		</div>
 	</div>
-	<form method="POST" enctype="multipart/form-data">
-		<div>
-			<input class="main_button" type="file" id="file" name="file" multiple />
-		</div>
-		<div>
-			<button>Submit</button>
-		</div>
-	</form>
-	
+	<div class="upload-container">
+		<form id="uploadForm" method="POST" action="/Uploads/" enctype="multipart/form-data">
+			<div id="drop-area" class="drop-area">
+				<p>drag or drop files here or <label for="file" class="file-label">browse</label></p>
+				<input class="main_button" type="file" id="file" name="file" multiple style="display:none;" />
+			</div>
+			<div id="file-list" class="file-list"></div>
+			<button type="submit">upload</button>
+		</form>
+	</div>
+
 </body>
 
 </html>

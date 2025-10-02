@@ -1,16 +1,19 @@
 #include "ServerSocketManager.hpp"
 
 #include <errno.h>
-#include <string.h>
 #include <fcntl.h>
+#include <string.h>
 
 #include "ClientSocket.hpp"
 #include "ServerEvent.hpp"
 #include "status.hpp"
 
 ServerSocketManager::ServerSocketManager(const std::string& server_socket_host,
-										 int server_socket_port, ServerEvent* event_system)
-	: _server_socket(server_socket_host, server_socket_port), _event_system(event_system) {
+										 int server_socket_port, ServerEvent* event_system,
+										 const t_config& server_config)
+	: _server_socket(server_socket_host, server_socket_port),
+	  _event_system(event_system),
+	  _server_config(server_config) {
 }
 
 ServerSocketManager::~ServerSocketManager() {
@@ -55,8 +58,7 @@ Status ServerSocketManager::accept_connection() {
 
 	if (fcntl(client_socket->get_fd(), F_SETFL, O_NONBLOCK) < 0) {
 		delete client_socket;
-		return Status("ServerSocketManager failed to accept incoming connection: ",
-					  strerror(errno));
+		return Status(std::string("ServerSocketManager failed to accept incoming connection: ") + strerror(errno));
 	}
 
 	status = register_client_socket_in_event_system(client_socket);
@@ -66,7 +68,7 @@ Status ServerSocketManager::accept_connection() {
 	}
 	_clients.insert(std::make_pair(client_socket->get_fd(), client_socket));
 
-	return Status();
+	return Status::OK();
 }
 
 Status ServerSocketManager::close_connection_with_client(int client_socket_fd) {
@@ -81,7 +83,7 @@ Status ServerSocketManager::close_connection_with_client(int client_socket_fd) {
 	unregister_client_socket_in_event_system(client_socket_fd);
 	delete client_socket;
 	_clients.erase(client_socket_fd);
-	return Status();
+	return Status::OK();
 }
 
 Status ServerSocketManager::get_client_socket(int client_socket_fd, ClientSocket** out) {
@@ -91,10 +93,10 @@ Status ServerSocketManager::get_client_socket(int client_socket_fd, ClientSocket
 			"ServerSocketManager failed to close connection with a client: client not found");
 	}
 	*out = client_it->second;
-	return Status();
+	return Status::OK();
 }
 
-const ServerSocket* ServerSocketManager::get_server_socket() {
+const ServerSocket* ServerSocketManager::get_server_socket() const {
 	return &_server_socket;
 }
 
@@ -106,7 +108,7 @@ Status ServerSocketManager::register_client_socket_in_event_system(ClientSocket*
 		return Status("ServerSocketManager failed to register client socket in event system: " +
 					  status.msg());
 	}
-	return Status();
+	return Status::OK();
 }
 
 Status ServerSocketManager::register_server_socket_in_event_system() {
@@ -117,7 +119,7 @@ Status ServerSocketManager::register_server_socket_in_event_system() {
 		return Status("ServerSocketManager failed to register server socket in event system: " +
 					  status.msg());
 	}
-	return Status();
+	return Status::OK();
 }
 
 Status ServerSocketManager::unregister_client_socket_in_event_system(int client_socket_fd) {
@@ -128,7 +130,7 @@ Status ServerSocketManager::unregister_client_socket_in_event_system(int client_
 		return Status("ServerSocketManager failed to unregister client socket from event system: " +
 					  status.msg());
 	}
-	return Status();
+	return Status::OK();
 }
 
 Status ServerSocketManager::unregister_server_socket_in_event_system() {
@@ -139,7 +141,7 @@ Status ServerSocketManager::unregister_server_socket_in_event_system() {
 		return Status("ServerSocketManager failed to unregister server socket from event system: " +
 					  status.msg());
 	}
-	return Status();
+	return Status::OK();
 }
 
 void ServerSocketManager::destroy_all_clients() {
@@ -153,4 +155,8 @@ void ServerSocketManager::destroy_all_clients() {
 		++it;
 	}
 	_clients.clear();
+}
+
+const t_config& ServerSocketManager::get_server_config() const {
+	return _server_config;
 }

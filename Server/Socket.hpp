@@ -5,7 +5,7 @@
 #include <netinet/in.h>
 #include <status.hpp>
 
-#define SOCKET_DEFAULT_MAX_CONNECTIONS 1024
+#define SOCKET_DEFAULT_MAX_CONNECTIONS 100024
 
 class Socket {
 public:
@@ -17,6 +17,12 @@ public:
 	enum SetMode {
 		kUnset,
 		kSet
+	};
+
+	enum SocketType {
+		CLIENT_SOCKET,
+		SERVER_SOCKET, 
+		CGI_SOCKET
 	};
 
 	Socket();

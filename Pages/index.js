@@ -1,5 +1,42 @@
 let numFiles = 0;
 
+function createFileElement(filename) {
+	const filesList = document.getElementById("files_list");
+	const fileContainer = document.createElement("div");
+	fileContainer.className = "file-item";
+
+	const nameSpan = document.createElement("span");
+	nameSpan.textContent = filename;
+	nameSpan.className = "file-name";
+
+	const buttonGroup = document.createElement("div");
+	buttonGroup.className = "file-button-group";
+
+	const downloadButton = document.createElement("button");
+	downloadButton.textContent = "Download";
+	downloadButton.className = "file-download-button";
+	downloadButton.onclick = () => {
+		const link = document.createElement('a');
+		link.href = `/Uploads/${filename}`;
+		link.download = filename;
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+	};
+
+	const deleteButton = document.createElement("button");
+	deleteButton.textContent = "Delete";
+	deleteButton.className = "file-delete-button";
+	deleteButton.onclick = () => deleteFile(filename);
+
+	buttonGroup.appendChild(downloadButton);
+	buttonGroup.appendChild(deleteButton);
+
+	fileContainer.appendChild(nameSpan);
+	fileContainer.appendChild(buttonGroup);
+	filesList.appendChild(fileContainer);
+}
+
 function loadFiles() {
 	const filesList = document.getElementById("files_list");
 	filesList.innerHTML = '';
@@ -13,33 +50,8 @@ function loadFiles() {
 			files.forEach(filename => {
 				createFileElement(filename);
 			});
-			numFiles = files.length;
-		})
-		.catch(error => {
-			console.error('Error loading files:', error);
 		});
 }
-
-function createFileElement(filename) {
-	const filesList = document.getElementById("files_list");
-	const fileContainer = document.createElement("div");
-	fileContainer.className = "file-item";
-	const downloadLink = document.createElement("a");
-	downloadLink.href = `/Uploads/${filename}`;
-	downloadLink.download = filename;
-	downloadLink.textContent = filename;
-	downloadLink.className = "file-download-link";
-
-	const deleteButton = document.createElement("button");
-	deleteButton.textContent = "Delete";
-	deleteButton.className = "file-delete-button";
-	deleteButton.onclick = () => deleteFile(filename);
-
-	fileContainer.appendChild(downloadLink);
-	fileContainer.appendChild(deleteButton);
-	filesList.appendChild(fileContainer);
-}
-
 
 function deleteFile(filename) {
 	if (!confirm(`are you suure you want to delete ${filename}?`))
