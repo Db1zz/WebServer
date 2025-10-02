@@ -22,13 +22,14 @@ Parser::Parser(std::string fileName) : m_fileName(fileName) {
 		_source += tempString;
 		_source += '\n';
 	}
+	if (tempString.size() == 0) throw std::runtime_error("File is empty, nothing to parse!");
 	addKeywords();
 	std::vector<Token> temp = scanTokens();
-	/* 	for (size_t i = 0; i < temp.size(); i++) {
-			if (temp[i].getType() != END_OF_FILE)
-				std::cout << temp[i].getAll() << "\n";
-		}
-		std::cout << "--------------------------------\n"; */
+/* 	for (size_t i = 0; i < temp.size(); i++) {
+		if (temp[i].getType() != END_OF_FILE)
+		std::cout << temp[i].getAll() << "\n";
+	}
+	std::cout << "--------------------------------\n"; */
 	parseConfig();
 }
 
@@ -214,6 +215,10 @@ void Parser::parseListen() {
 		int lastDot = 0;
 		t_listen listen_conf;
 		temp = consume(IDENTIFIER, "expected format: address[:port]").getAll();
+		if (temp.find("localhost", 0) != std::string::npos) {
+			std::size_t position = temp.find("localhost", 0);
+			temp.replace(position, strlen("localhost"), "127.0.0.1");
+		}
 		if (temp.find('.') != std::string::npos || check(COLON)) {
 			int dotCount = 0;
 			for (size_t i = 0; i < temp.size(); i++) {
@@ -251,6 +256,9 @@ void Parser::parseListen() {
 			port = consume(IDENTIFIER, "expected port after colon").getAll();
 		}
 		if (port != "") {
+			for (size_t i = 0; i < port.size(); i++) {
+				if (!std::isdigit(port.at(i))) throw std::runtime_error("Not a number in port");
+			}
 			convertedPort = atoi(port.c_str());
 			if (convertedPort < 0 || convertedPort > 65535)
 				throw std::runtime_error("Port should be in range of 0 to 65535");
@@ -332,6 +340,7 @@ t_location Parser::parseLocation() {
 	tempLocation.chunked_size = 0;
 	tempLocation.chunked_threshold = 0;
 	tempLocation.chunked_transfer_encoding = false;
+	if (tempLocation.path == "") throw std::runtime_error("Location path cannot be empty!");
 	consume(LEFT_BRACE, "expected opening '{' for location block");
 	while (!check(RIGHT_BRACE)) {
 		if (match(ROOT)) {
@@ -489,13 +498,12 @@ std::vector<t_config> Parser::getConfigStruct() {
 	// for (size_t i = 0; i < _configVector.size(); i++) {
 	// 	t_config temp = _configVector.at(i);
 
-	// 	// Print hosts
-	// 	for (size_t host_i = 0; host_i < temp.host.size(); host_i++)
-	// 		std::cout << "Host: " << temp.host.at(host_i) << '\n';
-
-	// 	// Print ports
-	// 	for (size_t port_i = 0; port_i < temp.port.size(); port_i++)
-	// 		std::cout << "Port: " << temp.port.at(port_i) << '\n';
+	// 	// Print host and port
+	// 	for (size_t temp_i = 0; temp_i < temp.listen.size(); temp_i++)
+	// 	{
+	// 		std::cout << "Host: " << temp.listen.at(temp_i).host << '\n';
+	// 		std::cout << "Port: " << temp.listen.at(temp_i).port << '\n';
+	// 	}
 
 	// 	// Print server names
 	// 	for (size_t sn_i = 0; sn_i < temp.server_name.size(); sn_i++)
@@ -625,6 +633,11 @@ void Parser::checkDuplicateListen(t_listen check) {
 	}
 }
 
+void Parser::checkForEmpty(t_config& parsedConfig) {
+	if (parsedConfig.server_name.empty() || parsedConfig.listen.empty())
+		throw std::runtime_error("Server name and listen cannot be empty for any server block");
+}
+
 void Parser::parseConfig() {
 	while (!tokenIsAtEnd()) {
 		if (match(SERVER)) {
@@ -670,6 +683,7 @@ void Parser::parseConfig() {
 				}
 			}
 			consume(RIGHT_BRACE, "expected terminator '}' after server block content");
+			checkForEmpty(tempConfig);
 			_configVector.push_back(tempConfig);
 		} else {
 			throw std::runtime_error("expected server block, got \"" + tokenPeek().getAll() +
