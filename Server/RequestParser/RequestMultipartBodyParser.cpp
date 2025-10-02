@@ -156,6 +156,7 @@ Status RequestMultipartParser::parse_body_header(size_t boundary_pos) {
 	std::string content_type;
 	pos = internal_server_request_parser::get_token_with_delim(_buffer, pos, content_disposition,
 															   "\r\n", true);
+	std::cout << content_disposition << std::endl;
 	status = parse_filename(content_disposition, _last_content->filename);
 	if (status == BadRequest) {
 		return status;
@@ -167,6 +168,7 @@ Status RequestMultipartParser::parse_body_header(size_t boundary_pos) {
 	}
 
 	pos = internal_server_request_parser::get_token_with_delim(_buffer, pos, content_type, "\r\n", true);
+	std::cout << content_type << std::endl;
 	status = parse_content_type(content_type, _last_content->content_type);
 	if (status == NoMime) {
 		return Status::OK();

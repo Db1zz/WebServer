@@ -44,6 +44,7 @@ size_t char_to_hex(char c);
 
 void extract_filename(const std::string& full_path, std::string& out);
 void extract_mime(const std::string& filename, std::string& out);
+void skip_ws(const std::string& s, size_t& pos);
 
 // TODO:
 // Status normalize_uri(const t_commonConfig& common_server_config, std::string& uri);

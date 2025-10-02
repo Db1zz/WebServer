@@ -272,7 +272,6 @@ bool is_quoted_pair_char(unsigned char c) {
 }
 
 Status parse_quoted_string(const std::string& s, size_t pos, size_t& next_pos, std::string& out) {
-	const size_t ows_last_char_pos = 2;
 	const size_t escape_last_char_pos = 1;
 	const size_t len = s.size();
 	std::string buffer;
@@ -281,6 +280,7 @@ Status parse_quoted_string(const std::string& s, size_t pos, size_t& next_pos, s
 		return Status::InvalidFilenameFormat();
 	}
 	++pos;
+	skip_ws(s, pos);
 
 	while (pos < len && s[pos] != '\"') {
 		if (pos + escape_last_char_pos < len && s[pos] == '\\') {
@@ -289,14 +289,6 @@ Status parse_quoted_string(const std::string& s, size_t pos, size_t& next_pos, s
 			}
 			buffer.push_back(s[pos + escape_last_char_pos]);
 			pos += escape_last_char_pos + 1;
-			continue;
-		}
-		if (pos + ows_last_char_pos < len && is_ows(s.c_str() + pos)) {
-			pos = s.find_first_not_of("	 ", pos + ows_last_char_pos + 1);
-			if (pos == std::string::npos) {
-				return Status::InvalidFilenameFormat();
-			}
-			buffer.push_back(' ');
 			continue;
 		} else if (!is_qd_text(s[pos])) {
 			return Status::InvalidFilenameFormat();
@@ -330,6 +322,12 @@ void extract_mime(const std::string& filename, std::string& out) {
 		return;
 	}
 	out = filename.substr(last_slash_pos);
+}
+
+void skip_ws(const std::string& s, size_t& pos) {
+	while (is_ws(s[pos])) {
+		++pos;
+	}
 }
 
 } // namespace internal_server_request_parser
