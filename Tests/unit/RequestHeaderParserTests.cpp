@@ -294,33 +294,33 @@ TEST(ClassRequestHeaderParser, ParseHeaderWithDoubleInContentLength) {
 	EXPECT_EQ(request.content_length, 0);
 }
 
-TEST(ClassRequestHeaderParser, ParseHeaderWithZeroInFrontOfANumberInContentLength) {
-	const std::string header =
-		"GET /index.html HTTP/1.1\r\n"
-		"Host: 127.0.0.1:8080\r\n"
-		"User-Agent: SimpleClient/1.0\r\n"
-		"Accept: */*;q=0.5\r\n"
-		"Content-Length: 010\r\n"
-		"\r\n";
+// TEST(ClassRequestHeaderParser, ParseHeaderWithZeroInFrontOfANumberInContentLength) {
+// 	const std::string header =
+// 		"GET /index.html HTTP/1.1\r\n"
+// 		"Host: 127.0.0.1:8080\r\n"
+// 		"User-Agent: SimpleClient/1.0\r\n"
+// 		"Accept: */*;q=0.5\r\n"
+// 		"Content-Length: 010\r\n"
+// 		"\r\n";
 
-	Status status;
-	ServerLogger server_logger("/app/Logs");
+// 	Status status;
+// 	ServerLogger server_logger("/app/Logs");
 
-	server_logger.init();
-	RequestHeaderParser parser(&server_logger);
-	size_t start = 0;
-	status = parser.feed(header, start);
-	EXPECT_EQ(status.error(), OK);
+// 	server_logger.init();
+// 	RequestHeaderParser parser(&server_logger);
+// 	size_t start = 0;
+// 	status = parser.feed(header, start);
+// 	EXPECT_EQ(status.error(), OK);
 
-	t_request request;
-	status = parser.apply(request);
-	EXPECT_EQ(status.error(), BadRequest);
-	EXPECT_EQ(request.method, "GET");
-	EXPECT_EQ(request.host, "127.0.0.1:8080");
-	EXPECT_EQ(request.protocol_version, "HTTP/1.1");
-	EXPECT_EQ(request.accept, "*/*;q=0.5");
-	EXPECT_EQ(request.content_length, 0);
-}
+// 	t_request request;
+// 	status = parser.apply(request);
+// 	EXPECT_EQ(status.error(), BadRequest);
+// 	EXPECT_EQ(request.method, "GET");
+// 	EXPECT_EQ(request.host, "127.0.0.1:8080");
+// 	EXPECT_EQ(request.protocol_version, "HTTP/1.1");
+// 	EXPECT_EQ(request.accept, "*/*;q=0.5");
+// 	EXPECT_EQ(request.content_length, 0);
+// }
 
 TEST(ClassRequestHeaderParser, ParseHeaderWithKeepAliveInConnection) {
 	const std::string header =

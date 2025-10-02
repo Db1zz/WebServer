@@ -4,7 +4,7 @@
 
 TEST(ParserValues, Correct) {
 	/* Tests to prove that the parsed values are the same */
-	Parser parser("Tests/unit/configs/goodconfig.conf");
+	Parser parser("../Tests/unit/goodconfig.conf");
 	std::vector<t_config> vec = parser.getConfigStruct();
 	EXPECT_EQ(vec.size(), 1);
 	/* Server name check */
@@ -62,23 +62,23 @@ TEST(ParserValues, Correct) {
 
 TEST(BadConfigFile, Error)
 {
-	EXPECT_EXIT(Parser("Tests/unit/configs/NoConf"),testing::ExitedWithCode(1), "No file found with the extension '.conf' or no rights to read!\n");
-	EXPECT_EXIT(Parser("Tests/unit/configs/NoRights"),testing::ExitedWithCode(1), "No file found with the extension '.conf' or no rights to read!\n");
+	EXPECT_EXIT(Parser("../Tests/unit/NoConf"),testing::ExitedWithCode(1), "No file found with the extension '.conf' or no rights to read!\n");
+	EXPECT_EXIT(Parser("../Tests/unit/NoRights"),testing::ExitedWithCode(1), "No file found with the extension '.conf' or no rights to read!\n");
 }
 
 TEST(BadConfigFile, Duplicate)
 {
-	EXPECT_THROW(Parser("Tests/unit/configs/Duplicate.conf"), std::runtime_error);
+	EXPECT_THROW(Parser("../Tests/unit/Duplicate.conf"), std::runtime_error);
 }
 
 TEST(BadConfigFile, NoServerBlock)
 {
-	EXPECT_THROW(Parser("Tests/unit/configs/NoServerBlock.conf"), std::runtime_error);
+	EXPECT_THROW(Parser("../Tests/unit/NoServerBlock.conf"), std::runtime_error);
 }
 
 TEST(BadConfigFile, NoPathForLocation)
 {
-	EXPECT_THROW(Parser("Tests/unit/configs/NoPathForLocation.conf"), std::runtime_error);
+	EXPECT_THROW(Parser("../Tests/unit/NoPathForLocation.conf"), std::runtime_error);
 }
 
 
