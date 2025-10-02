@@ -3,6 +3,8 @@
 #include <arpa/inet.h>
 #include <errno.h>
 
+#include "ClientSocket.hpp"
+
 ServerSocket::ServerSocket(const std::string& host, int port) {
 	_host = host;
 	_port = port;

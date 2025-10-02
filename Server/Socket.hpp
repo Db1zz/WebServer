@@ -20,9 +20,9 @@ public:
 	};
 
 	enum SocketType {
-		ClientSocket, 
-		ServerSocket,
-		CGISocket
+		CLIENT_SOCKET,
+		SERVER_SOCKET, 
+		CGI_SOCKET
 	};
 
 	Socket();
