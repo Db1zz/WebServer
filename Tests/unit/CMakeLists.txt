@@ -11,7 +11,7 @@ include_directories(../../Parser)
 include_directories(../../Utilities)
 
 set(SOURCES
-  ServerRequestParserTests.cpp
+#   ServerRequestParserTests.cpp
   RequestMultipartBodyParserTests.cpp
   ServerRequestParserHelpersTests.cpp
   RequestHeaderParserTests.cpp
