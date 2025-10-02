@@ -382,6 +382,7 @@ Status Server::response_handler(ClientSocket* client_socket) {
 	}
 	if (resp.status.code() == BadRequest || resp.status.code() == Conflict) {
 		ServerSocketManager* manager = find_server_socket_manager(client_socket->get_server_fd());
+		(void)manager; //? change this block entirely after finishing cgi
 		//instead of this, after receiving a status from any of the responses(chunked, cgi or normal, return resp.status)
 	}
 	return Status();

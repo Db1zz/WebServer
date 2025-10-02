@@ -71,7 +71,7 @@ bool is_vchar(unsigned char c) {
 }
 
 bool is_obs_text(unsigned char c) {
-	return c >= 128 && c <= 255;
+	return c >= 128;
 }
 
 bool is_ws(unsigned char c) {
@@ -151,11 +151,11 @@ size_t get_token_with_delim(const std::string& data, size_t start, std::string& 
 	return start + result.size();
 }
 
-Status parse_nonencoded_filename(const std::string& filename) {
-	Status status;
+// Status parse_nonencoded_filename(const std::string& filename) {
+// 	Status status;
 
-	return status;
-}
+// 	return status;
+// } //?delete
 
 // syntax: <charset>'<language>'<percent-encoded-octets>
 // the file name must already be separated from the path part, without the leading / character
@@ -191,6 +191,8 @@ Status parse_encoded_filename(const std::string& encoded_filename, std::string& 
 
 Status decode_filename(const std::string& charset, const std::string& language,
 					   const std::string& encoded_filename, std::string& decoded_filename) {
+	(void)charset;  // ?delete from parameters(unused)
+	(void)language; // ?delete from parameters(unused)
 	Status status;
 	std::string decoded_buffer;
 

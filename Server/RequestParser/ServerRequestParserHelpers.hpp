@@ -32,7 +32,7 @@ bool is_pchar(char c);
 
 void unfold_string(std::string& string);
 
-Status parse_nonencoded_filename(const std::string& filename);
+// Status parse_nonencoded_filename(const std::string& filename);
 Status parse_encoded_filename(const std::string& encoded_filename, std::string& decoded_filename);
 Status decode_filename(const std::string& charset, const std::string& language,
 					   const std::string& encoded_filename, std::string& decoded_filename);
