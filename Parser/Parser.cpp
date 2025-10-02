@@ -22,13 +22,14 @@ Parser::Parser(std::string fileName) : m_fileName(fileName) {
 		_source += tempString;
 		_source += '\n';
 	}
+	if (tempString.size() == 0) throw std::runtime_error("File is empty, nothing to parse!");
 	addKeywords();
 	std::vector<Token> temp = scanTokens();
-	/* 	for (size_t i = 0; i < temp.size(); i++) {
-			if (temp[i].getType() != END_OF_FILE)
-				std::cout << temp[i].getAll() << "\n";
-		}
-		std::cout << "--------------------------------\n"; */
+/* 	for (size_t i = 0; i < temp.size(); i++) {
+		if (temp[i].getType() != END_OF_FILE)
+		std::cout << temp[i].getAll() << "\n";
+	}
+	std::cout << "--------------------------------\n"; */
 	parseConfig();
 }
 
