@@ -6,11 +6,12 @@
 #include "status.hpp"
 
 ServerRequestParser::ServerRequestParser(t_request* request, ServerLogger* logger)
-	: _logger(logger),
+	: 
+	  _logger(logger),
 	  _header_parser(logger),
 	  _body_parser(NULL),
-	  _header_found(false),
 	  _is_cgi(false),
+	  _header_parsed(false),
 	  _request(request) {
 }
 
@@ -52,43 +53,69 @@ ServerRequestParser::~ServerRequestParser() {
 		3. Setup routine that will fork and register new process
 		4. send response when cgi finished or failed.
 */
-Status ServerRequestParser::feed(const std::string& content) {
+Status ServerRequestParser::parse_header(const std::string& content) {
+	if (_header_parsed == true) {
+		return Status::OK();
+	}
 	Status status;
-	size_t cursor_pos = 0;
+	size_t cursor_pos;
 
-	if (!_header_found) {
-		status = _header_parser.feed(content, cursor_pos);
-		if (!status) {
-			return status;
-		}
-		status = _header_parser.apply(*_request);
-		if (!status || status.error() == DataIsNotReady) {
-			return status;
-		}
-		_header_found = true;
-
-		_is_cgi = (_request->uri_path.find("cgi-bin/") != std::string::npos);
-
-		if (_request->method == "POST" || _is_cgi == true) {
-			create_body_parser();
-		}
+	status = _header_parser.feed(content, cursor_pos);
+	if (!status) {
+		return status;
+	}
+	status = _header_parser.apply(*_request);
+	if (!status || status.error() == DataIsNotReady) {
+		return status;
 	}
 
+	if (cursor_pos != content.size()) {
+		_buffer = content.substr(cursor_pos);
+	}
+
+	_is_cgi = (_request->uri_path.find("cgi-bin/") != std::string::npos);
 	if (_request->method == "POST" || _is_cgi == true) {
-		status = _body_parser->feed(content, cursor_pos);
-		if (!status) {
-			return status;
-		}
-		if (status != DataIsNotReady) {
-			_body_parser->apply(*_request);
-		}
+		create_body_parser();
 	}
+
+	_header_parsed = true;
 
 	return Status::OK();
 }
 
+Status ServerRequestParser::parse_body(const std::string& content) {
+	if (_header_parsed == false) {
+		return Status::DataIsNotReady();
+	} else if (_body_parser == NULL) {
+		return Status::OK();
+	}
+
+	Status status;
+
+	if (_buffer.empty() == false) {
+		status = _body_parser->feed(_buffer, 0);
+		_buffer.clear();
+		if (!status) {
+			return status;
+		}
+	}
+
+	status = _body_parser->feed(content, 0);
+	if (!status) {
+		return status;
+	}
+	if (status != DataIsNotReady) {
+		_body_parser->apply(*_request);
+	}
+
+	return Status::OK();
+}
 bool ServerRequestParser::is_cgi_request() const {
 	return _is_cgi;
+}
+
+bool ServerRequestParser::is_header_parsed() const {
+	return _header_parsed;
 }
 
 void ServerRequestParser::create_body_parser() {

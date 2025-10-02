@@ -39,9 +39,16 @@ class Server {
 	bool is_a_new_connection(const epoll_event& event);
 	Status handle_new_connection_event(const epoll_event& connection_event);
 	Status handle_request_event(const epoll_event& request_event);
+
+	Status receive_request_header(ClientSocket* client_socket);
+
+	Status receive_request_body_chunk(ClientSocket* client_socket);
+	Status create_cgi_process(ClientSocket* client_socket);
+	Status handle_cgi_request(ClientSocket* client_socket, int event_fd);
+
+	Status handle_normal_request(ClientSocket* client_socket);
 	Status handle_event(int amount_of_events);
 	Status read_data(ClientSocket* client_socket, std::string& buff, int& rd_bytes);
-	Status request_handler(ClientSocket* client_socket);
 	Status response_handler(ClientSocket* client_socket);
 	Status create_server_socket_manager(const std::string& host, int port,
 										const t_config& server_config);
@@ -55,6 +62,7 @@ class Server {
 	std::map<int, ServerSocketManager*> _server_socket_managers;
 	ServerEvent _event;
 	ServerLogger& _server_logger;
+
 };
 
 #endif // SERVER_SERVER_HPP

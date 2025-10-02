@@ -26,6 +26,27 @@ ServerEvent::~ServerEvent() {
     }
 }
 
+// Register an event_fd that will be associated with the socket.
+// The event_fd can be any other fd that is not part of a TCP connection or SOCKET FD.
+// For example, we want to register some process and use a pipe to communicate with it.
+// To do this, we can set up pipes, use fork(), and with add_event, the user can associate the pipe fd with any socket.
+Status ServerEvent::add_event(uint32_t events, int event_fd, Socket* socket) {
+	epoll_event new_event;
+
+	new_event.data.ptr = socket;
+	new_event.events = events;
+
+	if (_events_size == _events_capacity) {
+		resize_events_arr(_events_capacity * 2);
+	}
+
+	if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, event_fd, &new_event) < 0) {
+		return Status(strerror(errno));
+	}
+	++_events_size;
+	return Status::OK();
+}
+
 Status ServerEvent::add_event(uint32_t events, Socket *socket) {
     epoll_event new_event;
 

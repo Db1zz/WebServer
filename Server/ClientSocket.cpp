@@ -1,11 +1,11 @@
 #include "ClientSocket.hpp"
 
 ClientConnectionContext::ClientConnectionContext()
-	: request(), parser(&request) {}
+	: request(), parser(&request), state(ConnectionState::IDLE), cgi_started(false) {
+}
 
 void ClientConnectionContext::reset() {
-	request = t_request();
-	parser = ServerRequestParser(&request);
+	*this = ClientConnectionContext(); // idk if it will work correctly
 }
 
 ClientSocket::ClientSocket() : Socket(), _server_fd(-1) {

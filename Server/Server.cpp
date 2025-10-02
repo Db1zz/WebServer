@@ -2,6 +2,7 @@
 
 #include <errno.h>
 #include <string.h>
+#include <unistd.h>
 
 #include <cassert>
 #include <csignal>
@@ -89,37 +90,220 @@ Status Server::handle_new_connection_event(const epoll_event& connection_event) 
 	return Status::OK();
 }
 
+Status Server::create_cgi_process(ClientSocket* client_socket) {
+	ClientConnectionContext* connection_context = client_socket->get_connection_context();
+	t_request& request = connection_context->request;
+	pid_t cgi_process;
+
+	// fd[0] == read, fd[1] == write
+	int server_read_pipe[2]; // this pipe is used to read stream of data from a client
+	// int stdout_pipe[2];
+
+	if (pipe(server_read_pipe) < 0) {
+		perror("pipe");
+		return Status("pipe() failed in create_cgi_process");
+	}
+
+	cgi_process = fork();
+	if (cgi_process < 0) {
+		perror("fork");
+		close(server_read_pipe[0]);
+		close(server_read_pipe[1]);
+		return Status("fork() failed in create_cgi_process");
+	}
+
+	if (cgi_process > 0) {
+		close(server_read_pipe[1]);
+
+		_event.add_event(SERVER_EVENT_CLIENT_EVENTS, server_read_pipe[0], client_socket);
+
+		return Status::OK();
+	} else {
+		const std::string python_bin = "/usr/bin/python3";
+		const std::string script_path = "./cgi-bin/aboba.py";
+
+		std::vector<std::string> argv_strs;
+		argv_strs.push_back("python3");	  // argv[0]
+		argv_strs.push_back(script_path); // argv[1]
+		std::vector<char*> argv;
+		for (size_t i = 0; i < argv_strs.size(); ++i) {
+			argv.push_back(const_cast<char*>(argv_strs[i].c_str()));
+		}
+		argv.push_back(NULL);
+
+		std::vector<std::string> env_strs;
+		{
+			std::stringstream content_length;
+			content_length << request.content_length;
+			env_strs.push_back(std::string("REQUEST_METHOD=") + request.method);
+			env_strs.push_back(std::string("CONTENT_LENGTH=") + content_length.str());
+			env_strs.push_back(std::string("CONTENT_TYPE="));
+			env_strs.push_back(std::string("SERVER_PROTOCOL=HTTP/1.1"));
+			env_strs.push_back(std::string("SCRIPT_NAME="));
+			env_strs.push_back(std::string("PATH_INFO="));
+			env_strs.push_back(std::string("QUERY_STRING="));
+			env_strs.push_back(std::string("REMOTE_ADDR="));
+			env_strs.push_back(std::string("SERVER_NAME="));
+			env_strs.push_back(std::string("SERVER_PORT="));
+			env_strs.push_back(std::string("HTTP_USER_AGENT="));
+			env_strs.push_back(std::string("HTTP_ACCEPT="));
+			env_strs.push_back(std::string("SERVER_SOFTWARE=unravelThePuzzle"));
+			env_strs.push_back(std::string("AUTH_TYPE=Basic"));
+		}
+		std::vector<char*> envp;
+		for (size_t i = 0; i < env_strs.size(); ++i) {
+			envp.push_back(const_cast<char*>(env_strs[i].c_str()));
+		}
+		envp.push_back(NULL);
+
+		if (dup2(server_read_pipe[1], STDOUT_FILENO) < 0) {
+			perror("dup2 in cgi child");
+			_exit(127);
+		}
+
+		close(server_read_pipe[0]);
+		close(server_read_pipe[1]);
+
+		execve(python_bin.c_str(), argv.data(), envp.data());
+
+		perror("execve");
+		_exit(127);
+	}
+}
+
+Status Server::handle_cgi_request(ClientSocket* client_socket, int event_fd) {
+	Status status;
+	ClientConnectionContext* connection_context = client_socket->get_connection_context();
+
+	if (client_socket->get_fd() != event_fd) { // means that the event comes from the pipe.
+
+	} else {
+		if (connection_context->cgi_started == false || 
+			connection_context->request.content_length > 0 ||
+			connection_context->request.is_chunked_request) {
+			status = receive_request_body_chunk(client_socket);
+		}
+	
+		if (connection_context->cgi_started == false && connection_context->request.is_request_ready()) {
+			status = create_cgi_process(client_socket);
+			if (!status) {
+				_server_logger.log_error("Server::handle_cgi_request",
+										 std::string("create_cgi_process failed with error: '") +
+											 "TODO: Status error code!!!" + "'");
+				return status;
+			}
+			connection_context->cgi_started = true;
+		}
+	}
+
+	return Status::OK();
+}
+
+Status Server::handle_normal_request(ClientSocket* client_socket) {
+	ClientConnectionContext* connection_context = client_socket->get_connection_context();
+	ServerSocketManager* manager = NULL;
+	Status status;
+
+	if (connection_context->request.transfered_length > 0 ||
+		connection_context->request.is_chunked_request) {
+		status = receive_request_body_chunk(client_socket);
+	}
+	if (status.code() != DataIsNotReady) {
+		ClientConnectionContext* connection_context = client_socket->get_connection_context();
+		status = response_handler(client_socket);
+		if (!status) {
+			return Status("response_handler() failed in Server::handle_event(): " + status.msg());
+		}
+		if (connection_context->request.is_request_ready()) {
+			manager = find_server_socket_manager(client_socket->get_server_fd());
+			_server_logger.log_access(
+				*client_socket->get_host(), connection_context->request.method,
+				connection_context->request.uri_path, manager->get_server_socket()->get_port());
+			client_socket->reset_connection_context();
+		}
+	}
+	return Status::OK();
+}
+
+Status Server::receive_request_header(ClientSocket* client_socket) {
+	ClientConnectionContext* connection_context = client_socket->get_connection_context();
+	Status status;
+	std::string buffer;
+	int rd_bytes = 0;
+
+	status = read_data(client_socket, buffer, rd_bytes);
+	if (!status) {
+		_server_logger.log_error("Server::receive_request_header", "failed to read data");
+		return status;
+	}
+	status = connection_context->parser.parse_header(buffer);
+	if (!status) {
+		_server_logger.log_error("Server::receive_request_header", "failed to parse header");
+		return status;
+	}
+
+	return status;
+}
+
+Status Server::receive_request_body_chunk(ClientSocket* client_socket) {
+	ClientConnectionContext* connection_context = client_socket->get_connection_context();
+	Status status;
+	std::string buffer;
+	int rd_bytes = 0;
+
+	status = read_data(client_socket, buffer, rd_bytes);
+	if (!status) {
+		_server_logger.log_error("Server::receive_request_header", "failed to read data");
+		return status;
+	}
+	status = connection_context->parser.parse_body(buffer);
+	if (!status) {
+		_server_logger.log_error("Server::receive_request_header", "failed to parse header");
+		return status;
+	}
+
+	return status;
+}
+
 Status Server::handle_request_event(const epoll_event& request_event) {
 	Status status;
-	ClientSocket* client_socket = NULL;
-	ServerSocketManager* manager = NULL;
+	ClientSocket* client_socket = static_cast<ClientSocket*>(request_event.data.ptr);
+	ClientConnectionContext* connection_context = client_socket->get_connection_context();
 
-	client_socket = static_cast<ClientSocket*>(request_event.data.ptr);
 	if (request_event.events & (EPOLLERR | EPOLLRDHUP)) {
-		manager = find_server_socket_manager(client_socket->get_server_fd());
+		ServerSocketManager* manager = find_server_socket_manager(client_socket->get_server_fd());
 		if (!manager) {
 			return Status("Server cannot find a server to close connection with");
 		}
 		manager->close_connection_with_client(client_socket->get_fd());
 		std::cout << "destroy client\n";
 	} else if (request_event.events & EPOLLIN) {
-		status = request_handler(client_socket);
-
-		if (status.error() != DataIsNotReady) {
-			status = response_handler(client_socket);
+		if (connection_context->state == ConnectionState::IDLE) {
+			connection_context->state = ConnectionState::RECEIVING_REQUEST_HEADER_FROM_CLIENT;
+		}
+		if (connection_context->state == ConnectionState::RECEIVING_REQUEST_HEADER_FROM_CLIENT) {
+			status = receive_request_header(client_socket);
 			if (!status) {
-				return Status("response_handler() failed in Server::handle_event(): " +
-							  status.msg());
+				_server_logger.log_error("Server::handle_request_event",
+										 "failed to receive request header");
+				return status;
 			}
-
-			ClientConnectionContext* connection_context = client_socket->get_connection_context();
-			if (connection_context->request.is_request_ready()) {
-				manager = find_server_socket_manager(client_socket->get_server_fd());
-				_server_logger.log_access(
-					*client_socket->get_host(), connection_context->request.method,
-					connection_context->request.uri_path, manager->get_server_socket()->get_port());
-				client_socket->reset_connection_context();
+			if (connection_context->parser.is_header_parsed() == true) {
+				if (connection_context->parser.is_cgi_request() == true) {
+					connection_context->state = ConnectionState::HANDLE_CGI_REQUEST;
+				} else {
+					connection_context->state = ConnectionState::HANDLE_NORMAL_REQUEST;
+				}
 			}
+		}
+		if (connection_context->state == ConnectionState::HANDLE_CGI_REQUEST) {
+			status = handle_cgi_request(client_socket);
+		} else if (connection_context->state == ConnectionState::HANDLE_NORMAL_REQUEST) {
+			status = handle_normal_request(client_socket);
+		}
+		if (!status) {
+			_server_logger.log_error("Server::handle_request_event", "failed to handle request");
+			return status;
 		}
 	}
 	return Status::OK();
@@ -158,33 +342,6 @@ Status Server::read_data(ClientSocket* client_socket, std::string& buff, int& rd
 		return Status::InternalServerError();
 	}
 	buff.append(read_buff, rd_bytes);
-	return Status::OK();
-}
-
-/*
-	New Request -> Request Handler -> Read Request Chunk ->
-	Get Request Data -> Pass Chunk To Request Parser
-
-	The instance of the ServerRequesParser will have a cache
-	that stores all relaible to request data.
-*/
-Status Server::request_handler(ClientSocket* client_socket) {
-	Status status;
-	ClientConnectionContext* connection_context = client_socket->get_connection_context();
-	std::string buffer;
-	int rd_bytes;
-
-	status = read_data(client_socket, buffer, rd_bytes);
-	// std::cout << GREEN300 << "REQUEST:" << buffer << RESET << std::endl;
-	if (!status) {
-		return Status("Server::read_data " + status.msg());
-	}
-
-	status = connection_context->parser.feed(buffer);
-	if (!status) {
-		return status;
-	}
-
 	return Status::OK();
 }
 

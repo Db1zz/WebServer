@@ -21,6 +21,7 @@ public:
     ServerEvent(uint32_t events, int event_fd);
     ~ServerEvent();
 
+    Status add_event(uint32_t events, int event_fd, Socket* socket);
 	Status add_event(uint32_t events, Socket* socket);
 	Status add_event(uint32_t events, int event_fd);
     Status remove_event(int event_fd);

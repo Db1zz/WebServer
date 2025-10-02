@@ -1,16 +1,16 @@
 #include "RequestRawBodyParser.hpp"
-#include <fstream>
 #include <unistd.h> // REMOVE ME
+#include <stdlib.h>
 
 RequestRawBodyParser::RequestRawBodyParser(int content_length, RequestBodyStorageType type)
-	: _data_size(0), _content_length(content_length), _type(type) {
+	: _content_length(content_length), _data_size(0), _type(type) {
 	static uint64_t i;
 	if (_type == InFile) {
 		std::stringstream ss;
 		ss << i;
 		++i;
-		_temp_file_name = std::string("./tempfiles/") + ss.str(); // temporary solution in reality we need to create a hash value!!
-		_fstream.open(_temp_file_name);
+		_temp_file_name = std::string("./.tempfiles/") + ss.str(); // temporary solution in reality we need to create a hash value!!
+		_fstream.open(_temp_file_name.c_str());
 		if (!_fstream.is_open()) { // shit thing ... (just doing it for fun)
 			std::cout << "ABOBA\n";
 			exit(-1); // REMOVE ME(it's insane bro2)

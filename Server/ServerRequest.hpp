@@ -83,13 +83,15 @@ typedef struct s_request {
 	std::list<t_request_content> content_data;
 
 	bool is_file_created; // TODO remove me
+	bool is_chunked_request;
 
 	bool is_request_ready() const { return transfered_length >= content_length; }
 
 	s_request()
 		: connection("keep-alive"),
 		  content_length(0),
-		  transfered_length(0) {}
+		  transfered_length(0),
+		  is_chunked_request(false) {}
 } t_request;
 
 #endif

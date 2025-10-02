@@ -1,12 +1,11 @@
 #ifndef SERVER_REQUEST_PARSER_REQUEST_RAW_BODY_PARSER_HPP_
 #define SERVER_REQUEST_PARSER_REQUEST_RAW_BODY_PARSER_HPP_
 
+#include <fstream>
+
 #include "IRequestBodyParser.hpp"
 
-enum RequestBodyStorageType {
-	InFile,
-	InBuffer
-};
+enum RequestBodyStorageType { InFile, InBuffer };
 
 class RequestRawBodyParser : public IRequestBodyParser {
    public:
@@ -16,12 +15,12 @@ class RequestRawBodyParser : public IRequestBodyParser {
 	void apply(t_request& request);
 
    private:
-	std::fstream _fstream;
+	const int _content_length;
+	int _data_size;
+	std::ofstream _fstream;
 	std::string _temp_file_name;
 	std::string _data;
 	RequestBodyStorageType _type;
-	int _data_size;
-	const int _content_length;
 };
 
 #endif // SERVER_REQUEST_PARSER_REQUEST_RAW_BODY_PARSER_HPP_

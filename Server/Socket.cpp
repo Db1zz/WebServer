@@ -31,7 +31,7 @@ Socket& Socket::operator=(Socket& other) {
 		_sockaddr = other._sockaddr;
 		_port = other._port;
 		_host = other._host;
-		other._socket_fd = -1;
+		other._socket_fd = -1;	
 	}
 	return (*this);
 }
