@@ -2,18 +2,6 @@
 
 #include "FileDescriptor.hpp"
 
-ClientConnectionContext::ClientConnectionContext()
-	: request(), parser(&request), state(ConnectionState::IDLE), cgi_started(false) {
-}
-
-void ClientConnectionContext::reset() {
-	request = t_request();
-	parser = ServerRequestParser(&request);
-	state = ConnectionState::IDLE;
-	cgi_started = false;
-	buffer.clear();
-}
-
 ClientSocket::ClientSocket() : Socket(), _server_fd(FileDescriptor::SocketFD, -1) {
 	_socket_type = Socket::CLIENT_SOCKET;
 }
@@ -33,6 +21,6 @@ void ClientSocket::reset_connection_context() {
 	_connection_context.reset();
 }
 
-ClientConnectionContext* ClientSocket::get_connection_context() {
+ConnectionContext* ClientSocket::get_connection_context() {
 	return &_connection_context;
 }
