@@ -177,25 +177,20 @@ Status Server::create_cgi_process(ClientSocket* client_socket) {
 Status Server::handle_cgi_request(ClientSocket* client_socket, int event_fd) {
 	Status status;
 	ClientConnectionContext* connection_context = client_socket->get_connection_context();
+	if (connection_context->parser.is_body_parsed()) {
+		status = receive_request_body_chunk(client_socket);
+	}
 
-	if (client_socket) { // means that the event comes from the pipe.
-
-	} else {
-		if (connection_context->parser.is_body_parsed()) {
-			status = receive_request_body_chunk(client_socket);
+	if (connection_context->cgi_started == false &&
+		connection_context->request.is_request_ready()) {
+		status = create_cgi_process(client_socket);
+		if (!status) {
+			_server_logger.log_error("Server::handle_cgi_request",
+										std::string("create_cgi_process failed with error: '") +
+											"TODO: Status error code!!!" + "'");
+			return status;
 		}
-
-		if (connection_context->cgi_started == false &&
-			connection_context->request.is_request_ready()) {
-			status = create_cgi_process(client_socket);
-			if (!status) {
-				_server_logger.log_error("Server::handle_cgi_request",
-										 std::string("create_cgi_process failed with error: '") +
-											 "TODO: Status error code!!!" + "'");
-				return status;
-			}
-			connection_context->cgi_started = true;
-		}
+		connection_context->cgi_started = true;
 	}
 
 	return Status::OK();
@@ -302,7 +297,7 @@ Status Server::close_connection_routine(FileDescriptor* fd) {
 
 Status Server::cgi_fd_routine(CGIFileDescriptor* cgi_fd) {
 	Status status;
-	size_t buffer_size = 100000000;
+	size_t buffer_size = 1000000;
 	char buffer[buffer_size];
 	size_t rd_bytes = read(cgi_fd->get_fd(), buffer, buffer_size);
 	std::string string;
