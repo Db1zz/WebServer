@@ -178,9 +178,7 @@ Status Server::handle_cgi_request(ClientSocket* client_socket, int event_fd) {
 	if (client_socket->get_fd() != event_fd) { // means that the event comes from the pipe.
 
 	} else {
-		if (connection_context->cgi_started == false || 
-			connection_context->request.content_length > 0 ||
-			connection_context->request.is_chunked_request) {
+		if (connection_context->parser.is_body_parsed()) {
 			status = receive_request_body_chunk(client_socket);
 		}
 	
@@ -258,17 +256,18 @@ Status Server::receive_request_body_chunk(ClientSocket* client_socket) {
 		connection_context->buffer.clear();
 	}
 
-	status = read_data(client_socket, connection_context->buffer, rd_bytes);
-	if (!status) {
-		_server_logger.log_error("Server::receive_request_header", "failed to read data");
-		return status;
-	}
-	status = connection_context->parser.parse_body(connection_context->buffer);
-	if (!status) {
-		_server_logger.log_error("Server::receive_request_header", "failed to parse header");
-		return status;
-	}
-
+	if (connection_context->parser.is_body_parsed() == false) {
+		status = read_data(client_socket, connection_context->buffer, rd_bytes);
+		if (!status) {
+			_server_logger.log_error("Server::receive_request_header", "failed to read data");
+			return status;
+		}
+		status = connection_context->parser.parse_body(connection_context->buffer);
+		if (!status) {
+			_server_logger.log_error("Server::receive_request_header", "failed to parse header");
+			return status;
+		}
+	}	
 	connection_context->buffer.clear();
 
 	return status;

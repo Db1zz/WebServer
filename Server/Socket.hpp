@@ -19,6 +19,12 @@ public:
 		kSet
 	};
 
+	enum SocketType {
+		ClientSocket, 
+		ServerSocket,
+		CGISocket
+	};
+
 	Socket();
 	Socket(Socket &other);
 	virtual ~Socket();
