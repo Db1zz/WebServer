@@ -174,6 +174,7 @@ Status Server::create_cgi_process(ClientSocket* client_socket) {
 }
 
 Status Server::handle_cgi_request(ClientSocket* client_socket, int event_fd) {
+	(void)event_fd;  // Suppress unused parameter warning
 	Status status;
 	ConnectionContext* connection_context = client_socket->get_connection_context();
 	if (connection_context->parser.is_body_parsed()) {
@@ -437,6 +438,7 @@ Status Server::response_handler(ClientSocket* client_socket) {
 	}
 	if (resp.status.code() == BadRequest || resp.status.code() == Conflict) {
 		ServerSocketManager* manager = find_server_socket_manager(client_socket->get_server_fd());
+		(void)manager;  // Suppress unused variable warning
 	}
 	return Status();
 }
