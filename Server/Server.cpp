@@ -349,13 +349,13 @@ Status Server::read_data(ClientSocket* client_socket, std::string& buff, int& rd
 Status Server::response_handler(ClientSocket* client_socket) {
 	ServerResponse resp(client_socket, _configs[0]);
 		resp.generate_response();
-	ClientConnectionContext* context = &client_socket->get_connection_context();
-	if (context->state == ConnectionState::HANDLE_CGI_REQUEST)
-		resp.generate_cgi_response(Status, cgi_body); // + headers received from cgi!! where is status saved and where is cgi_body and headers  saved? ask goshanchik
-		//maybe pass status from handle_cgi-request, so it can be used in response
-	// -> body is saved by chunks in the same data, keep calling generate_response, check if all data is receive(which var? cgi is a file?)
-	else
-		status = resp.generate_response()
+	// ClientConnectionContext* context = &client_socket->get_connection_context();
+	// if (context->state == ConnectionState::HANDLE_CGI_REQUEST)
+	// 	resp.generate_cgi_response(Status, cgi_body); // + headers received from cgi!! where is status saved and where is cgi_body and headers  saved? ask goshanchik
+	// 	//maybe pass status from handle_cgi-request, so it can be used in response
+	// // -> body is saved by chunks in the same data, keep calling generate_response, check if all data is receive(which var? cgi is a file?)
+	// else
+		// status = resp.generate_response()
 	if (resp.status.code() == 100) {
 		return Status();
 	}
