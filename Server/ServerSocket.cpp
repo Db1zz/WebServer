@@ -5,7 +5,8 @@
 
 #include "ClientSocket.hpp"
 
-ServerSocket::ServerSocket(const std::string& host, int port) {
+ServerSocket::ServerSocket(const std::string& host, int port) : Socket() {
+	_socket_type = Socket::SERVER_SOCKET;
 	_host = host;
 	_port = port;
 	struct sockaddr_in* sockaddr = (struct sockaddr_in*) &_sockaddr;
@@ -28,10 +29,10 @@ Status ServerSocket::open_socket() {
 		return status;
 	}
 
-	if (bind(_socket_fd, &_sockaddr, _socklen) < 0) {
+	if (bind(get_fd(), &_sockaddr, _socklen) < 0) {
 		return Status(std::string("ServerSocket failed to bind socket: ") + strerror(errno));
 	}
-	if (listen(_socket_fd, SOCKET_DEFAULT_MAX_CONNECTIONS) < 0) {
+	if (listen(get_fd(), SOCKET_DEFAULT_MAX_CONNECTIONS) < 0) {
 		return Status(std::string("ServerSocket failed to listen socket: ") + strerror(errno));
 	}
 
@@ -42,18 +43,18 @@ Status ServerSocket::accept_connection(ClientSocket& empty_client_socket) {
 	struct sockaddr sockaddr;
 	socklen_t socklen = sizeof(sockaddr);
 
-	empty_client_socket.set_socket(accept(_socket_fd, &sockaddr, &socklen), &sockaddr, socklen);
+	empty_client_socket.set_socket(accept(get_fd(), &sockaddr, &socklen), &sockaddr, socklen);
 	if (empty_client_socket.get_fd() < 0) {
 		return Status(strerror(errno));
 	}
-	empty_client_socket.set_server_fd(_socket_fd);
+	empty_client_socket.set_server_fd(get_fd());
 
 	return Status();
 }
 
 Status ServerSocket::create_server_socket() {
-	_socket_fd = socket(AF_INET, SOCK_STREAM, 0);
-	if (_socket_fd < 0) {
+	set_fd(socket(AF_INET, SOCK_STREAM, 0));
+	if (get_fd() < 0) {
 		return Status("ServerSocket failed to create a socket: " + std::string(strerror(errno)));
 	}
 	return Status();

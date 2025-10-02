@@ -50,7 +50,6 @@ class RequestHeaderParser {
 	bool is_protocol_valid(const std::string& protocol_version);
 
 	typedef Status (RequestHeaderParser::*FPtrFieldParser)(const std::string&, t_request&);
-
 	FPtrFieldParser get_field_parser_by_field_type(const std::string& field_type);
 
 	void log_error(const std::string& failed_component, const std::string& message) const;

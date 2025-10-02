@@ -37,10 +37,7 @@ Status ServerSocketManager::stop() {
 	Status status;
 
 	destroy_all_clients();
-	status = _server_socket.close_socket();
-	if (!status) {
-		return status;
-	}
+	_server_socket.close_socket();
 	return unregister_server_socket_in_event_system();
 }
 

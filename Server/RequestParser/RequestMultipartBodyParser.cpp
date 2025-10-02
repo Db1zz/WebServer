@@ -62,20 +62,22 @@ void RequestMultipartParser::apply(t_request& request) {
 	while (!_content_data.empty()) {
 		bool file_already_exists = false;
 		for (std::list<t_request_content>::const_iterator it = request.content_data.begin();
-		  it != request.content_data.end(); ++it) {
-		 if (it->filename == _content_data.front().filename) {
-			 file_already_exists = true;
-			 break;
-		 }
+			 it != request.content_data.end(); ++it) {
+			if (it->filename == _content_data.front().filename) {
+				file_already_exists = true;
+				break;
+			}
 		}
+
 		t_request_content& last_request_content = request.content_data.back();
-		if (!request.content_data.empty() && _content_data.front().is_finished && !last_request_content.is_finished) {
+		if (!request.content_data.empty() && _content_data.front().is_finished &&
+			!last_request_content.is_finished) {
 			last_request_content.is_finished = true;
 			last_request_content.data.append(_content_data.front().data);
-			 _content_data.pop_front();
+			_content_data.pop_front();
 			break;
 		}
-		
+
 		if (!_content_data.front().is_finished) {
 			if (!request.content_data.empty() && !last_request_content.is_finished) {
 				last_request_content.data.append(_content_data.front().data);
@@ -93,8 +95,6 @@ void RequestMultipartParser::apply(t_request& request) {
 	}
 	request.transfered_length = _data_size;
 }
-
-
 size_t RequestMultipartParser::search_boundary() {
 	size_t boundary_pos = _buffer.find(_start_boundary);
 	if (boundary_pos == std::string::npos) {
@@ -156,7 +156,6 @@ Status RequestMultipartParser::parse_body_header(size_t boundary_pos) {
 	std::string content_type;
 	pos = internal_server_request_parser::get_token_with_delim(_buffer, pos, content_disposition,
 															   "\r\n", true);
-	std::cout << content_disposition << std::endl;
 	status = parse_filename(content_disposition, _last_content->filename);
 	if (status == BadRequest) {
 		return status;
@@ -168,7 +167,6 @@ Status RequestMultipartParser::parse_body_header(size_t boundary_pos) {
 	}
 
 	pos = internal_server_request_parser::get_token_with_delim(_buffer, pos, content_type, "\r\n", true);
-	std::cout << content_type << std::endl;
 	status = parse_content_type(content_type, _last_content->content_type);
 	if (status == NoMime) {
 		return Status::OK();

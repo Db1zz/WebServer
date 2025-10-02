@@ -12,6 +12,7 @@ RequestRawBodyParser::RequestRawBodyParser(int content_length, RequestBodyStorag
 		_temp_file_name = std::string("./.tempfiles/") + ss.str(); // temporary solution in reality we need to create a hash value!!
 		_fstream.open(_temp_file_name.c_str());
 		if (!_fstream.is_open()) { // shit thing ... (just doing it for fun)
+			std::cout << "ABOBA\n";
 			exit(-1); // REMOVE ME(it's insane bro2)
 		}
 	}

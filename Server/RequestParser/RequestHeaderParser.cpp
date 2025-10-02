@@ -526,10 +526,10 @@ bool RequestHeaderParser::is_content_type_valid(t_request& request) {
 }
 
 bool RequestHeaderParser::is_request_valid(t_request& request) {
-	if (request.host.empty()) {
-		log_error("RequestHeaderParser::is_request_valid", std::string("HOST was not provided"));
-		return false;
-	}
+	// if (request.host.empty()) {
+	// 	log_error("RequestHeaderParser::is_request_valid", std::string("HOST was not provided"));
+	// 	return false;
+	// }
 
 	// TODO: we can avoid content_length with POST method when chunked encoding is sent.
 	if (request.method == "POST" && request.content_length == 0) {
@@ -738,6 +738,7 @@ Status RequestHeaderParser::parse_request_line(const std::string& request_line, 
 	}
 
 	request.method = method;
+	request.uri_path = uri_path;
 	request.protocol_version = protocol_version;
 
 	return Status::OK();

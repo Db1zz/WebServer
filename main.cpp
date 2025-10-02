@@ -28,6 +28,7 @@ int main(int argc, char** argv) {
 		return 1;
 	}
 	// try {
+	// try {
 		ServerLogger server_logger("./Logs/");
 		Status status = server_logger.init();
 		if (!status) {

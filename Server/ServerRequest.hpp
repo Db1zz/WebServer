@@ -79,6 +79,7 @@ typedef struct s_request {
 	std::string path_parameter; //dont use for now
 	std::vector<std::string> path_queries; //cgi
 	std::vector<std::string> transfer_encoding;
+	std::string status_string;
 
 	std::list<t_request_content> content_data;
 
