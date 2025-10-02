@@ -204,8 +204,7 @@ Status Server::handle_normal_request(ClientSocket* client_socket) {
 	ServerSocketManager* manager = NULL;
 	Status status;
 
-	if (connection_context->request.content_length > 0 ||
-		connection_context->request.is_chunked_request) {
+	if (connection_context->parser.is_finished() == false) {
 		status = receive_request_body_chunk(client_socket);
 	}
 	if (status.code() != DataIsNotReady) {
@@ -236,7 +235,7 @@ Status Server::receive_request_header(ClientSocket* client_socket) {
 		_server_logger.log_error("Server::receive_request_header", "failed to read data");
 		return status;
 	}
-	status = connection_context->parser.parse_header(buffer);
+	status = connection_context->parser.parse_header(buffer, connection_context->buffer);
 	if (!status) {
 		_server_logger.log_error("Server::receive_request_header", "failed to parse header");
 		return status;
@@ -248,19 +247,29 @@ Status Server::receive_request_header(ClientSocket* client_socket) {
 Status Server::receive_request_body_chunk(ClientSocket* client_socket) {
 	ClientConnectionContext* connection_context = client_socket->get_connection_context();
 	Status status;
-	std::string buffer;
 	int rd_bytes = 0;
 
-	status = read_data(client_socket, buffer, rd_bytes);
+	if (connection_context->buffer.empty() == false) {
+		status = connection_context->parser.parse_body(connection_context->buffer);
+		if (!status) {
+			_server_logger.log_error("Server::receive_request_header", "failed to parse header");
+			return status;
+		}
+		connection_context->buffer.clear();
+	}
+
+	status = read_data(client_socket, connection_context->buffer, rd_bytes);
 	if (!status) {
 		_server_logger.log_error("Server::receive_request_header", "failed to read data");
 		return status;
 	}
-	status = connection_context->parser.parse_body(buffer);
+	status = connection_context->parser.parse_body(connection_context->buffer);
 	if (!status) {
 		_server_logger.log_error("Server::receive_request_header", "failed to parse header");
 		return status;
 	}
+
+	connection_context->buffer.clear();
 
 	return status;
 }

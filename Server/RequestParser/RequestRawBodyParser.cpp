@@ -3,7 +3,7 @@
 #include <stdlib.h>
 
 RequestRawBodyParser::RequestRawBodyParser(int content_length, RequestBodyStorageType type)
-	: _content_length(content_length), _data_size(0), _type(type) {
+	: _content_length(content_length), _data_size(0), _type(type), _finished(false) {
 	static uint64_t i;
 	if (_type == InFile) {
 		std::stringstream ss;
@@ -45,4 +45,8 @@ Status RequestRawBodyParser::feed(const std::string& content, size_t start_pos) 
 
 void RequestRawBodyParser::apply(t_request& request) {
 	request.transfered_length += _data_size;
+}
+
+bool RequestRawBodyParser::is_finished() const {
+	return _finished;
 }

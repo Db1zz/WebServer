@@ -9,6 +9,7 @@ void ClientConnectionContext::reset() {
 	parser = ServerRequestParser(&request);
 	state = ConnectionState::IDLE;
 	cgi_started = false;
+	buffer.clear();
 }
 
 ClientSocket::ClientSocket() : Socket(), _server_fd(-1) {

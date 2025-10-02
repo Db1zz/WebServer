@@ -22,7 +22,7 @@
 */
 
 RequestMultipartParser::RequestMultipartParser(const std::string& boundary, int content_length)
-	: _content_length(content_length), _data_size(0), _last_content(NULL), _is_end_boundary_found(false) {
+	: _content_length(content_length), _data_size(0), _last_content(NULL), _end_boundary_found(false), _finished(false) {
 	_start_boundary = "--" + boundary + "\r\n";
 	_end_boundary = "\r\n--" + boundary + "--\r\n";
 }
@@ -35,10 +35,11 @@ Status RequestMultipartParser::feed(const std::string& content, size_t start_pos
 
 		size_t boundary_pos = search_boundary();
 		if (boundary_pos != std::string::npos) {
-			if (_is_end_boundary_found) {
+			if (_end_boundary_found) {
 				_last_content->data.append(_buffer.begin(), _buffer.begin() + boundary_pos);
 				_last_content->is_finished = true;
 				_buffer.clear();
+				_finished = true;
 				break;
 			}
 			if (_last_content != NULL && !_last_content->is_finished) {
@@ -87,10 +88,14 @@ size_t RequestMultipartParser::search_boundary() {
 	if (boundary_pos == std::string::npos) {
 		boundary_pos = _buffer.find(_end_boundary);
 		if (boundary_pos != std::string::npos) {
-			_is_end_boundary_found = true;
+			_end_boundary_found = true;
 		}
 	}
 	return boundary_pos;
+}
+
+bool RequestMultipartParser::is_finished() const {
+	return _finished;
 }
 
 Status RequestMultipartParser::parse_body_without_any_boundary() {
