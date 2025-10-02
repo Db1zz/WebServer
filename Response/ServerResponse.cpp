@@ -174,7 +174,7 @@ void ServerResponse::set_binary_headers() {
 void ServerResponse::handle_file_upload() {
 	while (!_req_data->content_data.empty()) {
 		t_request_content &content_data = _req_data->content_data.front();
-		std::string upload_dir = _resolved_file_path; //?call resolve_file_path again?
+		std::string upload_dir = _resolved_file_path;
 		FileUtils::ensureTrailingSlash(upload_dir);
 	
 		std::string file_path = upload_dir + content_data.filename;
