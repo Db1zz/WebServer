@@ -60,29 +60,41 @@ Status RequestMultipartParser::feed(const std::string& content, size_t start_pos
 
 void RequestMultipartParser::apply(t_request& request) {
 	while (!_content_data.empty()) {
+		bool file_already_exists = false;
+		for (std::list<t_request_content>::const_iterator it = request.content_data.begin();
+			 it != request.content_data.end(); ++it) {
+			if (it->filename == _content_data.front().filename) {
+				file_already_exists = true;
+				break;
+			}
+		}
+
 		t_request_content& last_request_content = request.content_data.back();
-		if (!request.content_data.empty() && _content_data.front().is_finished && !last_request_content.is_finished) {
+		if (!request.content_data.empty() && _content_data.front().is_finished &&
+			!last_request_content.is_finished) {
 			last_request_content.is_finished = true;
 			last_request_content.data.append(_content_data.front().data);
+			_content_data.pop_front();
 			break;
 		}
-		
+
 		if (!_content_data.front().is_finished) {
 			if (!request.content_data.empty() && !last_request_content.is_finished) {
 				last_request_content.data.append(_content_data.front().data);
-			} else {
+			} else if (!file_already_exists) {
 				request.content_data.push_back(_content_data.front());
 			}
 			_content_data.front().data.clear();
 			break;
 		}
 
-		request.content_data.push_back(_content_data.front());
+		if (!file_already_exists) {
+			request.content_data.push_back(_content_data.front());
+		}
 		_content_data.pop_front();
 	}
 	request.transfered_length = _data_size;
 }
-
 size_t RequestMultipartParser::search_boundary() {
 	size_t boundary_pos = _buffer.find(_start_boundary);
 	if (boundary_pos == std::string::npos) {

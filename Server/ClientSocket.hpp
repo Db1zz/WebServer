@@ -4,6 +4,9 @@
 #include "RequestParser/ServerRequestParser.hpp"
 #include "ServerRequest.hpp"
 #include "Socket.hpp"
+#include <map>
+
+class FileDescriptor;
 
 class ConnectionState {
    public:
@@ -26,6 +29,8 @@ struct ClientConnectionContext {
 	std::string buffer;
 	bool cgi_started;
 
+	std::map<int, FileDescriptor *> descriptors;
+
 	ClientConnectionContext();
 	void reset();
 };
@@ -43,7 +48,7 @@ class ClientSocket : public Socket {
 
    private:
 	ClientConnectionContext _connection_context;
-	int _server_fd;
+	FileDescriptor _server_fd;
 };
 
 #endif // SERVER_CLIENT_SOCKET_HPP_

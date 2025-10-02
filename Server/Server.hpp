@@ -28,6 +28,7 @@ class ClientSocket;
 class ServerSocket;
 class ServerSocketManager;
 class ServerLogger;
+class CGIFileDescriptor;
 
 class Server {
    public:
@@ -38,7 +39,11 @@ class Server {
    private:
 	bool is_a_new_connection(const epoll_event& event);
 	Status handle_new_connection_event(const epoll_event& connection_event);
+	Status close_connection_routine(FileDescriptor* fd);
 	Status handle_request_event(const epoll_event& request_event);
+
+	Status cgi_fd_routine(CGIFileDescriptor* cgi_fd);
+	Status client_socket_routine(ClientSocket* client_socket);
 
 	Status receive_request_header(ClientSocket* client_socket);
 
