@@ -43,7 +43,7 @@ class ServerResponse {
 	ServerResponse& header(const std::string& key, const std::string& value);
 	ServerResponse& handle_get_method(const t_location& loc);
 	Status generate_response();
-	Status generate_cgi_response(Status status, std::string& cgi_body);
+	Status generate_cgi_response();
 	void serve_default_root();
 	bool serve_file(const std::string& path, bool is_error_page);
 
@@ -77,6 +77,7 @@ class ServerResponse {
 	bool _needs_streaming;
 	std::string _stream_file_path;
 	const t_location* _stream_location;
+	ConnectionContext* _context;
 
 	void handle_directory(const t_location& location);
 	void handle_file_upload();

@@ -15,7 +15,8 @@ ServerResponse::ServerResponse(ClientSocket* client_socket, const t_config& serv
 	  _is_chunked(false),
 	  _needs_streaming(false),
 	  _stream_location(NULL) {
-	if (client_socket != NULL) _req_data = &client_socket->get_connection_context()->request;
+	if (client_socket != NULL) _context = client_socket->get_connection_context();
+	_req_data = &(_context->request);
 	_json_handler = new JsonResponse(_req_data, status);
 	_error_handler = new ErrorResponse(_req_data, status, _server_data);
 	_file_utils = new FileUtils(_req_data, _server_data);
@@ -47,6 +48,9 @@ ServerResponse& ServerResponse::handle_get_method(const t_location& location) {
 
 Status ServerResponse::generate_response() {
 	const t_location* best_match = _file_utils->find_best_location_match();
+
+	if (_context->state == ConnectionState::HANDLE_CGI_REQUEST)
+		return generate_cgi_response();
 
 	if (best_match != NULL)
 		choose_method(*best_match);
@@ -129,12 +133,13 @@ const std::string& ServerResponse::get_response() const {
 	return _response;
 }
 
-Status ServerResponse::generate_cgi_response(Status cgi_status, std::string& cgi_body) {
+Status ServerResponse::generate_cgi_response() {
 	//check if all body receive, if not, receive status continue? var ton check if cgi received?
 	header("server", _server_data->server_name[0]);
 	header("content-type", "text/html");
-	_body = cgi_body;
-	status = cgi_status;
+	// _body = cgi_body;
+	status = Status::OK();
+	_body = "test";
 	header("content-length", get_body_size());
 	status.set_status_line(status.code(), status.msg());
 	_response = WS_PROTOCOL + status.status_line() + get_headers() + "\r\n" + get_body();
