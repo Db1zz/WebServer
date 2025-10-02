@@ -102,4 +102,5 @@ cmake_configure:
 test: all cmake_configure
 	cmake --build $(BUILDDIR) --config Debug --target all -j8	
 	ctest --test-dir $(BUILDDIR)
-: all clean fclean re run docker_build test install_python_libs prepare_test_env
+
+.PHONY: all clean fclean re run docker_build test install_python_libs prepare_test_env cmake_configure
