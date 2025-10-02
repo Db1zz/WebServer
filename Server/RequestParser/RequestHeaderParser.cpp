@@ -70,12 +70,6 @@ static bool parse_uint(const std::string& s, UINT& out) {
 	return true;
 }
 
-static void skip_ws(const std::string& s, size_t& pos) {
-	while (internal_server_request_parser::is_ws(s[pos])) {
-		++pos;
-	}
-}
-
 /*
 	Syntax:
 
@@ -94,7 +88,7 @@ Status RequestHeaderParser::parse_content_length(const std::string& field_value,
 	size_t start;
 	std::string number;
 
-	skip_ws(field_value, pos);
+	internal_server_request_parser::skip_ws(field_value, pos);
 
 	start = pos;
 
@@ -352,14 +346,14 @@ Status RequestHeaderParser::parse_parameters(const std::string& field_value, t_a
 	Status status;
 	bool q_parsed = false;
 
-	skip_ws(field_value, pos);
+	internal_server_request_parser::skip_ws(field_value, pos);
 	// "\t;  q=0.123 \t ;  foo = \"bar baz\"  ;flag\t"
 	while (field_value[pos] == ';') {
 		size_t equal_sign_pos;
 
-		skip_ws(field_value, pos);
+		internal_server_request_parser::skip_ws(field_value, pos);
 		++pos; // consume ';'
-		skip_ws(field_value, pos);
+		internal_server_request_parser::skip_ws(field_value, pos);
 
 		equal_sign_pos = field_value.find('=', pos);
 		if (equal_sign_pos == std::string::npos) {
@@ -497,7 +491,7 @@ Status RequestHeaderParser::parse_connection(const std::string& field_value, t_r
 
 	size_t pos = 0;
 
-	skip_ws(field_value, pos);
+	internal_server_request_parser::skip_ws(field_value, pos);
 	if (!internal_server_request_parser::is_string_valid_token(field_value.c_str() + pos,
 															   field_value.size() - pos)) {
 		log_error("RequestHeaderParser::parse_connection",
@@ -569,13 +563,13 @@ Status RequestHeaderParser::parse_content_type(const std::string& field_value, t
 		return Status::BadRequest();
 	}
 
-	skip_ws(field_value, pos);
+	internal_server_request_parser::skip_ws(field_value, pos);
 	while (pos < len && field_value[pos] == ';') {
 		size_t equal_sign_pos;
 
-		skip_ws(field_value, pos);
+		internal_server_request_parser::skip_ws(field_value, pos);
 		++pos; // consume ';'
-		skip_ws(field_value, pos);
+		internal_server_request_parser::skip_ws(field_value, pos);
 
 		equal_sign_pos = field_value.find('=', pos);
 		if (equal_sign_pos == std::string::npos) {

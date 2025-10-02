@@ -298,28 +298,34 @@ Status Server::cgi_fd_routine(CGIFileDescriptor* cgi_fd) {
 	Status status;
 	size_t buffer_size = 1000000;
 	char buffer[buffer_size];
+	ConnectionContext* connection_context = cgi_fd->get_connection_context();
+	ssize_t rd_bytes = read(cgi_fd->get_fd(), buffer, buffer_size);
+	if (rd_bytes == 0) { // GG EOF
+		_event.remove_event(cgi_fd->get_fd());
+		cgi_fd->close_fd();
+		// return response ??
+		std::cout << "OK CGI\n";
+		return Status::OK();
+	}
 
-	size_t rd_bytes = read(cgi_fd->get_fd(), buffer, buffer_size);
-	if (rd_bytes < 0 || rd_bytes == 0) {
+	if (rd_bytes < 0) {
 		_server_logger.log_error("Server::cgi_fd_routine", "failed to read data from a cgi pipe");
 		return Status::InternalServerError();
 	}
 
-	std::string string;
-	string.append(buffer, rd_bytes);
+	std::string content;
+	content.append(buffer, rd_bytes);
 
-	ConnectionContext* connection_context = cgi_fd->get_connection_context();
-	if (connection_context->parser.is_header_parsed() == false) {
-		connection_context->parser.parse_header(string, connection_context->buffer);
+	if (connection_context->opt_cgi_parser == NULL) {
+		connection_context->opt_cgi_parser = new CGIResponseParser(&connection_context->request, &_server_logger);
 	}
 
-	if (connection_context->parser.is_header_parsed() == true) {
-		if (connection_context->buffer.empty() == false) {
-			
-		}
+	status = connection_context->opt_cgi_parser->parse(content);
+	if (!status) {
+		_server_logger.log_error("Server::cgi_fd_routine",
+								 "failed to parse CGI response");
 	}
-
-		std::cout << "CGI DATA: " << string << std::endl;
+	std::cout << "DATA: " << connection_context->request.content_data.front().data << std::endl;
 
 	return status;
 }

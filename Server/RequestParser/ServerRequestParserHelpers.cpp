@@ -332,4 +332,10 @@ void extract_mime(const std::string& filename, std::string& out) {
 	out = filename.substr(last_slash_pos);
 }
 
+void skip_ws(const std::string& s, size_t& pos) {
+	while (internal_server_request_parser::is_ws(s[pos])) {
+		++pos;
+	}
+}
+
 } // namespace internal_server_request_parser
