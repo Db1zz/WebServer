@@ -1,4 +1,0 @@
-- upload file with the same name -> need to fix
-- get (check, image is not loaded completely)
-
-- chunked GET
