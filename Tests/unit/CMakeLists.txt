@@ -10,13 +10,14 @@ include_directories(../../Logger)
 include_directories(../../Parser)
 include_directories(../../Utilities)
 
-set(SOURCES
 #   ServerRequestParserTests.cpp
+set(SOURCES
   RequestMultipartBodyParserTests.cpp
   ServerRequestParserHelpersTests.cpp
   RequestHeaderParserTests.cpp
   ServerResponseTests.cpp
   HashTest.cpp
+  parser_test.cpp
 )
 
 include(ExternalProject)
