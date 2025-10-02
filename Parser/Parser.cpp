@@ -214,8 +214,7 @@ void Parser::parseListen() {
 		int lastDot = 0;
 		t_listen listen_conf;
 		temp = consume(IDENTIFIER, "expected format: address[:port]").getAll();
-		if (temp.find("localhost", 0) != std::string::npos)
-		{
+		if (temp.find("localhost", 0) != std::string::npos) {
 			std::size_t position = temp.find("localhost", 0);
 			temp.replace(position, strlen("localhost"), "127.0.0.1");
 		}
@@ -256,10 +255,8 @@ void Parser::parseListen() {
 			port = consume(IDENTIFIER, "expected port after colon").getAll();
 		}
 		if (port != "") {
-			for (size_t i = 0; i < port.size(); i++)
-			{
-				if (!std::isdigit(port.at(i)))
-					throw std::runtime_error("Not a number in port");
+			for (size_t i = 0; i < port.size(); i++) {
+				if (!std::isdigit(port.at(i))) throw std::runtime_error("Not a number in port");
 			}
 			convertedPort = atoi(port.c_str());
 			if (convertedPort < 0 || convertedPort > 65535)
@@ -342,8 +339,7 @@ t_location Parser::parseLocation() {
 	tempLocation.chunked_size = 0;
 	tempLocation.chunked_threshold = 0;
 	tempLocation.chunked_transfer_encoding = false;
-	if (tempLocation.path == "")
-		throw std::runtime_error("Location path cannot be empty!");
+	if (tempLocation.path == "") throw std::runtime_error("Location path cannot be empty!");
 	consume(LEFT_BRACE, "expected opening '{' for location block");
 	while (!check(RIGHT_BRACE)) {
 		if (match(ROOT)) {
@@ -508,7 +504,6 @@ std::vector<t_config> Parser::getConfigStruct() {
 	// 		std::cout << "Port: " << temp.listen.at(temp_i).port << '\n';
 	// 	}
 
-
 	// 	// Print server names
 	// 	for (size_t sn_i = 0; sn_i < temp.server_name.size(); sn_i++)
 	// 		std::cout << "Server Name: " << temp.server_name.at(sn_i) << '\n';
@@ -637,8 +632,7 @@ void Parser::checkDuplicateListen(t_listen check) {
 	}
 }
 
-void Parser::checkForEmpty(t_config &parsedConfig)
-{
+void Parser::checkForEmpty(t_config& parsedConfig) {
 	if (parsedConfig.server_name.empty() || parsedConfig.listen.empty())
 		throw std::runtime_error("Server name and listen cannot be empty for any server block");
 }
