@@ -204,7 +204,7 @@ Status Server::handle_normal_request(ClientSocket* client_socket) {
 	ServerSocketManager* manager = NULL;
 	Status status;
 
-	if (connection_context->request.transfered_length > 0 ||
+	if (connection_context->request.content_length > 0 ||
 		connection_context->request.is_chunked_request) {
 		status = receive_request_body_chunk(client_socket);
 	}
