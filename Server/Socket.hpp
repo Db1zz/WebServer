@@ -19,6 +19,12 @@ public:
 		kSet
 	};
 
+	enum SocketType {
+		CLIENT_SOCKET,
+		SERVER_SOCKET, 
+		CGI_SOCKET
+	};
+
 	Socket();
 	Socket(Socket &other);
 	virtual ~Socket();

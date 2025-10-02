@@ -15,6 +15,7 @@ class RequestMultipartParser : public IRequestBodyParser {
 	RequestMultipartParser(const std::string& boundary, int content_length);
 	Status feed(const std::string& content, size_t start_pos);
 	void apply(t_request& request);
+	bool is_finished() const;
 
    private:
 	size_t search_boundary();
@@ -38,7 +39,8 @@ class RequestMultipartParser : public IRequestBodyParser {
 
 	std::list<t_request_content> _content_data;
 	t_request_content* _last_content;
-	bool _is_end_boundary_found;
+	bool _end_boundary_found;
+	bool _finished;
 };
 
 #endif // SERVER_REQUEST_PARSER_REQUEST_MULTIPART_PARSER_HPP_

@@ -13,6 +13,7 @@ class RequestRawBodyParser : public IRequestBodyParser {
 	~RequestRawBodyParser();
 	Status feed(const std::string& content, size_t start_pos);
 	void apply(t_request& request);
+	bool is_finished() const;
 
    private:
 	const int _content_length;
@@ -21,6 +22,7 @@ class RequestRawBodyParser : public IRequestBodyParser {
 	std::string _temp_file_name;
 	std::string _data;
 	RequestBodyStorageType _type;
+	bool _finished;
 };
 
 #endif // SERVER_REQUEST_PARSER_REQUEST_RAW_BODY_PARSER_HPP_

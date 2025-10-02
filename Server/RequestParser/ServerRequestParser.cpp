@@ -53,7 +53,7 @@ ServerRequestParser::~ServerRequestParser() {
 		3. Setup routine that will fork and register new process
 		4. send response when cgi finished or failed.
 */
-Status ServerRequestParser::parse_header(const std::string& content) {
+Status ServerRequestParser::parse_header(const std::string& content, std::string& body_out) {
 	if (_header_parsed == true) {
 		return Status::OK();
 	}
@@ -70,7 +70,7 @@ Status ServerRequestParser::parse_header(const std::string& content) {
 	}
 
 	if (cursor_pos != content.size()) {
-		_buffer = content.substr(cursor_pos);
+		body_out = content.substr(cursor_pos);
 	}
 
 	_is_cgi = (_request->uri_path.find("cgi-bin/") != std::string::npos);
@@ -91,15 +91,6 @@ Status ServerRequestParser::parse_body(const std::string& content) {
 	}
 
 	Status status;
-
-	if (_buffer.empty() == false) {
-		status = _body_parser->feed(_buffer, 0);
-		_buffer.clear();
-		if (!status) {
-			return status;
-		}
-	}
-
 	status = _body_parser->feed(content, 0);
 	if (!status) {
 		return status;
@@ -116,6 +107,14 @@ bool ServerRequestParser::is_cgi_request() const {
 
 bool ServerRequestParser::is_header_parsed() const {
 	return _header_parsed;
+}
+
+bool ServerRequestParser::is_body_parsed() const {
+	return (_body_parser == NULL) || _body_parser->is_finished();
+}
+
+bool ServerRequestParser::is_finished() const {
+	return is_header_parsed() && is_body_parsed();
 }
 
 void ServerRequestParser::create_body_parser() {

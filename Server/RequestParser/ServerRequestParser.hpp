@@ -15,17 +15,17 @@ class ServerRequestParser {
 	explicit ServerRequestParser(t_request* request, ServerLogger* logger = NULL);
 	~ServerRequestParser();
 
-	Status parse_header(const std::string& content);
+	Status parse_header(const std::string& content, std::string& body_out);
 	Status parse_body(const std::string& content);
 	bool is_cgi_request() const;
 	bool is_header_parsed() const;
-
+	bool is_body_parsed() const;
+	bool is_finished() const;
 
    private:
 	void create_body_parser();
 
    private:
-	std::string _buffer;
 	ServerLogger* _logger;
 
 	RequestHeaderParser _header_parser;
@@ -33,6 +33,7 @@ class ServerRequestParser {
 
 	bool _is_cgi;
 	bool _header_parsed;
+	bool _is_body_parsed;
 
 	t_request* _request;
 };

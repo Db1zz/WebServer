@@ -23,6 +23,7 @@ struct ClientConnectionContext {
 	t_request request;
 	ServerRequestParser parser;
 	ConnectionState::State state;
+	std::string buffer;
 	bool cgi_started;
 
 	ClientConnectionContext();

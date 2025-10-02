@@ -8,9 +8,9 @@
 #include <iostream>
 #include <map>
 
-#include "ClientSocket.hpp"
 #include "Socket.hpp"
 
+class ClientSocket;
 class ServerSocket : public Socket {
    public:
 	ServerSocket(const std::string& host, int port);
