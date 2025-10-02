@@ -366,13 +366,6 @@ Status Server::response_handler(ClientSocket* client_socket) {
 	}
 	if (resp.status.code() == BadRequest || resp.status.code() == Conflict) {
 		ServerSocketManager* manager = find_server_socket_manager(client_socket->get_server_fd());
-		manager->close_connection_with_client(client_socket->get_fd());
-		return Status::CloseConnection();
-		//! IN THIS FUNCTION WE NEED TO DO MODIFICATIONS
-		// TODO:
-		// 1. maybe add a separate function for handling streaming from server
-		// 2. add all of the codes (maybe convert it to string and check fisrt char to see if its an
-		// error code ot not hmmm, lets discuss)
 	}
 	return Status();
 }
