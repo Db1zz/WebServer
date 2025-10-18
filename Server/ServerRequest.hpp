@@ -9,6 +9,14 @@
 #include <string>
 #include <vector>
 
+class RequestType {
+public:
+	enum {
+		STANDARD_REQUEST,
+		CGI_REQUEST
+	};
+};
+
 typedef struct s_request_content {
 	std::string filename; // only filename extracted from the bottom part of the header 
 	std::string name; //dont use
@@ -85,6 +93,8 @@ typedef struct s_request {
 
 	bool is_file_created; // TODO remove me
 	bool is_chunked_request;
+	RequestType requesst_type;
+	const std::string* cgi_bin;
 
 	bool is_request_ready() const { return transfered_length >= content_length; }
 
@@ -92,7 +102,8 @@ typedef struct s_request {
 		: connection("keep-alive"),
 		  content_length(0),
 		  transfered_length(0),
-		  is_chunked_request(false) {}
+		  is_chunked_request(false),
+		  cgi_bin(NULL) {}
 } t_request;
 
 #endif

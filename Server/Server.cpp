@@ -21,6 +21,7 @@
 #include "ServerSocketManager.hpp"
 #include "Socket.hpp"
 #include "status.hpp"
+#include "ServerUtils.hpp"
 
 namespace {
 volatile std::sig_atomic_t g_signal_status = 0;
@@ -93,6 +94,7 @@ Status Server::handle_new_connection_event(const epoll_event& connection_event) 
 
 Status Server::create_cgi_process(ClientSocket* client_socket) {
 	ConnectionContext* connection_context = client_socket->get_connection_context();
+	ServerSocketManager* server_socket_manager = find_server_socket_manager(client_socket->get_server_fd());
 	t_request& request = connection_context->request;
 	pid_t cgi_process;
 
@@ -113,19 +115,18 @@ Status Server::create_cgi_process(ClientSocket* client_socket) {
 		return Status("fork() failed in create_cgi_process");
 	}
 
-	if (cgi_process > 0) {
-		close(server_read_pipe[1]);
-		CGIFileDescriptor* descriptor = new CGIFileDescriptor(server_read_pipe[0], client_socket);
-		connection_context->descriptors.insert(std::make_pair(descriptor->get_fd(), descriptor));
-
-		_event.add_event(SERVER_EVENT_CLIENT_EVENTS, descriptor);
-		return Status::OK();
-	} else {
-		const std::string python_bin = "/usr/bin/python3";
-		const std::string script_path = "./cgi-bin/aboba.py";
+	if (cgi_process == 0) {
+		std::string cgi_bin_path;
+		std::string cgi_bin_filename;
+		std::string script_path = "." + request.uri_path;
+		if (server_utils::get_cgi_bin(request.uri_path, server_socket_manager->get_server_config(), cgi_bin_path) == false) {
+			std::cout << "failed to obtain cgi_bin\n";
+			exit(127); // TODO idk what to do
+		}
+		server_utils::get_filename(cgi_bin_path, cgi_bin_filename);
 
 		std::vector<std::string> argv_strs;
-		argv_strs.push_back("python3");	  // argv[0]
+		argv_strs.push_back(cgi_bin_filename); // argv[0]
 		argv_strs.push_back(script_path); // argv[1]
 		std::vector<char*> argv;
 		for (size_t i = 0; i < argv_strs.size(); ++i) {
@@ -160,17 +161,23 @@ Status Server::create_cgi_process(ClientSocket* client_socket) {
 
 		if (dup2(server_read_pipe[1], STDOUT_FILENO) < 0) {
 			perror("dup2 in cgi child");
-			_exit(127);
+			exit(127);
 		}
 
 		close(server_read_pipe[0]);
 		close(server_read_pipe[1]);
 
-		execve(python_bin.c_str(), argv.data(), envp.data());
+		execve(cgi_bin_path.c_str(), argv.data(), envp.data());
 
 		perror("execve");
-		_exit(127);
+		exit(127);
 	}
+	close(server_read_pipe[1]);
+	CGIFileDescriptor* descriptor = new CGIFileDescriptor(server_read_pipe[0], client_socket);
+	connection_context->descriptors.insert(std::make_pair(descriptor->get_fd(), descriptor));
+
+	_event.add_event(SERVER_EVENT_CLIENT_EVENTS, descriptor);
+	return Status::OK();
 }
 
 Status Server::handle_cgi_request(ClientSocket* client_socket, int event_fd) {
@@ -179,7 +186,6 @@ Status Server::handle_cgi_request(ClientSocket* client_socket, int event_fd) {
 	if (connection_context->parser.is_body_parsed()) {
 		status = receive_request_body_chunk(client_socket);
 	}
-
 	if (connection_context->cgi_started == false &&
 		connection_context->request.is_request_ready()) {
 		status = create_cgi_process(client_socket);
@@ -282,6 +288,7 @@ Status Server::close_connection_routine(FileDescriptor* fd) {
 			connection_context->descriptors.erase(it);
 		}
 		delete fd;
+		std::cout << "cgi destroyed\n";
 	} else if (fd->get_fd_type() == FileDescriptor::SocketFD) {
 		ClientSocket* client_socket = static_cast<ClientSocket*>(fd);
 		ServerSocketManager* manager = find_server_socket_manager(client_socket->get_server_fd());
@@ -304,7 +311,7 @@ Status Server::cgi_fd_routine(CGIFileDescriptor* cgi_fd) {
 		_event.remove_event(cgi_fd->get_fd());
 		cgi_fd->close_fd();
 		// return response ??
-		std::cout << "OK CGI\n";
+		std::cout << "DONE WITH CGI\n"; // never goes here
 		return Status::OK();
 	}
 

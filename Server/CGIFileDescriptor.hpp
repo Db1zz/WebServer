@@ -14,8 +14,8 @@ public:
 	void reset_connection_context();
 
    private:
+   	ClientSocket* _client_socket;
 	ConnectionContext _connection_context;
-	ClientSocket* _client_socket;
 };
 
 #endif // SERVER_CGI_FILE_DESCRIPTOR_HPP_

@@ -1,9 +1,11 @@
 #ifndef SERVER_CONNECTION_CONTEXT_HPP_
 #define SERVER_CONNECTION_CONTEXT_HPP_
 
-#include "RequestParser/ServerRequestParser.hpp"
-#include "CGIResponseParser.hpp"
 #include <map>
+
+#include "CGIResponseParser.hpp"
+#include "RequestParser/ServerRequestParser.hpp"
+#include "ServerConfig.hpp"
 
 class FileDescriptor;
 
@@ -22,6 +24,7 @@ class ConnectionState {
 };
 
 struct ConnectionContext {
+	const t_config* server_config;
 	t_request request;
 	ServerRequestParser parser;
 	CGIResponseParser* opt_cgi_parser;
@@ -32,12 +35,17 @@ struct ConnectionContext {
 
 	std::map<int, FileDescriptor*> descriptors;
 
-	ConnectionContext()
-		: request(), parser(&request), opt_cgi_parser(NULL), state(ConnectionState::IDLE), cgi_started(false) {}
+	ConnectionContext(const t_config* server_config)
+		: server_config(server_config),
+		  request(),
+		  parser(&request, server_config),
+		  opt_cgi_parser(NULL),
+		  state(ConnectionState::IDLE),
+		  cgi_started(false) {}
 
 	void reset() {
 		request = t_request();
-		parser = ServerRequestParser(&request);
+		parser = ServerRequestParser(&request, server_config);
 		if (opt_cgi_parser) {
 			delete opt_cgi_parser;
 			opt_cgi_parser = NULL;

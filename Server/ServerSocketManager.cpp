@@ -45,7 +45,7 @@ Status ServerSocketManager::accept_connection() {
 	Status status;
 	ClientSocket* client_socket;
 
-	client_socket = new ClientSocket;
+	client_socket = new ClientSocket(&_server_config);
 
 	status = _server_socket.accept_connection(*client_socket);
 	if (!status) {

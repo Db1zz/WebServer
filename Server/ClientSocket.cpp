@@ -1,8 +1,13 @@
 #include "ClientSocket.hpp"
 
 #include "FileDescriptor.hpp"
+#include "ServerConfig.hpp"
 
-ClientSocket::ClientSocket() : Socket(), _server_fd(FileDescriptor::SocketFD, -1) {
+ClientSocket::ClientSocket(const t_config* server_config)
+	: Socket(),
+	  _server_config(server_config),
+	  _connection_context(server_config),
+	  _server_fd(FileDescriptor::SocketFD, -1) {
 	_socket_type = Socket::CLIENT_SOCKET;
 }
 

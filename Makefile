@@ -32,6 +32,7 @@ SRCS = \
 	Server/ServerSocketManager.cpp \
 	Server/CGIFileDescriptor.cpp \
 	Server/CGIResponseParser.cpp \
+	Server/ServerUtils.cpp \
 	Server/ServerSocket.cpp \
 	Server/ClientSocket.cpp \
 	Server/Socket.cpp \

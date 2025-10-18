@@ -312,16 +312,6 @@ Status parse_quoted_string(const std::string& s, size_t pos, size_t& next_pos, s
 	return Status::OK();
 }
 
-void extract_filename(const std::string& full_path, std::string& out) {
-	size_t last_slash_pos = 0;
-
-	last_slash_pos = full_path.find_last_of("/");
-	if (last_slash_pos == std::string::npos) {
-		return;
-	}
-	out = full_path.substr(last_slash_pos + 1);
-}
-
 void extract_mime(const std::string& filename, std::string& out) {
 	size_t last_slash_pos = 0;
 

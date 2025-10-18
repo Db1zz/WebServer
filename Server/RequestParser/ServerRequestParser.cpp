@@ -3,10 +3,12 @@
 #include "RequestMultipartBodyParser.hpp"
 #include "RequestRawBodyParser.hpp"
 #include "ServerRequest.hpp"
+#include "ServerConfig.hpp"
 #include "status.hpp"
 
-ServerRequestParser::ServerRequestParser(t_request* request, ServerLogger* logger)
+ServerRequestParser::ServerRequestParser(t_request* request, const t_config* config, ServerLogger* logger)
 	: 
+	  _config(config),
 	  _logger(logger),
 	  _header_parser(logger),
 	  _body_parser(NULL),
@@ -101,6 +103,7 @@ Status ServerRequestParser::parse_body(const std::string& content) {
 
 	return Status::OK();
 }
+
 bool ServerRequestParser::is_cgi_request() const {
 	return _is_cgi;
 }

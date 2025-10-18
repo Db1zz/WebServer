@@ -42,7 +42,6 @@ Status parse_quoted_string(const std::string& s, size_t pos, size_t& next_pos, s
 bool is_quoted_pair_char(unsigned char c);
 size_t char_to_hex(char c);
 
-void extract_filename(const std::string& full_path, std::string& out);
 void extract_mime(const std::string& filename, std::string& out);
 void skip_ws(const std::string& s, size_t& pos);
 // TODO:
