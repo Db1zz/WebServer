@@ -19,9 +19,9 @@
 #include "ServerResponse.hpp"
 #include "ServerSocket.hpp"
 #include "ServerSocketManager.hpp"
+#include "ServerUtils.hpp"
 #include "Socket.hpp"
 #include "status.hpp"
-#include "ServerUtils.hpp"
 
 namespace {
 volatile std::sig_atomic_t g_signal_status = 0;
@@ -94,7 +94,8 @@ Status Server::handle_new_connection_event(const epoll_event& connection_event) 
 
 Status Server::create_cgi_process(ClientSocket* client_socket) {
 	ConnectionContext* connection_context = client_socket->get_connection_context();
-	ServerSocketManager* server_socket_manager = find_server_socket_manager(client_socket->get_server_fd());
+	ServerSocketManager* server_socket_manager =
+		find_server_socket_manager(client_socket->get_server_fd());
 	t_request& request = connection_context->request;
 	pid_t cgi_process;
 
@@ -103,31 +104,36 @@ Status Server::create_cgi_process(ClientSocket* client_socket) {
 	// int stdout_pipe[2];
 
 	if (pipe(server_read_pipe) < 0) {
-		perror("pipe");
-		return Status("pipe() failed in create_cgi_process");
+		_server_logger.log_error("Server::create_cgi_process",
+								 std::string("failed to create a pipe: ") + strerror(errno));
+		return Status::InternalServerError();
 	}
 
 	cgi_process = fork();
 	if (cgi_process < 0) {
-		perror("fork");
+		_server_logger.log_error("Server::create_cgi_process",
+								 std::string("failed to create a cgi process: ") + strerror(errno));
 		close(server_read_pipe[0]);
 		close(server_read_pipe[1]);
-		return Status("fork() failed in create_cgi_process");
+		return Status::InternalServerError();
 	}
 
 	if (cgi_process == 0) {
 		std::string cgi_bin_path;
 		std::string cgi_bin_filename;
 		std::string script_path = "." + request.uri_path;
-		if (server_utils::get_cgi_bin(request.uri_path, server_socket_manager->get_server_config(), cgi_bin_path) == false) {
-			std::cout << "failed to obtain cgi_bin\n";
-			exit(127); // TODO idk what to do
+		if (server_utils::get_cgi_bin(request.uri_path, server_socket_manager->get_server_config(),
+									  cgi_bin_path) == false) {
+			_server_logger.log_error("Server::create_cgi_process",
+									 std::string("failed to get binary path from a uri path '") +
+										 request.uri_path + "'");
+			return Status::InternalServerError();
 		}
 		server_utils::get_filename(cgi_bin_path, cgi_bin_filename);
 
 		std::vector<std::string> argv_strs;
 		argv_strs.push_back(cgi_bin_filename); // argv[0]
-		argv_strs.push_back(script_path); // argv[1]
+		argv_strs.push_back(script_path);	   // argv[1]
 		std::vector<char*> argv;
 		for (size_t i = 0; i < argv_strs.size(); ++i) {
 			argv.push_back(const_cast<char*>(argv_strs[i].c_str()));
@@ -160,8 +166,9 @@ Status Server::create_cgi_process(ClientSocket* client_socket) {
 		envp.push_back(NULL);
 
 		if (dup2(server_read_pipe[1], STDOUT_FILENO) < 0) {
-			perror("dup2 in cgi child");
-			exit(127);
+			_server_logger.log_error("Server::create_cgi_process",
+									 std::string("dup2() failed with a error: ") + strerror(errno));
+			std::exit(127);
 		}
 
 		close(server_read_pipe[0]);
@@ -169,8 +176,8 @@ Status Server::create_cgi_process(ClientSocket* client_socket) {
 
 		execve(cgi_bin_path.c_str(), argv.data(), envp.data());
 
-		perror("execve");
-		exit(127);
+		_server_logger.log_error("Server::create_cgi_process", std::string("execve() failed with a error: ") + strerror(errno));
+		std::exit(127);
 	}
 	close(server_read_pipe[1]);
 	CGIFileDescriptor* descriptor = new CGIFileDescriptor(server_read_pipe[0], client_socket);
@@ -191,8 +198,8 @@ Status Server::handle_cgi_request(ClientSocket* client_socket, int event_fd) {
 		status = create_cgi_process(client_socket);
 		if (!status) {
 			_server_logger.log_error("Server::handle_cgi_request",
-										std::string("create_cgi_process failed with error: '") +
-											"TODO: Status error code!!!" + "'");
+									 std::string("create_cgi_process failed with error: '") +
+										 "TODO: Status error code!!!" + "'");
 			return status;
 		}
 		connection_context->cgi_started = true;
@@ -324,13 +331,13 @@ Status Server::cgi_fd_routine(CGIFileDescriptor* cgi_fd) {
 	content.append(buffer, rd_bytes);
 
 	if (connection_context->opt_cgi_parser == NULL) {
-		connection_context->opt_cgi_parser = new CGIResponseParser(&connection_context->request, &_server_logger);
+		connection_context->opt_cgi_parser =
+			new CGIResponseParser(&connection_context->request, &_server_logger);
 	}
 
 	status = connection_context->opt_cgi_parser->parse(content);
 	if (!status) {
-		_server_logger.log_error("Server::cgi_fd_routine",
-								 "failed to parse CGI response");
+		_server_logger.log_error("Server::cgi_fd_routine", "failed to parse CGI response");
 	}
 	std::cout << "DATA: " << connection_context->request.content_data.front().data << std::endl;
 
