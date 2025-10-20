@@ -34,6 +34,7 @@ typedef enum e_TokenType {
 	chunked_transfer_encoding,
 	chunked_threshold,
 	chunked_size,
+	KEEPALIVE_TIMEOUT,
 
 	END_OF_FILE,
 } t_TokenType;

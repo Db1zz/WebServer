@@ -9,6 +9,8 @@ TEST(ParserValues, Correct) {
 	EXPECT_EQ(vec.size(), 1);
 	/* Server name check */
 	EXPECT_EQ(vec[0].server_name[0], "webserver.com");
+	/* Keepalive_timeout check */
+	EXPECT_EQ(vec[0].keepalive_timeout, 42);
 	/* Listen check */
 	EXPECT_EQ(vec[0].listen[0].host, std::string("0.0.0.0"));
 	EXPECT_EQ(vec[0].listen[0].port, 90);
