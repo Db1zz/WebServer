@@ -90,7 +90,7 @@ void Server::check_disconnect_timeouts() {
 			}
 			if (timer::diff(fd->get_idle_time(), timer::now()) > 5) {
 				std::cout << "Connection with " << fd->get_host() << " is timeouted." << std::endl;
-				close_connection_routine(fd); // EZ? not ez
+				close_connection_routine(fd);
 			}
 		}
 	}
@@ -193,14 +193,14 @@ Status Server::create_cgi_process(ClientSocket* client_socket) {
 		}
 		envp.push_back(NULL);
 
-		// if (dup2(server_read_pipe[1], STDOUT_FILENO) < 0) {
-		// 	_server_logger.log_error("Server::create_cgi_process",
-		// 							 std::string("dup2() failed with a error: ") + strerror(errno));
-		// 	std::exit(127);
-		// }
+		if (dup2(server_read_pipe[1], STDOUT_FILENO) < 0) {
+			_server_logger.log_error("Server::create_cgi_process",
+									 std::string("dup2() failed with a error: ") + strerror(errno));
+			std::exit(127);
+		}
 
-		// close(server_read_pipe[0]);
-		// close(server_read_pipe[1]);
+		close(server_read_pipe[0]);
+		close(server_read_pipe[1]);
 
 		execve(cgi_bin_path.c_str(), argv.data(), envp.data());
 
@@ -210,7 +210,7 @@ Status Server::create_cgi_process(ClientSocket* client_socket) {
 	close(server_read_pipe[1]);
 	CGIFileDescriptor* descriptor = new CGIFileDescriptor(server_read_pipe[0], client_socket);
 	connection_context->descriptors.insert(std::make_pair(descriptor->get_fd(), descriptor));
-
+	connection_context->cgi_pid = cgi_process;
 	_event.add_event(SERVER_EVENT_CLIENT_EVENTS, descriptor);
 	return Status::OK();
 }
@@ -221,7 +221,7 @@ Status Server::handle_cgi_request(ClientSocket* client_socket, int event_fd) {
 	if (connection_context->parser.is_body_parsed()) {
 		status = receive_request_body_chunk(client_socket);
 	}
-	if (connection_context->cgi_started == false &&
+	if (connection_context->cgi_pid < 0 &&
 		connection_context->request.is_request_ready()) {
 		status = create_cgi_process(client_socket);
 		if (!status) {
@@ -230,7 +230,6 @@ Status Server::handle_cgi_request(ClientSocket* client_socket, int event_fd) {
 										 "TODO: Status error code!!!" + "'");
 			return status;
 		}
-		connection_context->cgi_started = true;
 	}
 
 	return Status::OK();

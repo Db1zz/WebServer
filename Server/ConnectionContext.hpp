@@ -31,7 +31,7 @@ struct ConnectionContext {
 
 	ConnectionState::State state;
 	std::string buffer;
-	bool cgi_started;
+	pid_t cgi_pid;
 
 	std::map<int, FileDescriptor*> descriptors;
 
@@ -41,7 +41,7 @@ struct ConnectionContext {
 		  parser(&request, server_config),
 		  opt_cgi_parser(NULL),
 		  state(ConnectionState::IDLE),
-		  cgi_started(false) {}
+		  cgi_pid(-1) {}
 
 	void reset() {
 		request = t_request();
@@ -51,7 +51,7 @@ struct ConnectionContext {
 			opt_cgi_parser = NULL;
 		}
 		state = ConnectionState::IDLE;
-		cgi_started = false;
+		cgi_pid = -1;
 		buffer.clear();
 	}
 };

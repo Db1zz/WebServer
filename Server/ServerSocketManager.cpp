@@ -3,6 +3,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <string.h>
+#include <signal.h>
 
 #include "ClientSocket.hpp"
 #include "ServerEvent.hpp"
@@ -76,6 +77,13 @@ Status ServerSocketManager::close_connection_with_client(int client_socket_fd) {
 	status = get_client_socket(client_socket_fd, &client_socket);
 	if (!status) {
 		return status;
+	}
+
+	ConnectionContext* connection_context = client_socket->get_connection_context();
+	if (connection_context->cgi_pid >= 0) {
+		kill(connection_context->cgi_pid, SIGKILL);
+		std::cout << "Killing CGI process with pid " << connection_context->cgi_pid << std::endl;
+		connection_context->cgi_pid = -1;
 	}
 
 	unregister_client_socket_in_event_system(client_socket_fd);
