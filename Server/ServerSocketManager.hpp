@@ -23,8 +23,9 @@ class ServerSocketManager {
 	Status get_client_socket(int client_socket_fd, ClientSocket** out);
 	const ServerSocket* get_server_socket() const;
 	const t_config& get_server_config() const;
+   	const std::map<int, ClientSocket*>& get_connected_clients() const;
 
-   private:
+	private:
 	Status register_client_socket_in_event_system(ClientSocket* client_socket);
 	Status register_server_socket_in_event_system();
 	Status unregister_client_socket_in_event_system(int client_socket_fd);

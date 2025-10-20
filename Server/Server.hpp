@@ -37,6 +37,7 @@ class Server {
 	Status launch();
 
    private:
+   	void check_disconnect_timeouts();
 	bool is_a_new_connection(const epoll_event& event);
 	Status handle_new_connection_event(const epoll_event& connection_event);
 	Status close_connection_routine(FileDescriptor* fd);

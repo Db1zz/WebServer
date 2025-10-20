@@ -55,7 +55,8 @@ Status ServerSocketManager::accept_connection() {
 
 	if (fcntl(client_socket->get_fd(), F_SETFL, O_NONBLOCK) < 0) {
 		delete client_socket;
-		return Status(std::string("ServerSocketManager failed to accept incoming connection: ") + strerror(errno));
+		return Status(std::string("ServerSocketManager failed to accept incoming connection: ") +
+					  strerror(errno));
 	}
 
 	status = register_client_socket_in_event_system(client_socket);
@@ -156,4 +157,8 @@ void ServerSocketManager::destroy_all_clients() {
 
 const t_config& ServerSocketManager::get_server_config() const {
 	return _server_config;
+}
+
+const std::map<int, ClientSocket*>& ServerSocketManager::get_connected_clients() const {
+	return _clients;
 }

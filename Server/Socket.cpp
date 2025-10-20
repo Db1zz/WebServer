@@ -16,6 +16,13 @@ Socket::Socket()
 	  _socklen(-1) {
 }
 
+Socket::Socket(std::time_t idle_time)
+	: FileDescriptor(FileDescriptor::SocketFD, -1, idle_time),
+	  _socket_type(STANDARD_SOCKET),
+	  _port(-1),
+	  _socklen(-1) {
+}
+
 Socket::Socket(Socket& other) : FileDescriptor(FileDescriptor::SocketFD, -1) {
 	*this = other;
 }
@@ -46,8 +53,8 @@ const struct sockaddr* Socket::get_address() const {
 	return &_sockaddr;
 }
 
-const std::string* Socket::get_host() const {
-	return &_host;
+const std::string& Socket::get_host() const {
+	return _host;
 }
 
 int Socket::get_port() const {

@@ -50,6 +50,7 @@ SRCS = \
 	Utilities/fs.cpp \
 	Utilities/status.cpp \
 	Utilities/hash.cpp \
+	Utilities/timer.cpp \
 	Parser/Parser.cpp \
 	Parser/Token.cpp \
 

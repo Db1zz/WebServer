@@ -51,7 +51,7 @@ Status Server::launch() {
 
 	std::signal(SIGINT, sigint_handler);
 	while (g_signal_status != SIGINT) {
-		status = _event.wait_event(-1, &amount_of_events);
+		status = _event.wait_event(0, &amount_of_events);
 		if (!status && status.error() != EINTR) {
 			throw std::runtime_error("wait_event() failed in Server::Launch(): " + status.msg());
 		}
@@ -62,10 +62,38 @@ Status Server::launch() {
 				throw std::runtime_error("handle_event() failed in Server::Launch(): " +
 										 status.msg());
 			}
+		} else {
+			check_disconnect_timeouts();
 		}
 	}
 	std::cout << "[Server] shutdown..." << std::endl;
 	return Status::OK();
+}
+
+void Server::check_disconnect_timeouts() {
+	if (_server_socket_managers.size() == 0) {
+		return;
+	}
+
+	std::map<int, ServerSocketManager*>::const_iterator manager_it = _server_socket_managers.begin();
+	for (; manager_it != _server_socket_managers.end(); ++manager_it) {
+		const std::map<int, ClientSocket*>& connected_clients = manager_it->second->get_connected_clients();
+		if (connected_clients.size() == 0) {
+			continue;
+		}
+		std::map<int, ClientSocket*>::const_iterator it = connected_clients.begin();
+		while (it != connected_clients.end()) {
+			ClientSocket* fd = it->second;
+			++it;
+			if (fd->get_idle_time() < 0) {
+				continue;
+			}
+			if (timer::diff(fd->get_idle_time(), timer::now()) > 5) {
+				std::cout << "Connection with " << fd->get_host() << " is timeouted." << std::endl;
+				close_connection_routine(fd); // EZ? not ez
+			}
+		}
+	}
 }
 
 bool Server::is_a_new_connection(const epoll_event& event) {
@@ -165,14 +193,14 @@ Status Server::create_cgi_process(ClientSocket* client_socket) {
 		}
 		envp.push_back(NULL);
 
-		if (dup2(server_read_pipe[1], STDOUT_FILENO) < 0) {
-			_server_logger.log_error("Server::create_cgi_process",
-									 std::string("dup2() failed with a error: ") + strerror(errno));
-			std::exit(127);
-		}
+		// if (dup2(server_read_pipe[1], STDOUT_FILENO) < 0) {
+		// 	_server_logger.log_error("Server::create_cgi_process",
+		// 							 std::string("dup2() failed with a error: ") + strerror(errno));
+		// 	std::exit(127);
+		// }
 
-		close(server_read_pipe[0]);
-		close(server_read_pipe[1]);
+		// close(server_read_pipe[0]);
+		// close(server_read_pipe[1]);
 
 		execve(cgi_bin_path.c_str(), argv.data(), envp.data());
 
@@ -225,7 +253,7 @@ Status Server::handle_normal_request(ClientSocket* client_socket) {
 		if (connection_context->request.is_request_ready()) {
 			manager = find_server_socket_manager(client_socket->get_server_fd());
 			_server_logger.log_access(
-				*client_socket->get_host(), connection_context->request.method,
+				client_socket->get_host(), connection_context->request.method,
 				connection_context->request.uri_path, manager->get_server_socket()->get_port());
 			client_socket->reset_connection_context();
 		}
@@ -295,7 +323,6 @@ Status Server::close_connection_routine(FileDescriptor* fd) {
 			connection_context->descriptors.erase(it);
 		}
 		delete fd;
-		std::cout << "cgi destroyed\n";
 	} else if (fd->get_fd_type() == FileDescriptor::SocketFD) {
 		ClientSocket* client_socket = static_cast<ClientSocket*>(fd);
 		ServerSocketManager* manager = find_server_socket_manager(client_socket->get_server_fd());
@@ -303,7 +330,6 @@ Status Server::close_connection_routine(FileDescriptor* fd) {
 			return Status("Server cannot find a server to close connection with");
 		}
 		manager->close_connection_with_client(client_socket->get_fd());
-		std::cout << "destroy client\n";
 	}
 	return Status::OK();
 }
@@ -379,6 +405,8 @@ Status Server::handle_request_event(const epoll_event& request_event) {
 	FileDescriptor* fd = static_cast<FileDescriptor*>(request_event.data.ptr);
 
 	if (request_event.events & (EPOLLERR | EPOLLRDHUP)) {
+		ClientSocket* cl_fd = static_cast<ClientSocket*>(request_event.data.ptr);
+		// std::cout << "Client " << cl_fd->get_host() << " closed connection with the server" << std::endl;
 		status = close_connection_routine(fd);
 	} else if (request_event.events & EPOLLIN) {
 		if (fd->get_fd_type() == FileDescriptor::CGIFD) {
@@ -389,6 +417,8 @@ Status Server::handle_request_event(const epoll_event& request_event) {
 		if (!status) {
 			_server_logger.log_error("Server::handle_request_event", "failed to handle request");
 			return status;
+		} else {
+			fd->set_idle_time(timer::now());
 		}
 	}
 	return Status::OK();
@@ -412,6 +442,8 @@ Status Server::handle_event(int amount_of_events) {
 			continue;
 		}
 	}
+
+	check_disconnect_timeouts();
 	return Status::OK();
 }
 

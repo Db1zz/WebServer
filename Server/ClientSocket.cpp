@@ -4,7 +4,7 @@
 #include "ServerConfig.hpp"
 
 ClientSocket::ClientSocket(const t_config* server_config)
-	: Socket(),
+	: Socket(timer::now()),
 	  _server_config(server_config),
 	  _connection_context(server_config),
 	  _server_fd(FileDescriptor::SocketFD, -1) {

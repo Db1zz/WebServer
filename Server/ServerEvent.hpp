@@ -29,6 +29,8 @@ public:
     Status event_mod(uint32_t events, int event_fd);
 
     epoll_event *operator[](size_t index);
+    size_t size();
+    size_t capacity();
 
 private:
     Status init();
