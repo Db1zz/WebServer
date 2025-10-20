@@ -1,5 +1,7 @@
 #include "Parser.hpp"
 
+#include <limits.h>
+
 #include "../Utilities/colors.hpp"
 
 Parser::Parser(std::string fileName) : m_fileName(fileName) {
@@ -25,11 +27,11 @@ Parser::Parser(std::string fileName) : m_fileName(fileName) {
 	if (tempString.size() == 0) throw std::runtime_error("File is empty, nothing to parse!");
 	addKeywords();
 	std::vector<Token> temp = scanTokens();
-/* 	for (size_t i = 0; i < temp.size(); i++) {
-		if (temp[i].getType() != END_OF_FILE)
-		std::cout << temp[i].getAll() << "\n";
-	}
-	std::cout << "--------------------------------\n"; */
+	/* 	for (size_t i = 0; i < temp.size(); i++) {
+			if (temp[i].getType() != END_OF_FILE)
+			std::cout << temp[i].getAll() << "\n";
+		}
+		std::cout << "--------------------------------\n"; */
 	parseConfig();
 }
 
@@ -70,6 +72,7 @@ void Parser::addKeywords() {
 	_keywords["chunked_transfer_encoding"] = chunked_transfer_encoding;
 	_keywords["chunked_threshold"] = chunked_threshold;
 	_keywords["chunked_size"] = chunked_size;
+	_keywords["keepalive_timeout"] = KEEPALIVE_TIMEOUT;
 }
 
 std::vector<Token> Parser::scanTokens() {
@@ -498,9 +501,10 @@ std::vector<t_config> Parser::getConfigStruct() {
 	// for (size_t i = 0; i < _configVector.size(); i++) {
 	// 	t_config temp = _configVector.at(i);
 
+	// 	// Print timeout
+	// 	std::cout << "Keepalive_timeout: " << temp.keepalive_timeout << '\n';
 	// 	// Print host and port
-	// 	for (size_t temp_i = 0; temp_i < temp.listen.size(); temp_i++)
-	// 	{
+	// 	for (size_t temp_i = 0; temp_i < temp.listen.size(); temp_i++) {
 	// 		std::cout << "Host: " << temp.listen.at(temp_i).host << '\n';
 	// 		std::cout << "Port: " << temp.listen.at(temp_i).port << '\n';
 	// 	}
@@ -523,44 +527,42 @@ std::vector<t_config> Parser::getConfigStruct() {
 	// 		std::cout << "Index: " << temp.common.index.at(idx) << '\n';
 
 	// 	// Print error pages
-	// 	for (std::map<int, std::string>::iterator it = temp.common.errorPage.begin(); it !=
-	// temp.common.errorPage.end(); ++it) 		std::cout << "Error Page: " << it->first << " -> "
-	// << it->second << '\n';
+	// 	for (std::map<int, std::string>::iterator it = temp.common.errorPage.begin();
+	// 		 it != temp.common.errorPage.end(); ++it)
+	// 		std::cout << "Error Page: " << it->first << " -> " << it->second << '\n';
 
 	// 	// Print allowed methods
-	// 	std::cout << "Methods: "
-	// 			  << (temp.common.methods.getMethod ? "GET " : "")
+	// 	std::cout << "Methods: " << (temp.common.methods.getMethod ? "GET " : "")
 	// 			  << (temp.common.methods.postMethod ? "POST " : "")
-	// 			  << (temp.common.methods.deleteMethod ? "DELETE " : "")
-	// 			  << '\n';
+	// 			  << (temp.common.methods.deleteMethod ? "DELETE " : "") << '\n';
 
 	// 	for (std::map<std::string, std::string>::const_iterator cgi_it = temp.common.cgi.begin();
-	// cgi_it != temp.common.cgi.end(); cgi_it++) 		std::cout << "CGI: " << cgi_it->first << " "
-	// << cgi_it->second << '\n';
+	// 		 cgi_it != temp.common.cgi.end(); cgi_it++)
+	// 		std::cout << "CGI: " << cgi_it->first << " " << cgi_it->second << '\n';
 	// 	// Print locations
 	// 	for (size_t loc_i = 0; loc_i < temp.location.size(); loc_i++) {
-	// 		const t_location &loc = temp.location.at(loc_i);
+	// 		const t_location& loc = temp.location.at(loc_i);
 	// 		std::cout << "Location Path: " << loc.path << '\n';
 	// 		std::cout << " Max Client Body Size: " << loc.common.max_client_body << '\n';
 	// 		std::cout << "  Root: " << loc.common.root << '\n';
 	// 		std::cout << "  Auto Index: " << (loc.common.auto_index ? "on" : "off") << '\n';
 	// 		std::cout << "  Return Code: " << loc.common.returnCode << '\n';
 	// 		std::cout << "  Return Path: " << loc.common.returnPath << '\n';
-	// std::cout << "Chunked Transfer Encoding: " << (loc.chunked_transfer_encoding ? "on" : "off")
-	// << '\n'; std::cout << "Chunked Threshold: " << loc.chunked_threshold << '\n'; std::cout <<
-	// "Chunked Size: " << loc.chunked_size << '\n'; 		for (size_t idx = 0; idx <
-	// loc.common.index.size(); idx++) 			std::cout << "  Index: " << loc.common.index.at(idx)
-	// << '\n'; 		for (std::map<int, std::string>::const_iterator it =
-	// loc.common.errorPage.begin(); it != loc.common.errorPage.end(); ++it) 			std::cout <<
-	// "  Error Page: " << it->first
-	// << " -> " << it->second << '\n'; 		std::cout << "  Methods: "
-	// 				  << (loc.common.methods.getMethod ? "GET " : "")
+	// 		std::cout << "Chunked Transfer Encoding: "
+	// 				  << (loc.chunked_transfer_encoding ? "on" : "off") << '\n';
+	// 		std::cout << "Chunked Threshold: " << loc.chunked_threshold << '\n';
+	// 		std::cout << "Chunked Size: " << loc.chunked_size << '\n';
+	// 		for (size_t idx = 0; idx < loc.common.index.size(); idx++)
+	// 			std::cout << "  Index: " << loc.common.index.at(idx) << '\n';
+	// 		for (std::map<int, std::string>::const_iterator it = loc.common.errorPage.begin();
+	// 			 it != loc.common.errorPage.end(); ++it)
+	// 			std::cout << "  Error Page: " << it->first << " -> " << it->second << '\n';
+	// 		std::cout << "  Methods: " << (loc.common.methods.getMethod ? "GET " : "")
 	// 				  << (loc.common.methods.postMethod ? "POST " : "")
-	// 				  << (loc.common.methods.deleteMethod ? "DELETE " : "")
-	// 				  << '\n';
+	// 				  << (loc.common.methods.deleteMethod ? "DELETE " : "") << '\n';
 	// 		for (std::map<std::string, std::string>::const_iterator cgi_it = loc.common.cgi.begin();
-	// cgi_it != loc.common.cgi.end(); cgi_it++) 			std::cout << "  CGI: " << cgi_it->first
-	// << " " << cgi_it->second << '\n';
+	// 			 cgi_it != loc.common.cgi.end(); cgi_it++)
+	// 			std::cout << "  CGI: " << cgi_it->first << " " << cgi_it->second << '\n';
 	// 	}
 	// 	std::cout << "-----------------------------\n";
 	// }
@@ -581,6 +583,7 @@ void Parser::fillDefaultValues() {
 	tempConfig.common.methods.postMethod = false;
 	tempConfig.common.returnCode = -1;
 	tempConfig.common.root = "";
+	tempConfig.keepalive_timeout = 0;
 }
 
 void Parser::parseReturn(std::string& path, int* code) {
@@ -638,6 +641,21 @@ void Parser::checkForEmpty(t_config& parsedConfig) {
 		throw std::runtime_error("Server name and listen cannot be empty for any server block");
 }
 
+int Parser::parseTimeout() {
+	long int val = 0;
+	std::string temp = consume(IDENTIFIER, "expected identifier").getAll();
+	if (temp == "" || temp[0] == '-')
+		throw std::runtime_error("Timeout value must be a positive integer");
+	for (std::string::size_type i = 0; i < temp.size(); i++) {
+		if (!isdigit(temp.at(i))) throw std::runtime_error("Non digit found in the timeout value");
+	}
+
+	val = atol(temp.c_str());
+	if (val > INT_MAX || val < 0 || (val == 0 && temp.size() > 1))
+		throw std::runtime_error("Timeout value must be a positive integer");
+	return val;
+}
+
 void Parser::parseConfig() {
 	while (!tokenIsAtEnd()) {
 		if (match(SERVER)) {
@@ -677,6 +695,9 @@ void Parser::parseConfig() {
 					consume(SEMICOLON, "expected ';' after the statement");
 				} else if (match(MAX_CLIENT_BODY_SIZE)) {
 					tempConfig.common.max_client_body = parseMaxClientBody();
+					consume(SEMICOLON, "expected ';' after the statement");
+				} else if (match(KEEPALIVE_TIMEOUT)) {
+					tempConfig.keepalive_timeout = parseTimeout();
 					consume(SEMICOLON, "expected ';' after the statement");
 				} else {
 					throw std::runtime_error("Unexpected keyword found: " + tokenPeek().getAll());

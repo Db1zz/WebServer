@@ -42,6 +42,7 @@ typedef struct s_config {
 	std::vector<t_listen> listen;
 	t_commonConfig common;
 	std::vector<t_location> location;
+	int keepalive_timeout;
 } t_config;
 
 #endif // SERVER_SERVER_CONFIG_HPP
