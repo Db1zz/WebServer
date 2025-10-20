@@ -646,6 +646,10 @@ int Parser::parseTimeout() {
 	std::string temp = consume(IDENTIFIER, "expected identifier").getAll();
 	if (temp == "" || temp[0] == '-')
 		throw std::runtime_error("Timeout value must be a positive integer");
+	for (std::string::size_type i = 0; i < temp.size(); i++) {
+		if (!isdigit(temp.at(i))) throw std::runtime_error("Non digit found in the timeout value");
+	}
+
 	val = atol(temp.c_str());
 	if (val > INT_MAX || val < 0 || (val == 0 && temp.size() > 1))
 		throw std::runtime_error("Timeout value must be a positive integer");
