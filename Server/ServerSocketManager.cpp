@@ -2,19 +2,21 @@
 
 #include <errno.h>
 #include <fcntl.h>
-#include <string.h>
 #include <signal.h>
+#include <string.h>
 
+#include "ServerLogger.hpp"
 #include "ClientSocket.hpp"
 #include "ServerEvent.hpp"
 #include "status.hpp"
 
 ServerSocketManager::ServerSocketManager(const std::string& server_socket_host,
 										 int server_socket_port, ServerEvent* event_system,
-										 const t_config& server_config)
+										 const t_config& server_config, ServerLogger* server_logger)
 	: _server_socket(server_socket_host, server_socket_port),
 	  _event_system(event_system),
-	  _server_config(server_config) {
+	  _server_config(server_config),
+	  _server_logger(server_logger) {
 }
 
 ServerSocketManager::~ServerSocketManager() {
@@ -46,7 +48,7 @@ Status ServerSocketManager::accept_connection() {
 	Status status;
 	ClientSocket* client_socket;
 
-	client_socket = new ClientSocket(&_server_config);
+	client_socket = new ClientSocket(&_server_config, _server_logger);
 
 	status = _server_socket.accept_connection(*client_socket);
 	if (!status) {
@@ -109,7 +111,8 @@ const ServerSocket* ServerSocketManager::get_server_socket() const {
 Status ServerSocketManager::register_client_socket_in_event_system(ClientSocket* client_socket) {
 	Status status;
 
-	status = _event_system->add_event(SERVER_EVENT_CLIENT_EVENTS, client_socket);
+	status = _event_system->add_event(SERVER_EVENT_CLIENT_EVENTS,
+									  static_cast<FileDescriptor*>(client_socket));
 	if (!status) {
 		return Status("ServerSocketManager failed to register client socket in event system: " +
 					  status.msg());

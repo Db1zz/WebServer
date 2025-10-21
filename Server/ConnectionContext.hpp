@@ -25,6 +25,7 @@ class ConnectionState {
 
 struct ConnectionContext {
 	const t_config* server_config;
+	ServerLogger* server_logger;
 	t_request request;
 	ServerRequestParser parser;
 	CGIResponseParser* opt_cgi_parser;
@@ -35,17 +36,18 @@ struct ConnectionContext {
 
 	std::map<int, FileDescriptor*> descriptors;
 
-	ConnectionContext(const t_config* server_config)
+	ConnectionContext(const t_config* server_config, ServerLogger* server_logger)
 		: server_config(server_config),
+		  server_logger(server_logger),
 		  request(),
-		  parser(&request, server_config),
+		  parser(&request, server_config, server_logger),
 		  opt_cgi_parser(NULL),
 		  state(ConnectionState::IDLE),
 		  cgi_pid(-1) {}
 
 	void reset() {
 		request = t_request();
-		parser = ServerRequestParser(&request, server_config);
+		parser = ServerRequestParser(&request, server_config, server_logger);
 		if (opt_cgi_parser) {
 			delete opt_cgi_parser;
 			opt_cgi_parser = NULL;

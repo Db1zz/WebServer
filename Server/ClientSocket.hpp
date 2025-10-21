@@ -10,7 +10,7 @@ typedef s_config t_config;
 
 class ClientSocket : public Socket {
    public:
-	ClientSocket(const t_config* server_config);
+	ClientSocket(const t_config* server_config, ServerLogger* server_logger);
 	~ClientSocket();
 
 	void set_server_fd(int server_fd);

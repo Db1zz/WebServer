@@ -90,11 +90,13 @@ Status ServerEvent::wait_event(int timeout, int *nfds) {
     return Status::OK();
 }
 
+#include <iostream>
+
 epoll_event *ServerEvent::operator[](size_t index) {
-    if (index > _events_size) {
-        throw std::runtime_error("Error in ServerEvent::operator[]: index > _events_size");
-    }
-    return &(_events_arr[index]);
+	if (index > _events_capacity) {
+		throw std::runtime_error("Error in ServerEvent::operator[]: index > _events_size");
+	}
+	return &(_events_arr[index]);
 }
 
 size_t ServerEvent::size() {

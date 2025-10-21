@@ -504,7 +504,8 @@ Status RequestHeaderParser::parse_connection(const std::string& field_value, t_r
 	std::transform(lower_field_value.begin(), lower_field_value.end(), lower_field_value.begin(),
 				   static_cast<int (*)(int)>(std::tolower));
 
-	if (lower_field_value != "keep-alive" && lower_field_value != "transfer-encoding") {
+	if (lower_field_value != "keep-alive" && lower_field_value != "transfer-encoding" &&
+		lower_field_value != "close") {
 		log_error("RequestHeaderParser::parse_connection",
 				  std::string("unkown field: '") + field_value.substr(pos) + "'");
 		return Status::BadRequest();

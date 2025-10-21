@@ -62,8 +62,6 @@ Status Server::launch() {
 				throw std::runtime_error("handle_event() failed in Server::Launch(): " +
 										 status.msg());
 			}
-		} else {
-			check_disconnect_timeouts();
 		}
 	}
 	std::cout << "[Server] shutdown..." << std::endl;
@@ -75,9 +73,11 @@ void Server::check_disconnect_timeouts() {
 		return;
 	}
 
-	std::map<int, ServerSocketManager*>::const_iterator manager_it = _server_socket_managers.begin();
+	std::map<int, ServerSocketManager*>::const_iterator manager_it =
+		_server_socket_managers.begin();
 	for (; manager_it != _server_socket_managers.end(); ++manager_it) {
-		const std::map<int, ClientSocket*>& connected_clients = manager_it->second->get_connected_clients();
+		const std::map<int, ClientSocket*>& connected_clients =
+			manager_it->second->get_connected_clients();
 		if (connected_clients.size() == 0) {
 			continue;
 		}
@@ -204,7 +204,8 @@ Status Server::create_cgi_process(ClientSocket* client_socket) {
 
 		execve(cgi_bin_path.c_str(), argv.data(), envp.data());
 
-		_server_logger.log_error("Server::create_cgi_process", std::string("execve() failed with a error: ") + strerror(errno));
+		_server_logger.log_error("Server::create_cgi_process",
+								 std::string("execve() failed with a error: ") + strerror(errno));
 		std::exit(127);
 	}
 	close(server_read_pipe[1]);
@@ -221,8 +222,7 @@ Status Server::handle_cgi_request(ClientSocket* client_socket, int event_fd) {
 	if (connection_context->parser.is_body_parsed()) {
 		status = receive_request_body_chunk(client_socket);
 	}
-	if (connection_context->cgi_pid < 0 &&
-		connection_context->request.is_request_ready()) {
+	if (connection_context->cgi_pid < 0 && connection_context->request.is_request_ready()) {
 		status = create_cgi_process(client_socket);
 		if (!status) {
 			_server_logger.log_error("Server::handle_cgi_request",
@@ -251,9 +251,9 @@ Status Server::handle_normal_request(ClientSocket* client_socket) {
 		}
 		if (connection_context->request.is_request_ready()) {
 			manager = find_server_socket_manager(client_socket->get_server_fd());
-			_server_logger.log_access(
-				client_socket->get_host(), connection_context->request.method,
-				connection_context->request.uri_path, manager->get_server_socket()->get_port());
+			_server_logger.log_access(client_socket->get_host(), connection_context->request.method,
+									  connection_context->request.uri_path,
+									  manager->get_server_socket()->get_port());
 			client_socket->reset_connection_context();
 		}
 	}
@@ -288,7 +288,7 @@ Status Server::receive_request_body_chunk(ClientSocket* client_socket) {
 	if (connection_context->buffer.empty() == false) {
 		status = connection_context->parser.parse_body(connection_context->buffer);
 		if (!status) {
-			_server_logger.log_error("Server::receive_request_header", "failed to parse header");
+			_server_logger.log_error("Server::receive_request_body_chunk", "failed to parse body");
 			return status;
 		}
 		connection_context->buffer.clear();
@@ -297,12 +297,12 @@ Status Server::receive_request_body_chunk(ClientSocket* client_socket) {
 	if (connection_context->parser.is_body_parsed() == false) {
 		status = read_data(client_socket, connection_context->buffer, rd_bytes);
 		if (!status) {
-			_server_logger.log_error("Server::receive_request_header", "failed to read data");
+			_server_logger.log_error("Server::receive_request_body_chunk", "failed to read data");
 			return status;
 		}
 		status = connection_context->parser.parse_body(connection_context->buffer);
 		if (!status) {
-			_server_logger.log_error("Server::receive_request_header", "failed to parse header");
+			_server_logger.log_error("Server::receive_request_body_chunk", "failed to parse body");
 			return status;
 		}
 	}
@@ -339,11 +339,9 @@ Status Server::cgi_fd_routine(CGIFileDescriptor* cgi_fd) {
 	char buffer[buffer_size];
 	ConnectionContext* connection_context = cgi_fd->get_connection_context();
 	ssize_t rd_bytes = read(cgi_fd->get_fd(), buffer, buffer_size);
-	if (rd_bytes == 0) { // GG EOF
+	if (rd_bytes == 0) {
 		_event.remove_event(cgi_fd->get_fd());
 		cgi_fd->close_fd();
-		// return response ??
-		std::cout << "DONE WITH CGI\n"; // never goes here
 		return Status::OK();
 	}
 
@@ -404,8 +402,9 @@ Status Server::handle_request_event(const epoll_event& request_event) {
 	FileDescriptor* fd = static_cast<FileDescriptor*>(request_event.data.ptr);
 
 	if (request_event.events & (EPOLLERR | EPOLLRDHUP)) {
-		ClientSocket* cl_fd = static_cast<ClientSocket*>(request_event.data.ptr);
-		// std::cout << "Client " << cl_fd->get_host() << " closed connection with the server" << std::endl;
+		ClientSocket* cl_fd = static_cast<ClientSocket*>(fd);
+		std::cout << "Client " << cl_fd->get_host() << " closed connection with the server"
+				  << std::endl;
 		status = close_connection_routine(fd);
 	} else if (request_event.events & EPOLLIN) {
 		if (fd->get_fd_type() == FileDescriptor::CGIFD) {
@@ -491,7 +490,7 @@ Status Server::create_server_socket_manager(const std::string& host, int port,
 	Status status;
 	ServerSocketManager* manager;
 
-	manager = new ServerSocketManager(host, port, &_event, server_config);
+	manager = new ServerSocketManager(host, port, &_event, server_config, &_server_logger);
 	status = manager->start();
 	if (!status) {
 		delete manager;

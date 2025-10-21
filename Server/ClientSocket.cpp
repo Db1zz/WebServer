@@ -3,10 +3,10 @@
 #include "FileDescriptor.hpp"
 #include "ServerConfig.hpp"
 
-ClientSocket::ClientSocket(const t_config* server_config)
+ClientSocket::ClientSocket(const t_config* server_config, ServerLogger* server_logger)
 	: Socket(timer::now()),
 	  _server_config(server_config),
-	  _connection_context(server_config),
+	  _connection_context(server_config, server_logger),
 	  _server_fd(FileDescriptor::SocketFD, -1) {
 	_socket_type = Socket::CLIENT_SOCKET;
 }
