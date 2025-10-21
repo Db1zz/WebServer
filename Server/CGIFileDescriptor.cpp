@@ -3,7 +3,10 @@
 #include "ClientSocket.hpp"
 
 CGIFileDescriptor::CGIFileDescriptor(int fd, ClientSocket* client_socket)
-	: FileDescriptor(FileDescriptor::CGIFD, fd), _client_socket(client_socket) {
+	: FileDescriptor(FileDescriptor::CGIFD, fd),
+	  _client_socket(client_socket),
+	  _connection_context(client_socket->get_connection_context()->server_config,
+						  client_socket->get_connection_context()->server_logger) {
 }
 
 ClientSocket* CGIFileDescriptor::get_client_socket() {

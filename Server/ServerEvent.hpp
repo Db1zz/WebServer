@@ -6,7 +6,7 @@
 #include <sys/epoll.h>
 
 #ifndef SERVER_EVENT_CLIENT_EVENTS
-#define SERVER_EVENT_CLIENT_EVENTS (EPOLLIN | EPOLLRDHUP | EPOLLOUT | EPOLLERR | EPOLLHUP)
+#define SERVER_EVENT_CLIENT_EVENTS (EPOLLIN | EPOLLOUT | EPOLLERR | EPOLLHUP | EPOLLRDHUP)
 #endif // SERVER_EVENT_CLIENT_EVENTS
 
 #ifndef SERVER_EVENT_SERVER_EVENTS
@@ -29,6 +29,8 @@ public:
     Status event_mod(uint32_t events, int event_fd);
 
     epoll_event *operator[](size_t index);
+    size_t size();
+    size_t capacity();
 
 private:
     Status init();

@@ -8,7 +8,7 @@
 #include "Socket.hpp"
 
 ServerEvent::ServerEvent()
-    : _events_arr(NULL), _events_size(100024), _events_capacity(5)
+    : _events_arr(NULL), _events_size(0), _events_capacity(5)
 {
     init();
 }
@@ -90,11 +90,21 @@ Status ServerEvent::wait_event(int timeout, int *nfds) {
     return Status::OK();
 }
 
+#include <iostream>
+
 epoll_event *ServerEvent::operator[](size_t index) {
-    if (index > _events_size) {
-        throw std::runtime_error("Error in ServerEvent::operator[]: index > _events_size");
-    }
-    return &(_events_arr[index]);
+	if (index > _events_capacity) {
+		throw std::runtime_error("Error in ServerEvent::operator[]: index > _events_size");
+	}
+	return &(_events_arr[index]);
+}
+
+size_t ServerEvent::size() {
+    return _events_size;
+}
+
+size_t ServerEvent::capacity() {
+	return _events_capacity;
 }
 
 Status ServerEvent::init() {
@@ -120,7 +130,7 @@ Status ServerEvent::resize_events_arr(size_t new_size) {
         copy_events_arr(_events_capacity, _events_arr, new_events_arr);
         delete[] _events_arr;
         _events_arr = new_events_arr;
-        _events_capacity = new_size;    
+        _events_capacity = new_size;
     } catch (const std::exception &e) {
         return Status(e.what());
     }

@@ -32,6 +32,7 @@ SRCS = \
 	Server/ServerSocketManager.cpp \
 	Server/CGIFileDescriptor.cpp \
 	Server/CGIResponseParser.cpp \
+	Server/ServerUtils.cpp \
 	Server/ServerSocket.cpp \
 	Server/ClientSocket.cpp \
 	Server/Socket.cpp \
@@ -49,6 +50,7 @@ SRCS = \
 	Utilities/fs.cpp \
 	Utilities/status.cpp \
 	Utilities/hash.cpp \
+	Utilities/timer.cpp \
 	Parser/Parser.cpp \
 	Parser/Token.cpp \
 

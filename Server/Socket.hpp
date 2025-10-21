@@ -28,13 +28,14 @@ public:
 	};
 
 	Socket();
+	Socket(std::time_t idle_time);
 	Socket(Socket &other);
 	virtual ~Socket();
 	Socket &operator=(Socket &other);
 
 	const struct sockaddr *get_address() const;
 	socklen_t get_socklen() const;
-	const std::string *get_host() const;
+	const std::string &get_host() const;
 	int get_port() const;
 
 	void set_socket(int socket, const struct sockaddr *sockaddr, socklen_t socklen);

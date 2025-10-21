@@ -1,13 +1,16 @@
 #ifndef SERVER_CLIENT_SOCKET_HPP_
 #define SERVER_CLIENT_SOCKET_HPP_
 
+#include <map>
+
 #include "ConnectionContext.hpp"
 #include "Socket.hpp"
-#include <map>
+
+typedef s_config t_config;
 
 class ClientSocket : public Socket {
    public:
-	ClientSocket();
+	ClientSocket(const t_config* server_config, ServerLogger* server_logger);
 	~ClientSocket();
 
 	void set_server_fd(int server_fd);
@@ -17,6 +20,7 @@ class ClientSocket : public Socket {
 	void reset_connection_context();
 
    private:
+	const t_config* _server_config;
 	ConnectionContext _connection_context;
 	FileDescriptor _server_fd;
 };

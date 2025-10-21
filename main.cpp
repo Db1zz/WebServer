@@ -18,10 +18,10 @@ int main(int argc, char** argv) {
 	} else if (argc == 2) {
 		fileName = argv[argc - 1];
 	}
-	std::vector<t_config> config;
+	std::vector<t_config> configs;
 	try {
 		Parser parser(fileName.c_str());
-		config = parser.getConfigStruct();
+		configs = parser.getConfigStruct();
 
 	} catch (const std::exception& e) {
 		std::cerr << e.what() << '\n';
@@ -36,7 +36,7 @@ int main(int argc, char** argv) {
 					  << std::endl;
 			return 1;
 		}
-		Server server(config, server_logger);
+		Server server(configs, server_logger);
 		status = server.launch();
 		if (!status) {
 			std::cout << "[Server] " << RED300 << "Fatal Error: " << RESET << status.msg()

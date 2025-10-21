@@ -2,18 +2,21 @@
 
 #include <errno.h>
 #include <fcntl.h>
+#include <signal.h>
 #include <string.h>
 
+#include "ServerLogger.hpp"
 #include "ClientSocket.hpp"
 #include "ServerEvent.hpp"
 #include "status.hpp"
 
 ServerSocketManager::ServerSocketManager(const std::string& server_socket_host,
 										 int server_socket_port, ServerEvent* event_system,
-										 const t_config& server_config)
+										 const t_config& server_config, ServerLogger* server_logger)
 	: _server_socket(server_socket_host, server_socket_port),
 	  _event_system(event_system),
-	  _server_config(server_config) {
+	  _server_config(server_config),
+	  _server_logger(server_logger) {
 }
 
 ServerSocketManager::~ServerSocketManager() {
@@ -45,7 +48,7 @@ Status ServerSocketManager::accept_connection() {
 	Status status;
 	ClientSocket* client_socket;
 
-	client_socket = new ClientSocket;
+	client_socket = new ClientSocket(&_server_config, _server_logger);
 
 	status = _server_socket.accept_connection(*client_socket);
 	if (!status) {
@@ -55,7 +58,8 @@ Status ServerSocketManager::accept_connection() {
 
 	if (fcntl(client_socket->get_fd(), F_SETFL, O_NONBLOCK) < 0) {
 		delete client_socket;
-		return Status(std::string("ServerSocketManager failed to accept incoming connection: ") + strerror(errno));
+		return Status(std::string("ServerSocketManager failed to accept incoming connection: ") +
+					  strerror(errno));
 	}
 
 	status = register_client_socket_in_event_system(client_socket);
@@ -75,6 +79,13 @@ Status ServerSocketManager::close_connection_with_client(int client_socket_fd) {
 	status = get_client_socket(client_socket_fd, &client_socket);
 	if (!status) {
 		return status;
+	}
+
+	ConnectionContext* connection_context = client_socket->get_connection_context();
+	if (connection_context->cgi_pid >= 0) {
+		kill(connection_context->cgi_pid, SIGKILL);
+		std::cout << "Killing CGI process with pid " << connection_context->cgi_pid << std::endl;
+		connection_context->cgi_pid = -1;
 	}
 
 	unregister_client_socket_in_event_system(client_socket_fd);
@@ -100,7 +111,8 @@ const ServerSocket* ServerSocketManager::get_server_socket() const {
 Status ServerSocketManager::register_client_socket_in_event_system(ClientSocket* client_socket) {
 	Status status;
 
-	status = _event_system->add_event(SERVER_EVENT_CLIENT_EVENTS, client_socket);
+	status = _event_system->add_event(SERVER_EVENT_CLIENT_EVENTS,
+									  static_cast<FileDescriptor*>(client_socket));
 	if (!status) {
 		return Status("ServerSocketManager failed to register client socket in event system: " +
 					  status.msg());
@@ -156,4 +168,8 @@ void ServerSocketManager::destroy_all_clients() {
 
 const t_config& ServerSocketManager::get_server_config() const {
 	return _server_config;
+}
+
+const std::map<int, ClientSocket*>& ServerSocketManager::get_connected_clients() const {
+	return _clients;
 }
