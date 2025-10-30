@@ -94,7 +94,8 @@ typedef struct s_request {
 	bool is_file_created; // TODO remove me
 	bool is_chunked_request;
 	RequestType requesst_type;
-	const std::string* cgi_bin;
+	std::string cgi_bin;
+	bool is_cgi;
 
 	bool is_request_ready() const { return transfered_length >= content_length; }
 
@@ -103,7 +104,7 @@ typedef struct s_request {
 		  content_length(0),
 		  transfered_length(0),
 		  is_chunked_request(false),
-		  cgi_bin(NULL) {}
+		  is_cgi(false) {}
 } t_request;
 
 #endif

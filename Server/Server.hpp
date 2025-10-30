@@ -29,6 +29,8 @@ class ServerSocket;
 class ServerSocketManager;
 class ServerLogger;
 class CGIFileDescriptor;
+class IOServerContext;
+class IOServerHandler;
 
 class Server {
    public:
@@ -37,38 +39,22 @@ class Server {
 	Status launch();
 
    private:
-   	void check_disconnect_timeouts();
-	bool is_a_new_connection(const epoll_event& event);
-	Status handle_new_connection_event(const epoll_event& connection_event);
-	Status close_connection_routine(FileDescriptor* fd);
-	Status handle_request_event(const epoll_event& request_event);
+   	// void check_disconnect_timeouts();
+	// Status close_connection_routine(FileDescriptor* fd);
 
-	Status cgi_fd_routine(CGIFileDescriptor* cgi_fd);
-	Status client_socket_routine(ClientSocket* client_socket);
-
-	Status receive_request_header(ClientSocket* client_socket);
-
-	Status receive_request_body_chunk(ClientSocket* client_socket);
-	Status create_cgi_process(ClientSocket* client_socket);
-	Status handle_cgi_request(ClientSocket* client_socket, int event_fd);
-
-	Status handle_normal_request(ClientSocket* client_socket);
-	Status handle_event(int amount_of_events);
-	Status read_data(ClientSocket* client_socket, std::string& buff, int& rd_bytes);
-	Status response_handler(ClientSocket* client_socket);
+	Status handle_epoll_event(int amount_of_events);
 	Status create_server_socket_manager(const std::string& host, int port,
 										const t_config& server_config);
 	Status create_sockets_from_config(const t_config& server_config);
 	Status create_sockets_from_configs(const std::vector<t_config>& configs);
 	void print_debug_addr(const std::string& address, int port);
-	ServerSocketManager* find_server_socket_manager(int server_socket_fd);
+	// ServerSocketManager* find_server_socket_manager(int server_socket_fd);
 	void destroy_all_server_socket_managers();
 
 	std::vector<t_config> _configs;
-	std::map<int, ServerSocketManager*> _server_socket_managers;
+	std::map<int, EventContext*> _events_contexts;
 	ServerEvent _event;
 	ServerLogger& _server_logger;
-
 };
 
 #endif // SERVER_SERVER_HPP

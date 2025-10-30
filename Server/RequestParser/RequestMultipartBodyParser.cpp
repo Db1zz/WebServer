@@ -1,6 +1,7 @@
 
 #include "RequestMultipartBodyParser.hpp"
 
+#include "ServerLogger.hpp"
 #include "ServerRequestParserHelpers.hpp"
 
 /*
@@ -13,16 +14,22 @@
 	Content-Type: image/png
 
 	<cool binary data :sunglasses:>
-	------WebKitFormBoundary7MA4YWxkTrZu0gW
-	Content-Disposition: form-data; name="avatar"; filename="photo.txt"
-	Content-Type: text/txt
+	------WebKitFormBoundary7MA4YWxkTrZu0gW#include
+   "Server/RequestParser/RequestMultipartParser.hpp" Content-Disposition: form-data; name="avatar";
+   filename="photo.txt" Content-Type: text/txt
 
 	dfsgsdfglksdjfg;lkdsjfg;lknsd;lfgjds;lkfgj
 	------WebKitFormBoundary7MA4YWxkTrZu0gW--
 */
 
-RequestMultipartParser::RequestMultipartParser(const std::string& boundary, int content_length)
-	: _content_length(content_length), _data_size(0), _last_content(NULL), _end_boundary_found(false), _finished(false) {
+RequestMultipartParser::RequestMultipartParser(const std::string& boundary, int content_length,
+											   ServerLogger* server_logger)
+	: _content_length(content_length),
+	  _data_size(0),
+	  _last_content(NULL),
+	  _end_boundary_found(false),
+	  _finished(false),
+	  _server_logger(server_logger) {
 	_start_boundary = "--" + boundary + "\r\n";
 	_end_boundary = "\r\n--" + boundary + "--\r\n";
 }
@@ -32,7 +39,6 @@ Status RequestMultipartParser::feed(const std::string& content, size_t start_pos
 	_data_size += content.size() - start_pos;
 	_buffer.append(content.substr(start_pos));
 	do {
-
 		size_t boundary_pos = search_boundary();
 		if (boundary_pos != std::string::npos) {
 			if (_end_boundary_found) {
@@ -141,6 +147,9 @@ Status RequestMultipartParser::parse_body_with_header(size_t boundary_pos) {
 
 Status RequestMultipartParser::parse_and_finish_content(size_t boundary_pos) {
 	if (!(_buffer[boundary_pos - 2] == '\r' && _buffer[boundary_pos - 1] == '\n')) {
+		_server_logger->log_error(
+			"RequestMultipartParser::parse_and_finish_content",
+			"invalid content end '" + std::string(_buffer, boundary_pos) + "'");
 		return Status::BadRequest();
 	}
 	_last_content->data.append(_buffer.substr(0, boundary_pos - 2));
@@ -158,15 +167,19 @@ Status RequestMultipartParser::parse_body_header(size_t boundary_pos) {
 															   "\r\n", true);
 	status = parse_filename(content_disposition, _last_content->filename);
 	if (status == BadRequest) {
+		_server_logger->log_error("RequestMultipartParser::parse_body_header",
+								  "failed to parse filename");
 		return status;
 	}
 
 	status = parse_name(content_disposition, _last_content->name);
 	if (status == BadRequest) {
-		return status;
+		_server_logger->log_error("RequestMultipartParser::parse_body_header",
+								  "failed to parse name");
 	}
 
-	pos = internal_server_request_parser::get_token_with_delim(_buffer, pos, content_type, "\r\n", true);
+	pos = internal_server_request_parser::get_token_with_delim(_buffer, pos, content_type, "\r\n",
+															   true);
 	status = parse_content_type(content_type, _last_content->content_type);
 	if (status == NoMime) {
 		return Status::OK();
@@ -180,40 +193,65 @@ Status RequestMultipartParser::parse_name(const std::string& content_disposition
 	const std::string name_key("name=\"");
 	size_t start = content_disposition.find(name_key);
 	if (start == std::string::npos) {
+		_server_logger->log_error(
+			"RequestMultipartParser::parse_name",
+			"unable to parse '" + content_disposition + "' the 'name=\"' token is missing");
 		return Status::BadRequest();
 	}
 
 	start += name_key.size();
 	size_t end = content_disposition.find("\"", start);
 	if (end == std::string::npos) {
+		_server_logger->log_error(
+			"RequestMultipartParser::parse_name",
+			"unable to parse '" + content_disposition + "' closing double quote was not found");
 		return Status::BadRequest();
 	}
 	name = content_disposition.substr(start, end - start);
 	return Status::OK();
 }
 
-Status RequestMultipartParser::parse_content_type(const std::string& content_type, std::string& mime) {
+Status RequestMultipartParser::parse_content_type(const std::string& content_type,
+												  std::string& mime) {
 	const std::string content_type_key("Content-Type: ");
 
 	size_t start = content_type.find(content_type_key);
 	if (start == std::string::npos) {
+		_server_logger->log_error("RequestMultipartParser::parse_content_type",
+								  "no mime was provided");
 		return Status::NoMime();
 	}
 
 	size_t slash_pos = content_type.find("/");
 	if (slash_pos == std::string::npos) {
+		_server_logger->log_error("RequestMultipartParser::parse_content_type",
+								  "no mime was provided");
 		return Status::NoMime();
 	}
 
-	if (slash_pos - start > MIME_TYPE_MAX_SIZE || content_type.size() - slash_pos > MIME_SUBTYPE_MAX_SIZE) {
+	if (slash_pos - start > MIME_TYPE_MAX_SIZE ||
+		content_type.size() - slash_pos > MIME_SUBTYPE_MAX_SIZE) {
+		_server_logger->log_error("RequestMultipartParser::parse_content_type",
+								  "request header field is too large");
+
 		return Status::RequestHeaderFieldsTooLarge();
 	}
 
-	if (!internal_server_request_parser::is_string_valid_token(content_type.c_str() + start, slash_pos - start)) {
+	if (!internal_server_request_parser::is_string_valid_token(content_type.c_str() + start,
+															   slash_pos - start)) {
+		_server_logger->log_error("RequestMultipartParser::parse_content_type",
+								  "string '" +
+									  std::string(content_type.c_str() + start, slash_pos - start) +
+									  "' is not a valid token");
+
 		return Status::BadRequest();
 	}
 
-	if (!internal_server_request_parser::is_string_valid_token(content_type.c_str() + slash_pos + 1)) {
+	if (!internal_server_request_parser::is_string_valid_token(content_type.c_str() + slash_pos +
+															   1)) {
+		_server_logger->log_error("RequestMultipartParser::parse_content_type",
+								  "string '" + std::string(content_type.c_str() + slash_pos + 1) +
+									  "' is not a valid token");
 		return Status::BadRequest();
 	}
 
@@ -226,7 +264,8 @@ static void skip_ows_and_folds(const std::string& line, size_t& pos) {
 	const size_t len = line.size();
 
 	while (pos < len) {
-		if (pos + 2 < len && internal_server_request_parser::is_crlf(line.c_str() + pos) && internal_server_request_parser::is_ws(line[pos + 2])) {
+		if (pos + 2 < len && internal_server_request_parser::is_crlf(line.c_str() + pos) &&
+			internal_server_request_parser::is_ws(line[pos + 2])) {
 			pos += 3;
 			while (pos < len && internal_server_request_parser::is_ws(line[pos])) {
 				++pos;
@@ -257,6 +296,8 @@ Status RequestMultipartParser::parse_filename(const std::string& line, std::stri
 
 	skip_ows_and_folds(line, pos);
 	if (line[pos] != '=') {
+		_server_logger->log_error("RequestMultipartParser::parse_filename",
+								  "invalid filename format '" + line + "'");
 		return Status::BadRequest();
 	}
 	++pos; // aboba skip '='
@@ -271,7 +312,8 @@ Status RequestMultipartParser::parse_filename(const std::string& line, std::stri
 	return status;
 }
 
-Status RequestMultipartParser::parse_unquoted_filename(const std::string& line, size_t pos, std::string& filename) {
+Status RequestMultipartParser::parse_unquoted_filename(const std::string& line, size_t pos,
+													   std::string& filename) {
 	size_t end;
 
 	end = line.find("\r\n", pos);
@@ -281,11 +323,15 @@ Status RequestMultipartParser::parse_unquoted_filename(const std::string& line, 
 
 	if (end == std::string::npos ||
 		!internal_server_request_parser::is_string_valid_token(line.c_str() + pos, end)) {
+		_server_logger->log_error("RequestMultipartParser::parse_unquoted_filename",
+								  "token '" + line + "' is not valid");
 		return Status::BadRequest();
 	}
 
 	filename = line.substr(pos, end);
 	if (filename.empty()) {
+		_server_logger->log_error("RequestMultipartParser::parse_unquoted_filename",
+								  "an filename obtained from a line '" + line + "' is empty.");
 		return Status::BadRequest();
 	}
 	return Status::OK();
@@ -297,5 +343,3 @@ void RequestMultipartParser::update_last_content() {
 		_last_content = &_content_data.back();
 	}
 }
-
-

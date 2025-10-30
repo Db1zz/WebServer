@@ -6,16 +6,12 @@
 #include <errno.h>
 
 #include "Socket.hpp"
+#include "IIOContext.hpp"
 
 ServerEvent::ServerEvent()
     : _events_arr(NULL), _events_size(0), _events_capacity(5)
 {
     init();
-}
-
-ServerEvent::ServerEvent(uint32_t events, int event_fd) {
-    ServerEvent();
-    add_event(events, event_fd);
 }
 
 ServerEvent::~ServerEvent() {
@@ -26,27 +22,10 @@ ServerEvent::~ServerEvent() {
     }
 }
 
-Status ServerEvent::add_event(uint32_t events, FileDescriptor* fd) {
-	epoll_event new_event;
-
-	new_event.data.ptr = fd;
-	new_event.events = events;
-
-	if (_events_size == _events_capacity) {
-		resize_events_arr(_events_capacity * 2);
-	}
-
-	if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, fd->get_fd(), &new_event) < 0) {
-		return Status(strerror(errno));
-	}
-	++_events_size;
-    return Status::OK();
-}
-
-Status ServerEvent::add_event(uint32_t events, int event_fd) {
+Status ServerEvent::add_event(uint32_t events, int event_fd, EventContext& context) {
     epoll_event new_event;
 
-    new_event.data.fd = event_fd;
+    new_event.data.ptr = &context;
     new_event.events = events;
 
     if (_events_size == _events_capacity) {

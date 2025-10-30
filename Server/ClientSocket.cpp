@@ -3,10 +3,9 @@
 #include "FileDescriptor.hpp"
 #include "ServerConfig.hpp"
 
-ClientSocket::ClientSocket(const t_config* server_config, ServerLogger* server_logger)
+ClientSocket::ClientSocket(const t_config* server_config)
 	: Socket(timer::now()),
 	  _server_config(server_config),
-	  _connection_context(server_config, server_logger),
 	  _server_fd(FileDescriptor::SocketFD, -1) {
 	_socket_type = Socket::CLIENT_SOCKET;
 }
@@ -20,12 +19,4 @@ void ClientSocket::set_server_fd(int server_fd) {
 
 int ClientSocket::get_server_fd() {
 	return _server_fd.get_fd();
-}
-
-void ClientSocket::reset_connection_context() {
-	_connection_context.reset();
-}
-
-ConnectionContext* ClientSocket::get_connection_context() {
-	return &_connection_context;
 }

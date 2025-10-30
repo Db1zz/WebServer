@@ -1,7 +1,7 @@
 NAME = ./webserv
 INCLUDE_DIR = -I Sockets -I Server -I Response -I Parser -I Utilities -I Logger
 CXX = c++ -std=c++98 -g -static-libasan
-CXXFLAGS = -Wall -Wextra -Werror $(INCLUDE_DIR)
+CXXFLAGS = -Wall -Wextra $(INCLUDE_DIR)
 
 BUILDDIR = Build
 OBJSDIR = $(BUILDDIR)/Objs
@@ -38,6 +38,10 @@ SRCS = \
 	Server/Socket.cpp \
 	Server/Server.cpp \
 	Server/ServerEvent.cpp \
+	Server/IOCGIHandler.cpp \
+	Server/IOClientHandler.cpp \
+	Server/IOServerHandler.cpp \
+	Server/HTTPResponseSender.cpp \
 	Response/ServerResponse.cpp \
 	Response/JsonResponse.cpp \
 	Response/ErrorResponse.cpp \

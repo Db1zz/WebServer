@@ -5,11 +5,12 @@
 
 #include "ServerLogger.hpp"
 #include "ServerRequest.hpp"
+#include "ServerConfig.hpp"
 #include "status.hpp"
 
 class RequestHeaderParser {
    public:
-	RequestHeaderParser(ServerLogger* logger = NULL);
+	RequestHeaderParser(const t_config* server_config, ServerLogger* logger = NULL);
 	Status feed(const std::string& content, size_t& body_start_pos);
 	Status apply(t_request& request);
 
@@ -55,6 +56,7 @@ class RequestHeaderParser {
 	void log_error(const std::string& failed_component, const std::string& message) const;
 	std::string _buffer;
 	bool _end_found;
+	const t_config* _server_config;
 	ServerLogger* _logger;
 };
 

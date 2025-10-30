@@ -108,4 +108,16 @@ bool get_cgi_bin(const std::string& uri_path, const t_config& server_config,
 	}
 	return false;
 }
+
+Status read_data(int fd, ssize_t read_buff_size, std::string& buff, int& rd_bytes) {
+	char read_buff[read_buff_size];
+
+	rd_bytes = read(fd, read_buff, read_buff_size);
+	if (rd_bytes < 0) {
+		return Status::InternalServerError();
+	}
+	buff.append(read_buff, rd_bytes);
+	return Status::OK();
+}
+
 } // namespace server_utils

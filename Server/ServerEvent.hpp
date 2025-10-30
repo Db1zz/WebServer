@@ -13,17 +13,25 @@
 #define SERVER_EVENT_SERVER_EVENTS (EPOLLIN | EPOLLOUT)
 #endif // SERVER_EVENT_SERVER_EVENTS
 
+#include "IIOContext.hpp"
+#include "IIOHandler.hpp"
 
-class FileDescriptor;
+struct EventContext {
+	IIOContext* context;
+	IIOHandler* handler;
+
+	EventContext() {}
+	EventContext(IIOContext* context, IIOHandler* handler)
+		: context(context), handler(handler) {}
+};
 
 class ServerEvent {
 public:
     ServerEvent();
-    ServerEvent(uint32_t events, int event_fd);
     ~ServerEvent();
 
-	Status add_event(uint32_t events, FileDescriptor* fd);
-	Status add_event(uint32_t events, int event_fd);
+    Status add_event(uint32_t events, int event_fd, EventContext& context);
+
     Status remove_event(int event_fd);
     Status wait_event(int timeout, int *nfds);
     Status event_mod(uint32_t events, int event_fd);

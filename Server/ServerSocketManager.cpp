@@ -9,6 +9,8 @@
 #include "ClientSocket.hpp"
 #include "ServerEvent.hpp"
 #include "status.hpp"
+#include "IOClientHandler.hpp"
+#include "IOClientContext.hpp"
 
 ServerSocketManager::ServerSocketManager(const std::string& server_socket_host,
 										 int server_socket_port, ServerEvent* event_system,
@@ -30,10 +32,7 @@ Status ServerSocketManager::start() {
 	Status status;
 
 	status = _server_socket.open_socket();
-	if (!status) {
-		return status;
-	}
-	return register_server_socket_in_event_system();
+	return status;
 }
 
 Status ServerSocketManager::stop() {
@@ -41,14 +40,15 @@ Status ServerSocketManager::stop() {
 
 	destroy_all_clients();
 	_server_socket.close_socket();
-	return unregister_server_socket_in_event_system();
+	return status;
 }
 
 Status ServerSocketManager::accept_connection() {
 	Status status;
-	ClientSocket* client_socket;
-
-	client_socket = new ClientSocket(&_server_config, _server_logger);
+	ClientSocket* client_socket = new ClientSocket(&_server_config);
+	IOClientContext* io_client_context = new IOClientContext(*client_socket, _server_socket, *this, &_server_config, _server_logger);
+	IOClientHandler* io_client_handler = new IOClientHandler(*client_socket, *io_client_context, *_event_system, _server_logger);
+	EventContext *event_context = new EventContext(io_client_context, io_client_handler);
 
 	status = _server_socket.accept_connection(*client_socket);
 	if (!status) {
@@ -62,114 +62,74 @@ Status ServerSocketManager::accept_connection() {
 					  strerror(errno));
 	}
 
-	status = register_client_socket_in_event_system(client_socket);
+	status = _event_system->add_event(SERVER_EVENT_CLIENT_EVENTS, client_socket->get_fd(), *event_context);
 	if (!status) {
 		delete client_socket;
 		return status;
 	}
-	_clients.insert(std::make_pair(client_socket->get_fd(), client_socket));
+	_clients_contexts.insert(std::make_pair(client_socket->get_fd(), event_context));
 
 	return Status::OK();
 }
 
 Status ServerSocketManager::close_connection_with_client(int client_socket_fd) {
 	Status status;
-	ClientSocket* client_socket;
+	EventContext* client_event_context;
 
-	status = get_client_socket(client_socket_fd, &client_socket);
+	status = get_client_event_context(client_socket_fd, &client_event_context);
 	if (!status) {
+		_server_logger->log_error("ServerSocketManager::close_connection_with_client", "failed to obtain client event context: " + status.msg());
 		return status;
 	}
 
-	ConnectionContext* connection_context = client_socket->get_connection_context();
-	if (connection_context->cgi_pid >= 0) {
-		kill(connection_context->cgi_pid, SIGKILL);
-		std::cout << "Killing CGI process with pid " << connection_context->cgi_pid << std::endl;
-		connection_context->cgi_pid = -1;
+	IOClientContext* io_client_context = static_cast<IOClientContext*>(client_event_context->context);
+	if (io_client_context->cgi_pid >= 0) {
+		kill(io_client_context->cgi_pid, SIGKILL);
+		std::cout << "Killing CGI process with pid " << io_client_context->cgi_pid << std::endl;
+		io_client_context->cgi_pid = -1;
 	}
+	
+	delete &io_client_context->client_socket;
+	delete client_event_context->context;
+	delete client_event_context->handler;
+	delete client_event_context;
 
-	unregister_client_socket_in_event_system(client_socket_fd);
-	delete client_socket;
-	_clients.erase(client_socket_fd);
+	_clients_contexts.erase(client_socket_fd);
+	_event_system->remove_event(client_socket_fd);
 	return Status::OK();
 }
 
-Status ServerSocketManager::get_client_socket(int client_socket_fd, ClientSocket** out) {
-	std::map<int, ClientSocket*>::iterator client_it = _clients.find(client_socket_fd);
-	if (client_it == _clients.end()) {
-		return Status(
-			"ServerSocketManager failed to close connection with a client: client not found");
+Status ServerSocketManager::get_client_event_context(int client_socket_fd, EventContext** out) {
+	std::map<int, EventContext*>::iterator client_context_it = _clients_contexts.find(client_socket_fd);
+	if (client_context_it == _clients_contexts.end()) {
+		return Status("client event context not found");
 	}
-	*out = client_it->second;
+
+	*out = client_context_it->second;
 	return Status::OK();
 }
 
-const ServerSocket* ServerSocketManager::get_server_socket() const {
+ServerSocket* ServerSocketManager::get_server_socket() {
 	return &_server_socket;
 }
 
-Status ServerSocketManager::register_client_socket_in_event_system(ClientSocket* client_socket) {
-	Status status;
-
-	status = _event_system->add_event(SERVER_EVENT_CLIENT_EVENTS,
-									  static_cast<FileDescriptor*>(client_socket));
-	if (!status) {
-		return Status("ServerSocketManager failed to register client socket in event system: " +
-					  status.msg());
-	}
-	return Status::OK();
-}
-
-Status ServerSocketManager::register_server_socket_in_event_system() {
-	Status status;
-
-	status = _event_system->add_event(SERVER_EVENT_CLIENT_EVENTS, &_server_socket);
-	if (!status) {
-		return Status("ServerSocketManager failed to register server socket in event system: " +
-					  status.msg());
-	}
-	return Status::OK();
-}
-
-Status ServerSocketManager::unregister_client_socket_in_event_system(int client_socket_fd) {
-	Status status;
-
-	status = _event_system->remove_event(client_socket_fd);
-	if (!status) {
-		return Status("ServerSocketManager failed to unregister client socket from event system: " +
-					  status.msg());
-	}
-	return Status::OK();
-}
-
-Status ServerSocketManager::unregister_server_socket_in_event_system() {
-	Status status;
-
-	status = _event_system->remove_event(_server_socket.get_fd());
-	if (!status) {
-		return Status("ServerSocketManager failed to unregister server socket from event system: " +
-					  status.msg());
-	}
-	return Status::OK();
-}
-
 void ServerSocketManager::destroy_all_clients() {
-	std::map<int, ClientSocket*>::iterator it;
+	std::map<int, EventContext*>::iterator client_context_it;
 
-	it = _clients.begin();
-	while (it != _clients.end()) {
-		if (it->second) {
-			delete it->second;
-		}
-		++it;
+	client_context_it = _clients_contexts.begin();
+	while (client_context_it != _clients_contexts.end()) {
+		std::map<int, EventContext*>::iterator curr_it = client_context_it;
+		++client_context_it;
+		IOClientContext* io_client_context = static_cast<IOClientContext*>(curr_it->second->context);
+		close_connection_with_client(io_client_context->client_socket.get_fd());
 	}
-	_clients.clear();
+	_clients_contexts.clear();
 }
 
 const t_config& ServerSocketManager::get_server_config() const {
 	return _server_config;
 }
 
-const std::map<int, ClientSocket*>& ServerSocketManager::get_connected_clients() const {
-	return _clients;
+const std::map<int, EventContext*>& ServerSocketManager::get_connected_clients() const {
+	return _clients_contexts;
 }

@@ -5,9 +5,9 @@
 
 #include "ServerConfig.hpp"
 #include "ServerSocket.hpp"
+#include "ServerEvent.hpp"
 
 class ServerLogger;
-class ServerEvent;
 class ClientSocket;
 class Status;
 
@@ -22,19 +22,15 @@ class ServerSocketManager {
 	Status stop();
 	Status accept_connection();
 	Status close_connection_with_client(int client_socket_fd);
-	Status get_client_socket(int client_socket_fd, ClientSocket** out);
-	const ServerSocket* get_server_socket() const;
+	Status get_client_event_context(int client_socket_fd, EventContext** out);
+	ServerSocket* get_server_socket();
 	const t_config& get_server_config() const;
-	const std::map<int, ClientSocket*>& get_connected_clients() const;
+	const std::map<int, EventContext*>& get_connected_clients() const;
 
    private:
-	Status register_client_socket_in_event_system(ClientSocket* client_socket);
-	Status register_server_socket_in_event_system();
-	Status unregister_client_socket_in_event_system(int client_socket_fd);
-	Status unregister_server_socket_in_event_system();
 	void destroy_all_clients();
 
-	std::map<int, ClientSocket*> _clients; // pair<int fd, ClientSocket*>
+	std::map<int, EventContext*> _clients_contexts; // pair<int fd, ClientSocket*>
 	ServerSocket _server_socket;
 	ServerEvent* _event_system;
 	t_config _server_config;

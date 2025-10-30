@@ -13,8 +13,8 @@
 #include "ServerRequestParserHelpers.hpp"
 #include "ServerUtils.hpp"
 
-RequestHeaderParser::RequestHeaderParser(ServerLogger* logger)
-	: _end_found(false), _logger(logger) {
+RequestHeaderParser::RequestHeaderParser(const t_config* server_config, ServerLogger* logger)
+	: _end_found(false), _server_config(server_config), _logger(logger) {
 }
 
 Status RequestHeaderParser::feed(const std::string& content, size_t& body_start_pos) {
@@ -664,6 +664,10 @@ Status RequestHeaderParser::parse_complete_header(t_request& request) {
 		log_error("RequestHeaderParser::parse_complete_header",
 				  std::string("failed to parse request line: '") + _buffer.substr(pos) + "'");
 		return status;
+	}
+
+	if (server_utils::get_cgi_bin(request.uri_path, *_server_config, request.cgi_bin)) {
+		request.is_cgi = true;
 	}
 
 	do {

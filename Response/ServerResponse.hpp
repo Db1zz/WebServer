@@ -30,14 +30,13 @@
 #define PAGE_404 "Pages/404.html"
 #define STYLESHEET "Pages/styles.css"
 
-class ClientSocket;
 class JsonResponse;
 class ErrorResponse;
 class FileUtils;
 
 class ServerResponse {
    public:
-	ServerResponse(ClientSocket* client_socket, const t_config& server_data);
+	ServerResponse(t_request* request, const t_config& server_data);
 	~ServerResponse();
 
 	ServerResponse& header(const std::string& key, const std::string& value);
@@ -77,7 +76,6 @@ class ServerResponse {
 	bool _needs_streaming;
 	std::string _stream_file_path;
 	const t_location* _stream_location;
-	ConnectionContext* _context;
 
 	void handle_directory(const t_location& location);
 	void handle_file_upload();

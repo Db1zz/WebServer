@@ -10,9 +10,11 @@
 #define MIME_TYPE_MAX_SIZE 127
 #define MIME_SUBTYPE_MAX_SIZE 127
 
+class ServerLogger;
+
 class RequestMultipartParser : public IRequestBodyParser {
    public:
-	RequestMultipartParser(const std::string& boundary, int content_length);
+	RequestMultipartParser(const std::string& boundary, int content_length, ServerLogger* server_logger = NULL);
 	Status feed(const std::string& content, size_t start_pos);
 	void apply(t_request& request);
 	bool is_finished() const;
@@ -41,6 +43,8 @@ class RequestMultipartParser : public IRequestBodyParser {
 	t_request_content* _last_content;
 	bool _end_boundary_found;
 	bool _finished;
+
+	ServerLogger* _server_logger;
 };
 
 #endif // SERVER_REQUEST_PARSER_REQUEST_MULTIPART_PARSER_HPP_
