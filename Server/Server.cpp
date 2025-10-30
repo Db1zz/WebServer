@@ -53,7 +53,6 @@ Status Server::launch() {
 		return status;
 	}
 
-	std::signal(SIGINT, sigint_handler);
 	while (g_signal_status != SIGINT) {
 		status = _event.wait_event(0, &amount_of_events);
 		if (!status && status.error() != EINTR) {

@@ -9,10 +9,11 @@
 #include "IOClientContext.hpp"
 #include "ServerEvent.hpp"
 
-IOCGIHandler::IOCGIHandler(CGIFileDescriptor& cgi_fd, IOCGIContext& io_cgi_context,
+IOCGIHandler::IOCGIHandler(CGIFileDescriptor& cgi_fd, IOCGIContext& io_cgi_context, IOClientContext& io_client_context,
 						   const t_config* server_config, ServerLogger* server_logger)
 	: _cgi_fd(cgi_fd),
 	  _io_cgi_context(io_cgi_context),
+	  _io_client_context(io_client_context),
 	  _server_config(server_config),
 	  _server_logger(server_logger) {
 }
@@ -49,13 +50,15 @@ Status IOCGIHandler::handle(void* data) {
 		_server_logger->log_error("Server::cgi_fd_routine", "failed to parse CGI response");
 		return status;
 	}
-	std::cout << "DATA: " << _io_cgi_context.request.content_data.front().data << std::endl;
 
 	if (status != DataIsNotReady) {
 		HTTPResponseSender response_sender(_cgi_fd.get_client_socket(), &_io_cgi_context.request,
 										   _server_config, _server_logger);
 		status = response_sender.send();
-		std::cout << "STATUS: " << status << std::endl;
+		if (!status) {
+			return status;
+		}
+		_io_client_context.reset();
 	}
 
 	return status;

@@ -234,7 +234,7 @@ Status IOClientHandler::create_cgi_process() {
 	CGIFileDescriptor* cgi_fd = new CGIFileDescriptor(server_read_pipe[0], _client_socket);
 	IOCGIContext* cgi_context =
 		new IOCGIContext(*cgi_fd, _client_context.server_config, _server_logger);
-	IOCGIHandler* cgi_handler = new IOCGIHandler(*cgi_fd, *cgi_context, _client_context.server_config ,_server_logger);
+	IOCGIHandler* cgi_handler = new IOCGIHandler(*cgi_fd, *cgi_context, _client_context, _client_context.server_config ,_server_logger);
 	_cgi_event_context = new EventContext(cgi_context, cgi_handler);
 
 	_client_context.cgi_pid = cgi_process;
