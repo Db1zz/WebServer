@@ -12,7 +12,6 @@ ServerRequestParser::ServerRequestParser(t_request* request, const t_config* con
 	  _logger(logger),
 	  _header_parser(config, logger),
 	  _body_parser(NULL),
-	  _is_cgi(false),
 	  _header_parsed(false),
 	  _request(request) {
 }
@@ -44,8 +43,7 @@ Status ServerRequestParser::parse_header(const std::string& content, std::string
 		body_out = content.substr(cursor_pos);
 	}
 
-	_is_cgi = (_request->uri_path.find("cgi-bin/") != std::string::npos);
-	if (_request->method == "POST" || _is_cgi == true) {
+	if (_request->method == "POST" || _request->is_cgi == true) {
 		create_body_parser();
 	}
 
@@ -73,10 +71,6 @@ Status ServerRequestParser::parse_body(const std::string& content) {
 	return Status::OK();
 }
 
-bool ServerRequestParser::is_cgi_request() const {
-	return _is_cgi;
-}
-
 bool ServerRequestParser::is_header_parsed() const {
 	return _header_parsed;
 }
@@ -90,7 +84,7 @@ bool ServerRequestParser::is_finished() const {
 }
 
 void ServerRequestParser::create_body_parser() {
-	if (_is_cgi) {
+	if (_request->is_cgi) {
 		_body_parser = new RequestRawBodyParser(_request->content_length, InFile);
 	} else if (_request->content_type.type == "multipart" &&
 			   _request->content_type.subtype == "form-data") {

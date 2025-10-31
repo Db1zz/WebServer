@@ -27,15 +27,7 @@ IOClientHandler::IOClientHandler(ClientSocket& client_socket, IOClientContext& c
 }
 
 IOClientHandler::~IOClientHandler() {
-	if (_cgi_event_context != NULL) {
-		IOCGIContext* io_cgi_context = static_cast<IOCGIContext*>(_cgi_event_context->context);
-		_server_event.remove_event(io_cgi_context->cgi_fd.get_fd());
-		delete &io_cgi_context->cgi_fd;
-		delete io_cgi_context;
-		delete _cgi_event_context->handler;
-		delete _cgi_event_context;
-		_cgi_event_context = NULL;
-	}
+	destroy_cgi_event_context();
 }
 
 Status IOClientHandler::read_and_parse() {
@@ -87,7 +79,7 @@ Status IOClientHandler::handle(void* data) {
 	if (event.events & (EPOLLERR | EPOLLRDHUP)) {
 		close_connection();
 		return Status::OK();
-	} 
+	}
 	if (event.events & EPOLLIN) {
 		status = read_and_parse();
 		if (!status) {
@@ -100,9 +92,6 @@ Status IOClientHandler::handle(void* data) {
 	}
 	if (event.events & EPOLLOUT) {
 		if (_client_context.request.is_cgi == true) {
-			if (_client_context.cgi_pid >= 0) {
-				return Status::OK();
-			}
 			return handle_cgi_request(status);
 		}
 		return handle_default_request(status);
@@ -119,13 +108,33 @@ Status IOClientHandler::handle_cgi_request(Status status) {
 										  "TODO: Status error code!!!" + "'");
 			return status;
 		}
+	} else if (_cgi_event_context != NULL) {
+		IOCGIContext* io_cgi_context = static_cast<IOCGIContext*>(_cgi_event_context->context);
+		if (io_cgi_context->is_finished == false) {
+			return Status::OK();
+		}
+		HTTPResponseSender response_sender(_client_socket, &io_cgi_context->request,
+										   _client_context.server_config, _server_logger);
+		status = response_sender.send();
+		if (!status) {
+			return status;
+		}
+		if (_server_logger != NULL) {
+			_server_logger->log_access(_client_socket.get_host(), _client_context.request.method,
+									   _client_context.request.uri_path,
+									   _client_context.server_socket.get_port());
+		}
+		std::cout << "reset\n";
+		destroy_cgi_event_context();
+		_client_context.reset();
 	}
 	return Status::OK();
 }
 
 Status IOClientHandler::handle_default_request(Status status) {
 	if (status.code() != DataIsNotReady && _client_context.parser.is_header_parsed() == true) {
-		HTTPResponseSender response_sender(_client_socket, &_client_context.request, _client_context.server_config, _server_logger);
+		HTTPResponseSender response_sender(_client_socket, &_client_context.request,
+										   _client_context.server_config, _server_logger);
 		status = response_sender.send();
 		if (!status) {
 			return Status(
@@ -234,10 +243,32 @@ Status IOClientHandler::create_cgi_process() {
 	CGIFileDescriptor* cgi_fd = new CGIFileDescriptor(server_read_pipe[0], _client_socket);
 	IOCGIContext* cgi_context =
 		new IOCGIContext(*cgi_fd, _client_context.server_config, _server_logger);
-	IOCGIHandler* cgi_handler = new IOCGIHandler(*cgi_fd, *cgi_context, _client_context, _client_context.server_config ,_server_logger);
+	IOCGIHandler* cgi_handler = new IOCGIHandler(*cgi_fd, *cgi_context, _client_context,
+												 _client_context.server_config, _server_logger);
 	_cgi_event_context = new EventContext(cgi_context, cgi_handler);
 
 	_client_context.cgi_pid = cgi_process;
 	_server_event.add_event(SERVER_EVENT_CLIENT_EVENTS, cgi_fd->get_fd(), *_cgi_event_context);
 	return Status::OK();
+}
+
+void IOClientHandler::destroy_cgi_event_context() {
+	if (_cgi_event_context == NULL) {
+		return;
+	}
+	IOCGIContext* io_cgi_context = static_cast<IOCGIContext*>(_cgi_event_context->context);
+	_server_event.remove_event(io_cgi_context->cgi_fd.get_fd());
+	delete &io_cgi_context->cgi_fd;
+	delete io_cgi_context;
+	delete _cgi_event_context->handler;
+	delete _cgi_event_context;
+	_cgi_event_context = NULL;
+
+	if (_client_context.cgi_pid >= 0) {
+		int status;
+		waitpid(_client_context.cgi_pid, &status, 0);
+		if (WIFEXITED(status) | WIFSIGNALED(status)) {
+			_client_context.cgi_pid = -1;
+		}
+	}
 }

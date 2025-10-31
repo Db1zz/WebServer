@@ -40,25 +40,14 @@ Status IOCGIHandler::handle(void* data) {
 	std::string content;
 	content.append(buffer, rd_bytes);
 
-	if (_io_cgi_context.cgi_parser == NULL) {
-		_io_cgi_context.cgi_parser =
-			new CGIResponseParser(&_io_cgi_context.request, _server_logger);
-	}
-
-	status = _io_cgi_context.cgi_parser->parse(content);
+	status = _io_cgi_context.cgi_parser.parse(content);
 	if (!status) {
 		_server_logger->log_error("Server::cgi_fd_routine", "failed to parse CGI response");
 		return status;
 	}
 
 	if (status != DataIsNotReady) {
-		HTTPResponseSender response_sender(_cgi_fd.get_client_socket(), &_io_cgi_context.request,
-										   _server_config, _server_logger);
-		status = response_sender.send();
-		if (!status) {
-			return status;
-		}
-		_io_client_context.reset();
+		_io_cgi_context.is_finished = true;
 	}
 
 	return status;

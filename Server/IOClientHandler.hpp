@@ -23,6 +23,7 @@ class IOClientHandler : public IIOHandler {
 	Status handle_default_request(Status status);
 	Status handle_cgi_request(Status status);
 	Status create_cgi_process();
+	void destroy_cgi_event_context();
 
 	ClientSocket& _client_socket;
 	IOClientContext& _client_context;

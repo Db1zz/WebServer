@@ -18,7 +18,6 @@ class ServerRequestParser {
 
 	Status parse_header(const std::string& content, std::string& body_out);
 	Status parse_body(const std::string& content);
-	bool is_cgi_request() const;
 	bool is_header_parsed() const;
 	bool is_body_parsed() const;
 	bool is_finished() const;
@@ -33,7 +32,6 @@ class ServerRequestParser {
 	RequestHeaderParser _header_parser;
 	IRequestBodyParser* _body_parser;
 
-	bool _is_cgi;
 	bool _header_parsed;
 	bool _is_body_parsed;
 
