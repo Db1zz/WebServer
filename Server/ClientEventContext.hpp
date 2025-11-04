@@ -13,15 +13,15 @@ class ClientEventContext : public IEventContext {
 public:
 	ClientEventContext() : _io_handler(NULL), _io_context(NULL), _fd(NULL) {}
 	~ClientEventContext() {
-		delete _io_handler;
-		delete _io_context;
-		delete _fd;
+		// delete _io_handler;
+		// delete _io_context;
+		// delete _fd;
 	}
 
 	void take_data_ownership(IIOHandler* io_handler, IIOContext* io_context, FileDescriptor* fd) {
-		delete _io_handler;
-		delete _io_context;
-		delete _fd;
+		// delete _io_handler;
+		// delete _io_context;
+		// delete _fd;
 
 		_io_handler = io_handler;
 		_io_context = io_context;

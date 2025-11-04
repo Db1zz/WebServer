@@ -8,6 +8,8 @@
 #include "status.hpp"
 #include "timer.hpp"
 
+#include <iostream>
+
 class FileDescriptor {
    public:
 	enum Type { NoType, SocketFD, CGIFD };
@@ -20,6 +22,7 @@ class FileDescriptor {
 	virtual ~FileDescriptor() { close_fd(); }
 
 	void close_fd() {
+		std::cout << "two times here?\n";
 		if (_fd >= 0) {
 			close(_fd);
 			_fd = -1;

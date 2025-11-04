@@ -20,7 +20,7 @@ class ClientSocket : public Socket {
    private:
 	const t_config* _server_config;
 
-	FileDescriptor _server_fd;
+	int _server_fd;
 };
 
 #endif // SERVER_CLIENT_SOCKET_HPP_

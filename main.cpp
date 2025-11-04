@@ -7,6 +7,8 @@
 #include "colors.hpp"
 #include "fs.hpp"
 
+#include "ClientSocket.hpp"
+
 int main(int argc, char** argv) {
 	std::string fileName;
 
@@ -41,5 +43,6 @@ int main(int argc, char** argv) {
 					  << std::endl;
 			return 1;
 		}
+		
 	return 0;
 }

@@ -28,9 +28,6 @@ Socket::Socket(Socket& other) : FileDescriptor(FileDescriptor::SocketFD, -1) {
 }
 
 Socket::~Socket() {
-	if (is_connected()) {
-		close_socket();
-	}
 }
 
 Socket& Socket::operator=(Socket& other) {
