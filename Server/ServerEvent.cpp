@@ -38,8 +38,6 @@ Status ServerEvent::register_event(uint32_t events, int event_fd, IEventContext*
         return Status(strerror(errno));
     }
     _events_contexts.insert(std::make_pair(event_fd, event_context));
-    // std::cout << "events_contexts.size() is " << _events_contexts.size() << std::endl;
-    // std::cout << "value " << event_fd << " is added to the events_context" << std::endl;
     ++_events_size;
     return Status::OK();
 }
@@ -57,14 +55,9 @@ Status ServerEvent::unregister_event(int event_fd) {
 
     std::map<int, IEventContext*>::iterator it = _events_contexts.find(event_fd);
     if (it != _events_contexts.end()) {
-        close(event_fd);
-        delete it->second->get_io_handler();
-        delete it->second->get_io_context();
-        delete static_cast<ClientSocket*>(it->second->get_fd());
+        delete it->second;
         _events_contexts.erase(it);
     }
-    // std::cout << "events_contexts.size() is " << _events_contexts.size() << std::endl;
-    // std::cout << "value " << event_fd << " is removed from the events_context" << std::endl;
     --_events_size;
 
     return Status::OK();
