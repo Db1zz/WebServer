@@ -19,7 +19,6 @@ Status IOServerHandler::handle(void* data) {
 	if (!status && _server_logger != NULL) {
 		_server_logger->log_error("IOServerHandler::handle", "failed to accept new connection: '" + status.msg() + "'");
 	}
-
 	return status;
 }
 

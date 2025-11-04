@@ -56,7 +56,7 @@ Status ServerEvent::unregister_event(int event_fd) {
     std::map<int, IEventContext*>::iterator it = _events_contexts.find(event_fd);
     if (it != _events_contexts.end()) {
         delete it->second;
-        _events_contexts.erase(event_fd);
+        _events_contexts.erase(it);
     }
 
     return Status::OK();

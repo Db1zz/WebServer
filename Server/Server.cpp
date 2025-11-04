@@ -77,9 +77,9 @@ Status Server::handle_epoll_event(int amount_of_events) {
 		epoll_event& event = *_event[i];
 		IEventContext& event_context = *static_cast<IEventContext*>(event.data.ptr);
 		if (event.events & (EPOLLERR | EPOLLRDHUP) || event_context.get_io_handler()->is_closing() == true) {
+			std::cout << event_context.get_fd()->get_fd() << " closed connection\n";
 			_event.unregister_event(event_context.get_fd()->get_fd());
-			std::cout << "closed connection\n";
-		} else if (event.events & (EPOLLIN | EPOLLOUT)) {
+	 	} else if (event.events & (EPOLLIN | EPOLLOUT)) {
 			status = event_context.get_io_handler()->handle(&event);
 			if (!status) {
 				_server_logger.log_error("Server::handle_event",
