@@ -22,3 +22,7 @@ Status IOServerHandler::handle(void* data) {
 
 	return status;
 }
+
+bool IOServerHandler::is_closing() const {
+	return false;
+}

@@ -16,6 +16,8 @@ class IOCGIHandler : public IIOHandler {
 	IOCGIHandler(CGIFileDescriptor& cgi_fd, IOCGIContext& io_cgi_context, IOClientContext& io_client_context, const t_config* server_config, ServerLogger* server_logger);
 	~IOCGIHandler();
 	Status handle(void* data);
+	bool is_closing() const;
+	void set_is_closing();
 
    private:
 	CGIFileDescriptor& _cgi_fd;
@@ -23,6 +25,7 @@ class IOCGIHandler : public IIOHandler {
 	IOClientContext& _io_client_context;
 	const t_config* _server_config;
 	ServerLogger* _server_logger;
+	bool _is_closing;
 };
 
 #endif // SERVER_IO_CGI_HANDLER_HPP_

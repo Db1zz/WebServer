@@ -25,7 +25,8 @@
 #include "ServerUtils.hpp"
 #include "Socket.hpp"
 #include "status.hpp"
-#include "IOEpollContext.hpp"
+#include "ServerEventContext.hpp"
+
 
 namespace {
 volatile std::sig_atomic_t g_signal_status = 0;
@@ -40,7 +41,6 @@ Server::Server(const std::vector<t_config>& configs, ServerLogger& server_logger
 }
 
 Server::~Server() {
-	destroy_all_server_socket_managers();
 }
 
 Status Server::launch() {
@@ -75,13 +75,17 @@ Status Server::handle_epoll_event(int amount_of_events) {
 
 	for (int i = 0; i < amount_of_events; ++i) {
 		epoll_event& event = *_event[i];
-		EventContext& event_context = *static_cast<EventContext*>(event.data.ptr);
-
-		status = event_context.handler->handle(&event);
-		if (!status) {
-			_server_logger.log_error("Server::handle_event",
-									 "failed to handle an event: '" + status.msg() + "'");
-			return status;
+		IEventContext& event_context = *static_cast<IEventContext*>(event.data.ptr);
+		if (event.events & (EPOLLERR | EPOLLRDHUP) || event_context.get_io_handler()->is_closing() == true) {
+			_event.unregister_event(event_context.get_fd()->get_fd());
+			std::cout << "closed connection\n";
+		} else if (event.events & (EPOLLIN | EPOLLOUT)) {
+			status = event_context.get_io_handler()->handle(&event);
+			if (!status) {
+				_server_logger.log_error("Server::handle_event",
+										 "failed to handle an event: '" + status.msg() + "'");
+				return status;
+			}
 		}
 	}
 	return Status::OK();
@@ -98,15 +102,14 @@ Status Server::create_server_socket_manager(const std::string& host, int port,
 		return status;
 	}
 
-	IOServerContext* io_server_context = new IOServerContext; // TODO
+	IOServerContext* io_server_context = new IOServerContext;
 	IOServerHandler* io_server_handler = new IOServerHandler(*server_socket_manager->get_server_socket(), *io_server_context, &_server_logger);
-	EventContext* event_context = new EventContext(io_server_context, io_server_handler);
+	ServerEventContext* server_event_context = new ServerEventContext();
+	server_event_context->take_data_ownership(io_server_handler, io_server_context, server_socket_manager->get_server_socket());
 
 	io_server_context->server_socket_manager = server_socket_manager;
 
-	_events_contexts.insert(std::make_pair(
-		io_server_context->server_socket_manager->get_server_socket()->get_fd(), event_context));
-	status = _event.add_event(SERVER_EVENT_SERVER_EVENTS, server_socket_manager->get_server_socket()->get_fd(), *event_context);
+	status = _event.register_event(SERVER_EVENT_SERVER_EVENTS, server_socket_manager->get_server_socket()->get_fd(), server_event_context);
 	return status;
 }
 
@@ -140,20 +143,20 @@ Status Server::create_sockets_from_configs(const std::vector<t_config>& configs)
 	return Status::OK();
 }
 
-void Server::destroy_all_server_socket_managers() {
-	std::map<int, EventContext*>::iterator it;
+// void Server::destroy_all_server_socket_managers() {
+// 	std::map<int, EventContext*>::iterator it;
 
-	it = _events_contexts.begin();
-	while (it != _events_contexts.end()) {
-		IOServerContext* server_context = static_cast<IOServerContext*>(it->second->context);
-		_event.remove_event(server_context->server_socket_manager->get_server_socket()->get_fd());
-		delete server_context->server_socket_manager;
-		delete server_context;
-		delete it->second->handler;
-		++it;
-	}
-	_events_contexts.clear();
-}
+// 	it = _events_contexts.begin();
+// 	while (it != _events_contexts.end()) {
+// 		IOServerContext* server_context = static_cast<IOServerContext*>(it->second->context);
+// 		_event.remove_event(server_context->server_socket_manager->get_server_socket()->get_fd());
+// 		delete server_context->server_socket_manager;
+// 		delete server_context;
+// 		delete it->second->handler;
+// 		++it;
+// 	}
+// 	_events_contexts.clear();
+// }
 
 void Server::print_debug_addr(const std::string& address, int port) {
 	std::cout << GREEN400 << "Listening at: " << address << ":" << port << RESET << std::endl;

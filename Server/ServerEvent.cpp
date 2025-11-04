@@ -7,6 +7,7 @@
 
 #include "Socket.hpp"
 #include "IIOContext.hpp"
+#include "IEventContext.hpp"
 
 ServerEvent::ServerEvent()
     : _events_arr(NULL), _events_size(0), _events_capacity(5)
@@ -22,10 +23,10 @@ ServerEvent::~ServerEvent() {
     }
 }
 
-Status ServerEvent::add_event(uint32_t events, int event_fd, EventContext& context) {
+Status ServerEvent::register_event(uint32_t events, int event_fd, IEventContext* event_context) {
     epoll_event new_event;
 
-    new_event.data.ptr = &context;
+    new_event.data.ptr = event_context;
     new_event.events = events;
 
     if (_events_size == _events_capacity) {
@@ -35,11 +36,12 @@ Status ServerEvent::add_event(uint32_t events, int event_fd, EventContext& conte
     if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, event_fd, &new_event) < 0) {
         return Status(strerror(errno));
     }
+    _events_contexts.insert(std::make_pair(event_fd, event_context));
     ++_events_size;
     return Status::OK();
 }
 
-Status ServerEvent::remove_event(int event_fd) {
+Status ServerEvent::unregister_event(int event_fd) {
     /*
         EPOLL_CTL_DEL
             Remove (deregister) the target file descriptor fd from the
@@ -50,6 +52,13 @@ Status ServerEvent::remove_event(int event_fd) {
         return Status(strerror(errno));
     }
     --_events_size;
+
+    std::map<int, IEventContext*>::iterator it = _events_contexts.find(event_fd);
+    if (it != _events_contexts.end()) {
+        delete it->second;
+        _events_contexts.erase(event_fd);
+    }
+
     return Status::OK();
 }
 
@@ -84,6 +93,16 @@ size_t ServerEvent::size() {
 
 size_t ServerEvent::capacity() {
 	return _events_capacity;
+}
+
+IEventContext* ServerEvent::get_event_context(int event_fd) {
+    std::map<int, IEventContext*>::iterator it = _events_contexts.find(event_fd);
+
+    if (it == _events_contexts.end()) {
+        return NULL;
+    }
+
+    return it->second;
 }
 
 Status ServerEvent::init() {

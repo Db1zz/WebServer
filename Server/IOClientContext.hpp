@@ -3,8 +3,6 @@
 
 #include <string>
 
-#include "IIOContext.hpp"
-#include "IOEpollContext.hpp"
 #include "RequestParser/ServerRequestParser.hpp"
 #include "ServerRequest.hpp"
 
@@ -12,8 +10,9 @@ class ServerLogger;
 class ClientSocket;
 class ServerSocket;
 class ServerSocketManager;
+class IIOContext;
 
-class IOClientContext : public IOEpollContext {
+class IOClientContext : public IIOContext {
    public:
 	ClientSocket& client_socket;
 	ServerSocket& server_socket;
@@ -23,12 +22,14 @@ class IOClientContext : public IOEpollContext {
 	t_request request;
 	std::string buffer;
 	pid_t cgi_pid;
-	ServerRequestParser parser; // make an interface class bro)
+	int cgi_fd;
+	ServerRequestParser parser;
 
 	void reset() {
 		request = t_request();
 		buffer.clear();
 		cgi_pid = -1;
+		cgi_fd = -1;
 		parser = ServerRequestParser(&request, server_config, server_logger);
 	}
 
@@ -41,6 +42,7 @@ class IOClientContext : public IOEpollContext {
 		  server_config(server_config),
 		  server_logger(server_logger),
 		  cgi_pid(-1),
+		  cgi_fd(-1),
 		  parser(&request, server_config, server_logger) {}
 };
 

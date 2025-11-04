@@ -16,6 +16,8 @@
 #include "ServerSocket.hpp"
 #include "ServerSocketManager.hpp"
 #include "ServerUtils.hpp"
+#include "CGIEventContext.hpp"
+
 
 IOClientHandler::IOClientHandler(ClientSocket& client_socket, IOClientContext& client_context,
 								 ServerEvent& server_event, ServerLogger* server_logger)
@@ -23,11 +25,16 @@ IOClientHandler::IOClientHandler(ClientSocket& client_socket, IOClientContext& c
 	  _client_context(client_context),
 	  _server_event(server_event),
 	  _server_logger(server_logger),
-	  _cgi_event_context(NULL) {
+	  _cgi_fd(-1),
+	  _is_closing(false) {
 }
 
 IOClientHandler::~IOClientHandler() {
-	destroy_cgi_event_context();
+	CGIEventContext* cgi_event_context = static_cast<CGIEventContext*>(_server_event.get_event_context(_cgi_fd));
+	if (cgi_event_context != NULL) {
+		IOCGIHandler* io_cgi_handler = static_cast<IOCGIHandler*>(cgi_event_context->get_io_handler());
+		io_cgi_handler->set_is_closing();
+	}
 }
 
 Status IOClientHandler::read_and_parse() {
@@ -76,10 +83,6 @@ Status IOClientHandler::handle(void* data) {
 	Status status;
 	epoll_event& event = *static_cast<epoll_event*>(data);
 
-	if (event.events & (EPOLLERR | EPOLLRDHUP)) {
-		close_connection();
-		return Status::OK();
-	}
 	if (event.events & EPOLLIN) {
 		status = read_and_parse();
 		if (!status) {
@@ -99,6 +102,10 @@ Status IOClientHandler::handle(void* data) {
 	return Status::OK();
 }
 
+bool IOClientHandler::is_closing() const {
+	return _is_closing;
+}
+
 Status IOClientHandler::handle_cgi_request(Status status) {
 	if (_client_context.cgi_pid < 0 && _client_context.request.is_request_ready()) {
 		status = create_cgi_process();
@@ -108,8 +115,9 @@ Status IOClientHandler::handle_cgi_request(Status status) {
 										  "TODO: Status error code!!!" + "'");
 			return status;
 		}
-	} else if (_cgi_event_context != NULL) {
-		IOCGIContext* io_cgi_context = static_cast<IOCGIContext*>(_cgi_event_context->context);
+	} else if (_cgi_fd >= 0) {
+		IEventContext* event_context = _server_event.get_event_context(_cgi_fd);
+		IOCGIContext* io_cgi_context = static_cast<IOCGIContext*>(event_context->get_io_context());
 		if (io_cgi_context->is_finished == false) {
 			return Status::OK();
 		}
@@ -124,8 +132,6 @@ Status IOClientHandler::handle_cgi_request(Status status) {
 									   _client_context.request.uri_path,
 									   _client_context.server_socket.get_port());
 		}
-		std::cout << "reset\n";
-		destroy_cgi_event_context();
 		_client_context.reset();
 	}
 	return Status::OK();
@@ -150,15 +156,6 @@ Status IOClientHandler::handle_default_request(Status status) {
 			_client_context.reset();
 		}
 	}
-	return Status::OK();
-}
-
-Status IOClientHandler::close_connection() {
-	std::string host = _client_socket.get_host();
-
-	_client_context.server_socket_manager.close_connection_with_client(_client_socket.get_fd());
-	std::cout << "Client " << host << " closed connection with the server" << std::endl;
-
 	return Status::OK();
 }
 
@@ -245,30 +242,13 @@ Status IOClientHandler::create_cgi_process() {
 		new IOCGIContext(*cgi_fd, _client_context.server_config, _server_logger);
 	IOCGIHandler* cgi_handler = new IOCGIHandler(*cgi_fd, *cgi_context, _client_context,
 												 _client_context.server_config, _server_logger);
-	_cgi_event_context = new EventContext(cgi_context, cgi_handler);
+	CGIEventContext* cgi_event_context = new CGIEventContext();
+	cgi_event_context->take_data_ownership(cgi_handler, cgi_context, cgi_fd);
 
+	_server_event.register_event(SERVER_EVENT_CLIENT_EVENTS, cgi_fd->get_fd(), cgi_event_context);
+	
+	_client_context.cgi_fd = cgi_fd->get_fd();
 	_client_context.cgi_pid = cgi_process;
-	_server_event.add_event(SERVER_EVENT_CLIENT_EVENTS, cgi_fd->get_fd(), *_cgi_event_context);
+	_cgi_fd = cgi_fd->get_fd();
 	return Status::OK();
-}
-
-void IOClientHandler::destroy_cgi_event_context() {
-	if (_cgi_event_context == NULL) {
-		return;
-	}
-	IOCGIContext* io_cgi_context = static_cast<IOCGIContext*>(_cgi_event_context->context);
-	_server_event.remove_event(io_cgi_context->cgi_fd.get_fd());
-	delete &io_cgi_context->cgi_fd;
-	delete io_cgi_context;
-	delete _cgi_event_context->handler;
-	delete _cgi_event_context;
-	_cgi_event_context = NULL;
-
-	if (_client_context.cgi_pid >= 0) {
-		int status;
-		waitpid(_client_context.cgi_pid, &status, 0);
-		if (WIFEXITED(status) | WIFSIGNALED(status)) {
-			_client_context.cgi_pid = -1;
-		}
-	}
 }

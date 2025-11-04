@@ -14,6 +14,7 @@ class IOServerHandler : public IIOHandler {
 					ServerLogger* server_logger);
 
 	Status handle(void* data);
+	bool is_closing() const;
 
    private:
 	ServerSocket& _server_socket;

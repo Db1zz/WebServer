@@ -1,3 +1,0 @@
-aboba was created at 2025-10-30 23:42:01
-this file was created by createaboba.py CGI script
-this script produces no output to the browser!

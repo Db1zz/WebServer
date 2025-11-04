@@ -52,7 +52,6 @@ class Server {
 	void destroy_all_server_socket_managers();
 
 	std::vector<t_config> _configs;
-	std::map<int, EventContext*> _events_contexts;
 	ServerEvent _event;
 	ServerLogger& _server_logger;
 };

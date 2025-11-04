@@ -22,15 +22,11 @@ class ServerSocketManager {
 	Status stop();
 	Status accept_connection();
 	Status close_connection_with_client(int client_socket_fd);
-	Status get_client_event_context(int client_socket_fd, EventContext** out);
 	ServerSocket* get_server_socket();
 	const t_config& get_server_config() const;
-	const std::map<int, EventContext*>& get_connected_clients() const;
 
    private:
-	void destroy_all_clients();
 
-	std::map<int, EventContext*> _clients_contexts; // pair<int fd, ClientSocket*>
 	ServerSocket _server_socket;
 	ServerEvent* _event_system;
 	t_config _server_config;

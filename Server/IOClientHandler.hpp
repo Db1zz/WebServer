@@ -16,20 +16,21 @@ class IOClientHandler : public IIOHandler {
 					ServerEvent& server_event, ServerLogger* server_logger);
 	~IOClientHandler();
 	Status handle(void* data);
+	bool is_closing() const;
 
    private:
-	Status close_connection();
 	Status read_and_parse();
 	Status handle_default_request(Status status);
 	Status handle_cgi_request(Status status);
 	Status create_cgi_process();
-	void destroy_cgi_event_context();
 
 	ClientSocket& _client_socket;
 	IOClientContext& _client_context;
 	ServerEvent& _server_event;
 	ServerLogger* _server_logger;
-	EventContext* _cgi_event_context;
+
+	int _cgi_fd;
+	bool _is_closing;
 };
 
 #endif // SERVER_IO_CLIENT_HANDLER_HPP_

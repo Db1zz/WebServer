@@ -17,6 +17,7 @@ class FileDescriptor {
 	FileDescriptor(Type fd_type, int fd)
 		: _start(timer::now()), _idle_time(-1), _fd_type(fd_type), _fd(fd) {}
 	FileDescriptor() : _start(timer::now()), _idle_time(-1), _fd_type(NoType), _fd(-1) {}
+	virtual ~FileDescriptor() { close_fd(); }
 
 	void close_fd() {
 		if (_fd >= 0) {

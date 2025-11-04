@@ -5,6 +5,8 @@
 
 #include <sys/epoll.h>
 
+#include <map>
+
 #ifndef SERVER_EVENT_CLIENT_EVENTS
 #define SERVER_EVENT_CLIENT_EVENTS (EPOLLIN | EPOLLOUT | EPOLLERR | EPOLLHUP | EPOLLRDHUP)
 #endif // SERVER_EVENT_CLIENT_EVENTS
@@ -16,23 +18,17 @@
 #include "IIOContext.hpp"
 #include "IIOHandler.hpp"
 
-struct EventContext {
-	IIOContext* context;
-	IIOHandler* handler;
-
-	EventContext() {}
-	EventContext(IIOContext* context, IIOHandler* handler)
-		: context(context), handler(handler) {}
-};
+class IEventContext;
 
 class ServerEvent {
 public:
     ServerEvent();
     ~ServerEvent();
 
-    Status add_event(uint32_t events, int event_fd, EventContext& context);
+    // takes ownership over event_context
+    Status register_event(uint32_t events, int event_fd, IEventContext* event_context);
 
-    Status remove_event(int event_fd);
+    Status unregister_event(int event_fd);
     Status wait_event(int timeout, int *nfds);
     Status event_mod(uint32_t events, int event_fd);
 
@@ -40,12 +36,15 @@ public:
     size_t size();
     size_t capacity();
 
+    IEventContext* get_event_context(int event_fd);
+
 private:
     Status init();
     Status resize_events_arr(size_t new_size);
     void copy_events_arr(size_t src_size, const epoll_event *src, epoll_event *dst);
 
     epoll_event *_events_arr;
+    std::map<int, IEventContext*> _events_contexts;
     size_t _events_size;
     size_t _events_capacity;
     int _epoll_fd;

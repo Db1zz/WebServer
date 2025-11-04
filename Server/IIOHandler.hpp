@@ -6,6 +6,7 @@
 class IIOHandler {
    public:
 	virtual Status handle(void* data) = 0;
+	virtual bool is_closing() const = 0;
 	virtual ~IIOHandler() {};
 };
 
