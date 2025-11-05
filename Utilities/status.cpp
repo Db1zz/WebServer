@@ -93,11 +93,11 @@ void Status::set_status_line(int error_code, std::string error_msg) {
 	std::stringstream code_str;
 	code_str << error_code;
 
-	// _error_type = static_cast<ErrorCode>(error_code);
-	// _error_code = error_code;
-	// _error_msg = error_msg;
-
 	_status_line = " " + code_str.str() + " " + error_msg + "\r\n";
+}
+
+void Status::set_status_line_cgi(std::string msg) {
+	_status_line = " " + msg + "\r\n";
 }
 
 const std::string Status::status_line() {

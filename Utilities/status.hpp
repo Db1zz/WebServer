@@ -180,6 +180,7 @@ class Status {
 
 	// DEPRECATED
 	void set_status_line(int error_code, std::string error_msg);
+	void set_status_line_cgi(std::string msg);
 	const std::string status_line();
 
    private:

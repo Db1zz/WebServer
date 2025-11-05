@@ -49,7 +49,7 @@ Status ServerResponse::generate_response() {
 	const t_location* best_match = _file_utils->find_best_location_match();
 
 	if (_req_data->is_cgi == true) {
-		std::cout << CYAN500 << "entered cgi block" << RESET << std::endl;
+		// std::cout << CYAN500 << "entered cgi block" << RESET << std::endl;
 		return generate_cgi_response();
 	}
 
@@ -136,13 +136,15 @@ const std::string& ServerResponse::get_response() const {
 Status ServerResponse::generate_cgi_response() {
 	// check if all body receive, if not, receive status continue? var ton check if cgi received?
 	header("server", _server_data->server_name[0]);
-	header("content-type", "text/html");
+	header("content-type", _req_data->content_data.front().content_type);
 	_body = _req_data->content_data.front().data;
-	status = Status::OK();
 	header("content-length", get_body_size());
-	status.set_status_line(status.code(), status.msg());
+	if (_req_data->status_string.empty())
+		status.set_status_line(200, "OK");
+	else
+		status.set_status_line_cgi(_req_data->status_string);
 	_response = WS_PROTOCOL + status.status_line() + get_headers() + "\r\n" + get_body();
-	std::cout << GREEN300 << "cgi_response:" << _response << std::endl;
+	std::cout << GREEN300 << "cgi_response:" << _response << RESET << std::endl;
 	return status;
 }
 
