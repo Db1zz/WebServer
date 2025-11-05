@@ -41,6 +41,7 @@ Status IOCGIHandler::handle(void* data) {
 
 	std::string content;
 	int wpidstatus = 0;
+
 	waitpid(_io_cgi_context.cgi_pid, &wpidstatus, 0);
 	// if (timer::diff(_child_last_msg_time, timer::now()) > IO_HANDLER_TIMEOUT) {
 	// 	content.append(
@@ -49,7 +50,7 @@ Status IOCGIHandler::handle(void* data) {
 	// 		"\r\n"
 	// 		"An timeout occured during CGI exectuion\r\n");
 	// 	is_timeouted = true;
-	if (WIFSIGNALED(wpidstatus)) {
+	if ((WIFSIGNALED(wpidstatus) || WIFEXITED(wpidstatus)) && WEXITSTATUS(wpidstatus) != 0) {
 		std::cout << WTERMSIG(wpidstatus) << std::endl;
 		content.append(
 			"Status: 500 Internal Server Error\r\n"
