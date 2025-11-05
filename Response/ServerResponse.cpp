@@ -15,6 +15,7 @@ ServerResponse::ServerResponse(t_request* request, const t_config& server_data)
 	  _file_utils(NULL),
 	  _is_chunked(false),
 	  _needs_streaming(false),
+	  _response(""),
 	  _stream_location(NULL) {
 	_json_handler = new JsonResponse(_req_data, status);
 	_error_handler = new ErrorResponse(_req_data, status, _server_data);
