@@ -18,6 +18,7 @@ IOCGIHandler::IOCGIHandler(CGIFileDescriptor& cgi_fd, IOCGIContext& io_cgi_conte
 	  _io_client_context(io_client_context),
 	  _server_config(server_config),
 	  _server_logger(server_logger),
+	  _child_last_msg_time(timer::now()),
 	  _is_closing(false) {
 }
 
@@ -28,18 +29,28 @@ Status IOCGIHandler::handle(void* data) {
 	Status status;
 	size_t buffer_size = 1000000;
 	char buffer[buffer_size];
+	bool is_timeouted = false;
 
 	ssize_t rd_bytes = read(_cgi_fd.get_fd(), buffer, buffer_size);
 	if (rd_bytes < 0) {
 		_server_logger->log_error("Server::cgi_fd_routine", "failed to read data from a cgi pipe");
 		return Status::InternalServerError();
+	} else {
+		_child_last_msg_time = timer::now();
 	}
 
 	std::string content;
 	int wpidstatus = 0;
 	waitpid(_io_cgi_context.cgi_pid, &wpidstatus, 0);
-	if (WIFSIGNALED(status)) {
-		std::cout << WTERMSIG(status) << std::endl;
+	// if (timer::diff(_child_last_msg_time, timer::now()) > IO_HANDLER_TIMEOUT) {
+	// 	content.append(
+	// 		"Status: 504 Gateway Timeout\r\n"
+	// 		"Content-Type: text/plain\r\n"
+	// 		"\r\n"
+	// 		"An timeout occured during CGI exectuion\r\n");
+	// 	is_timeouted = true;
+	if (WIFSIGNALED(wpidstatus)) {
+		std::cout << WTERMSIG(wpidstatus) << std::endl;
 		content.append(
 			"Status: 500 Internal Server Error\r\n"
 			"Content-Type: text/plain\r\n"
@@ -58,6 +69,11 @@ Status IOCGIHandler::handle(void* data) {
 	if (status != DataIsNotReady) {
 		_io_cgi_context.is_finished = true;
 	}
+
+	// not sure about this btw
+	// if (is_timeouted == true) {
+	// 	return Status::GatewayTimeout();
+	// }
 
 	return status;
 }

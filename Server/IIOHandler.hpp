@@ -3,6 +3,8 @@
 
 #include "status.hpp"
 
+#define IO_HANDLER_TIMEOUT 5
+
 class IIOHandler {
    public:
 	virtual Status handle(void* data) = 0;

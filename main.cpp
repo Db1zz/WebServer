@@ -7,8 +7,6 @@
 #include "colors.hpp"
 #include "fs.hpp"
 
-#include "ClientSocket.hpp"
-
 int main(int argc, char** argv) {
 	std::string fileName;
 
@@ -24,7 +22,6 @@ int main(int argc, char** argv) {
 	try {
 		Parser parser(fileName.c_str());
 		configs = parser.getConfigStruct();
-
 	} catch (const std::exception& e) {
 		std::cerr << e.what() << '\n';
 		return 1;

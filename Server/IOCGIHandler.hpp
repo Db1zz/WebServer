@@ -6,6 +6,7 @@
 #include "ServerLogger.hpp"
 #include "ServerConfig.hpp"
 #include "status.hpp"
+#include "timer.hpp" 
 
 class CGIFileDescriptor;
 class IOCGIContext;
@@ -25,7 +26,9 @@ class IOCGIHandler : public IIOHandler {
 	IOClientContext& _io_client_context;
 	const t_config* _server_config;
 	ServerLogger* _server_logger;
+	std::time_t _child_last_msg_time;
 	bool _is_closing;
+
 };
 
 #endif // SERVER_IO_CGI_HANDLER_HPP_

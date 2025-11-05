@@ -235,6 +235,7 @@ Status IOClientHandler::create_cgi_process() {
 								  std::string("execve() failed with a error: ") + strerror(errno));
 		std::exit(127);
 	}
+
 	close(server_read_pipe[1]);
 
 	CGIFileDescriptor* cgi_fd = new CGIFileDescriptor(server_read_pipe[0], _client_socket);
@@ -246,7 +247,6 @@ Status IOClientHandler::create_cgi_process() {
 	cgi_event_context->take_data_ownership(cgi_handler, cgi_context, cgi_fd);
 
 	_server_event.register_event(SERVER_EVENT_CLIENT_EVENTS, cgi_fd->get_fd(), cgi_event_context);
-	
 	_client_context.cgi_fd = cgi_fd->get_fd();
 	_client_context.cgi_pid = cgi_process;
 	_cgi_fd = cgi_fd->get_fd();
