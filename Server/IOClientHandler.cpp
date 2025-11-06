@@ -3,7 +3,9 @@
 #include <sys/wait.h>
 
 #include <cstdlib>
+#include <fcntl.h>
 
+#include "CGIEventContext.hpp"
 #include "CGIFileDescriptor.hpp"
 #include "ClientSocket.hpp"
 #include "FileDescriptor.hpp"
@@ -16,8 +18,7 @@
 #include "ServerSocket.hpp"
 #include "ServerSocketManager.hpp"
 #include "ServerUtils.hpp"
-#include "CGIEventContext.hpp"
-
+#include "EpollTimeoutTimer.hpp"
 
 IOClientHandler::IOClientHandler(ClientSocket& client_socket, IOClientContext& client_context,
 								 ServerEvent& server_event, ServerLogger* server_logger)
@@ -25,14 +26,16 @@ IOClientHandler::IOClientHandler(ClientSocket& client_socket, IOClientContext& c
 	  _client_context(client_context),
 	  _server_event(server_event),
 	  _server_logger(server_logger),
-	  _cgi_fd(-1),
+	  _timeout_timer(NULL),
 	  _is_closing(false) {
 }
 
 IOClientHandler::~IOClientHandler() {
-	CGIEventContext* cgi_event_context = static_cast<CGIEventContext*>(_server_event.get_event_context(_cgi_fd));
+	CGIEventContext* cgi_event_context =
+		static_cast<CGIEventContext*>(_server_event.get_event_context(_client_context.cgi_fd));
 	if (cgi_event_context != NULL) {
-		IOCGIHandler* io_cgi_handler = static_cast<IOCGIHandler*>(cgi_event_context->get_io_handler());
+		IOCGIHandler* io_cgi_handler =
+			static_cast<IOCGIHandler*>(cgi_event_context->get_io_handler());
 		io_cgi_handler->set_is_closing();
 	}
 }
@@ -106,26 +109,22 @@ bool IOClientHandler::is_closing() const {
 	return _is_closing;
 }
 
+void IOClientHandler::set_timeout_timer(ITimeoutTimer* timeout_timer) {
+	_timeout_timer = timeout_timer;
+}
+
 Status IOClientHandler::handle_cgi_request(Status status) {
-	if (_client_context.cgi_pid < 0 && _client_context.request.is_request_ready()) {
-		status = create_cgi_process();
+	if (_client_context.cgi_started == false && _client_context.request.is_request_ready()) {
+	status = create_cgi_process();
 		if (!status) {
 			_server_logger->log_error("IOClientHandler::handle_cgi_request",
 									  std::string("create_cgi_process failed with error: '") +
 										  "TODO: Status error code!!!" + "'");
 			return status;
 		}
-	} else if (_cgi_fd >= 0) {
-		IEventContext* event_context = _server_event.get_event_context(_cgi_fd);
-		IOCGIContext* io_cgi_context = static_cast<IOCGIContext*>(event_context->get_io_context());
-		if (io_cgi_context->is_finished == false) {
+	} else if (_client_context.cgi_started == true) {
+		if (_client_context.is_cgi_request_finished == false) {
 			return Status::OK();
-		}
-		HTTPResponseSender response_sender(_client_socket, &io_cgi_context->request,
-										   _client_context.server_config, _server_logger);
-		status = response_sender.send();
-		if (!status) {
-			return status;
 		}
 		if (_server_logger != NULL) {
 			_server_logger->log_access(_client_socket.get_host(), _client_context.request.method,
@@ -133,6 +132,9 @@ Status IOClientHandler::handle_cgi_request(Status status) {
 									   _client_context.server_socket.get_port());
 		}
 		_client_context.reset();
+		if (_timeout_timer != NULL) {
+			_timeout_timer->reset();
+		}
 	}
 	return Status::OK();
 }
@@ -154,6 +156,9 @@ Status IOClientHandler::handle_default_request(Status status) {
 					_client_context.request.uri_path, _client_context.server_socket.get_port());
 			}
 			_client_context.reset();
+			if (_timeout_timer != NULL) {
+				_timeout_timer->reset();
+			}
 		}
 	}
 	return Status::OK();
@@ -239,16 +244,21 @@ Status IOClientHandler::create_cgi_process() {
 	close(server_read_pipe[1]);
 
 	CGIFileDescriptor* cgi_fd = new CGIFileDescriptor(server_read_pipe[0], _client_socket);
+	cgi_fd->set_nonblock();
 	IOCGIContext* cgi_context =
 		new IOCGIContext(*cgi_fd, _client_context.server_config, _server_logger);
 	IOCGIHandler* cgi_handler = new IOCGIHandler(*cgi_fd, *cgi_context, _client_context,
 												 _client_context.server_config, _server_logger);
-	CGIEventContext* cgi_event_context = new CGIEventContext();
-	cgi_event_context->take_data_ownership(cgi_handler, cgi_context, cgi_fd);
+	CGIEventContext* cgi_event_context = new CGIEventContext();	
+	EpollTimeoutTimer* cgi_timeout_timer = new EpollTimeoutTimer(&_server_event, cgi_event_context, 20);
+	cgi_event_context->take_data_ownership(cgi_handler, cgi_context, cgi_fd, cgi_timeout_timer);
+	cgi_handler->set_timeout_timer(cgi_timeout_timer);
+	cgi_timeout_timer->start();
 
 	_server_event.register_event(SERVER_EVENT_CLIENT_EVENTS, cgi_fd->get_fd(), cgi_event_context);
+
+	_client_context.cgi_started = true;
 	_client_context.cgi_fd = cgi_fd->get_fd();
-	_client_context.cgi_pid = cgi_process;
-	_cgi_fd = cgi_fd->get_fd();
+
 	return Status::OK();
 }

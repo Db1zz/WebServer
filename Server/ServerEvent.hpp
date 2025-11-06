@@ -37,6 +37,7 @@ public:
     size_t capacity();
 
     IEventContext* get_event_context(int event_fd);
+    const std::map<int, IEventContext*>& get_events_contexts();
 
 private:
     Status init();
