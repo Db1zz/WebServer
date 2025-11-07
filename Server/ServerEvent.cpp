@@ -55,7 +55,6 @@ Status ServerEvent::unregister_event(int event_fd) {
 
     std::map<int, IEventContext*>::iterator it = _events_contexts.find(event_fd);
     if (it != _events_contexts.end()) {
-        delete it->second;
         _events_contexts.erase(it);
     }
     --_events_size;
@@ -156,4 +155,10 @@ Status ServerEvent::event_mod(uint32_t events, int event_fd) {
     }
 
     return Status::OK();
+}
+
+
+
+const std::map<int, IEventContext*>& ServerEvent::get_events_contexts() {
+    return _events_contexts;
 }

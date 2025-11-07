@@ -16,19 +16,23 @@ class IOCGIHandler : public IIOHandler {
    public:
 	IOCGIHandler(CGIFileDescriptor& cgi_fd, IOCGIContext& io_cgi_context, IOClientContext& io_client_context, const t_config* server_config, ServerLogger* server_logger);
 	~IOCGIHandler();
+
 	Status handle(void* data);
 	bool is_closing() const;
 	void set_is_closing();
+	void set_timeout_timer(ITimeoutTimer* timeout_timer);
 
    private:
+	void handle_timeout(std::string& result, Status& status);
+	bool handle_default(std::string& result, Status& status);
+
 	CGIFileDescriptor& _cgi_fd;
 	IOCGIContext& _io_cgi_context;
 	IOClientContext& _io_client_context;
 	const t_config* _server_config;
 	ServerLogger* _server_logger;
-	std::time_t _child_last_msg_time;
+	ITimeoutTimer* _timeout_timer;
 	bool _is_closing;
-
 };
 
 #endif // SERVER_IO_CGI_HANDLER_HPP_

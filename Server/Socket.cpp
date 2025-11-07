@@ -16,13 +16,6 @@ Socket::Socket()
 	  _socklen(-1) {
 }
 
-Socket::Socket(std::time_t idle_time)
-	: FileDescriptor(FileDescriptor::SocketFD, -1, idle_time),
-	  _socket_type(STANDARD_SOCKET),
-	  _port(-1),
-	  _socklen(-1) {
-}
-
 Socket::Socket(Socket& other) : FileDescriptor(FileDescriptor::SocketFD, -1) {
 	*this = other;
 }

@@ -28,7 +28,6 @@ public:
 	};
 
 	Socket();
-	Socket(std::time_t idle_time);
 	Socket(Socket &other);
 	virtual ~Socket();
 	Socket &operator=(Socket &other);

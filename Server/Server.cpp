@@ -15,8 +15,10 @@
 #include "IIOHandler.hpp"
 #include "IOServerContext.hpp"
 #include "IOServerHandler.hpp"
+#include "ITimeoutTimer.hpp"
 #include "RequestParser/ServerRequestParser.hpp"
 #include "ServerConfig.hpp"
+#include "ServerEventContext.hpp"
 #include "ServerLogger.hpp"
 #include "ServerRequest.hpp"
 #include "ServerResponse.hpp"
@@ -25,8 +27,6 @@
 #include "ServerUtils.hpp"
 #include "Socket.hpp"
 #include "status.hpp"
-#include "ServerEventContext.hpp"
-
 
 namespace {
 volatile std::sig_atomic_t g_signal_status = 0;
@@ -72,20 +72,39 @@ Status Server::launch() {
 
 Status Server::handle_epoll_event(int amount_of_events) {
 	Status status;
+	std::map<int, IEventContext*> events_to_destroy;
 
 	for (int i = 0; i < amount_of_events; ++i) {
 		epoll_event& event = *_event[i];
 		IEventContext& event_context = *static_cast<IEventContext*>(event.data.ptr);
-		if (event.events & (EPOLLERR | EPOLLRDHUP) || event_context.get_io_handler()->is_closing() == true) {
-			std::cout << event_context.get_fd()->get_fd() << " closed connection\n";
-			_event.unregister_event(event_context.get_fd()->get_fd());
-	 	} else if (event.events & (EPOLLIN | EPOLLOUT | EPOLLHUP)) {
+		if (event.events & (EPOLLERR | EPOLLRDHUP) ||
+			(event_context.get_io_handler()->is_closing() == true &&
+				events_to_destroy.find(event_context.get_fd()->get_fd()) != events_to_destroy.end())) {
+			events_to_destroy.insert(std::make_pair(event_context.get_fd()->get_fd(), &event_context));
+		} else if (event.events & (EPOLLIN | EPOLLOUT | EPOLLHUP) && event_context.get_io_handler()->is_closing() == false) {
+			if (event_context.get_timer() != NULL &&
+				event_context.get_timer()->is_expired() == true) {
+				event_context.get_timer()->stop();
+				events_to_destroy.insert(std::make_pair(event_context.get_fd()->get_fd(), &event_context));
+			}
+
 			status = event_context.get_io_handler()->handle(&event);
 			if (!status) {
 				_server_logger.log_error("Server::handle_event",
 										 "failed to handle an event: '" + status.msg() + "'");
 				return status;
 			}
+		}
+	}
+
+	if (events_to_destroy.size() > 0) {
+		std::map<int, IEventContext*>::iterator it = events_to_destroy.begin();
+		while (it != events_to_destroy.end()) {
+			std::cout << it->second->get_fd()->get_fd() << " closed connection" << std::endl;
+			_event.unregister_event(it->second->get_fd()->get_fd());
+			delete it->second;
+
+			++it;
 		}
 	}
 	return Status::OK();
@@ -95,7 +114,8 @@ Status Server::create_server_socket_manager(const std::string& host, int port,
 											const t_config& server_config) {
 	Status status;
 
-	ServerSocketManager* server_socket_manager = new ServerSocketManager(host, port, &_event, server_config, &_server_logger);
+	ServerSocketManager* server_socket_manager =
+		new ServerSocketManager(host, port, &_event, server_config, &_server_logger);
 	status = server_socket_manager->start();
 	if (!status) {
 		delete server_socket_manager;
@@ -103,13 +123,17 @@ Status Server::create_server_socket_manager(const std::string& host, int port,
 	}
 
 	IOServerContext* io_server_context = new IOServerContext;
-	IOServerHandler* io_server_handler = new IOServerHandler(*server_socket_manager->get_server_socket(), *io_server_context, &_server_logger);
+	IOServerHandler* io_server_handler = new IOServerHandler(
+		*server_socket_manager->get_server_socket(), *io_server_context, &_server_logger);
 	ServerEventContext* server_event_context = new ServerEventContext();
-	server_event_context->take_data_ownership(io_server_handler, io_server_context, server_socket_manager->get_server_socket());
+	server_event_context->take_data_ownership(io_server_handler, io_server_context,
+											  server_socket_manager->get_server_socket(), NULL);
 
 	io_server_context->server_socket_manager = server_socket_manager;
 
-	status = _event.register_event(SERVER_EVENT_SERVER_EVENTS, server_socket_manager->get_server_socket()->get_fd(), server_event_context);
+	status = _event.register_event(SERVER_EVENT_SERVER_EVENTS,
+								   server_socket_manager->get_server_socket()->get_fd(),
+								   server_event_context);
 	return status;
 }
 

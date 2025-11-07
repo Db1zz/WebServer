@@ -3,6 +3,9 @@
 
 #include "IIOHandler.hpp"
 #include "status.hpp"
+#include "timer.hpp"
+
+#include <sys/timerfd.h>
 
 class ServerEvent;
 class ServerLogger;
@@ -17,6 +20,7 @@ class IOClientHandler : public IIOHandler {
 	~IOClientHandler();
 	Status handle(void* data);
 	bool is_closing() const;
+	void set_timeout_timer(ITimeoutTimer* timeout_timer);
 
    private:
 	Status read_and_parse();
@@ -28,8 +32,7 @@ class IOClientHandler : public IIOHandler {
 	IOClientContext& _client_context;
 	ServerEvent& _server_event;
 	ServerLogger* _server_logger;
-
-	int _cgi_fd;
+	ITimeoutTimer* _timeout_timer;
 	bool _is_closing;
 };
 

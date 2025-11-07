@@ -8,34 +8,40 @@
 class IIOHandler;
 class IIOContext;
 class FileDescriptor;
+class ITimeoutTimer;
 
 class ClientEventContext : public IEventContext {
 public:
-	ClientEventContext() : _io_handler(NULL), _io_context(NULL), _fd(NULL) {}
+	ClientEventContext() : _io_handler(NULL), _io_context(NULL), _fd(NULL), _timer(NULL) {}
 	~ClientEventContext() {
 		delete _io_handler;
 		delete _io_context;
 		delete _fd;
+		delete _timer;
 	}
 
-	void take_data_ownership(IIOHandler* io_handler, IIOContext* io_context, FileDescriptor* fd) {
+	void take_data_ownership(IIOHandler* io_handler, IIOContext* io_context, FileDescriptor* fd, ITimeoutTimer* timer) {
 		delete _io_handler;
 		delete _io_context;
 		delete _fd;
+		delete _timer;
 
 		_io_handler = io_handler;
 		_io_context = io_context;
 		_fd = fd;
+		_timer = timer;
 	}
 	
 	IIOHandler* get_io_handler() { return _io_handler; }
 	IIOContext* get_io_context() { return _io_context; }
 	FileDescriptor* get_fd() { return _fd; }
+	ITimeoutTimer* get_timer() { return _timer; }
 
 private:
 	IIOHandler* _io_handler;
 	IIOContext* _io_context;
     FileDescriptor* _fd;
+	ITimeoutTimer* _timer;
 };
 
 #endif // SERVER_CLIENT_EVENT_CONTEXT_HPP_

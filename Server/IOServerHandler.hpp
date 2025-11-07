@@ -15,11 +15,13 @@ class IOServerHandler : public IIOHandler {
 
 	Status handle(void* data);
 	bool is_closing() const;
+	void set_timeout_timer(ITimeoutTimer* timeout_timer);
 
    private:
 	ServerSocket& _server_socket;
 	IOServerContext& _server_context;
 	ServerLogger* _server_logger;
+	ITimeoutTimer* _timeout_timer;
 };
 
 #endif // SERVER_IO_SERVER_HANDLER_HPP_

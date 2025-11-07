@@ -21,16 +21,19 @@ class IOClientContext : public IIOContext {
 	ServerLogger* server_logger;
 	t_request request;
 	std::string buffer;
-	pid_t cgi_pid;
-	int cgi_fd;
 	ServerRequestParser parser;
+
+	bool is_cgi_request_finished;
+	bool cgi_started;
+	int cgi_fd;
 
 	void reset() {
 		request = t_request();
 		buffer.clear();
-		cgi_pid = -1;
-		cgi_fd = -1;
 		parser = ServerRequestParser(&request, server_config, server_logger);
+		is_cgi_request_finished = false;
+		cgi_started = false;
+		cgi_fd = -1;
 	}
 
 	IOClientContext(ClientSocket& client_socket, ServerSocket& server_socket,
@@ -41,9 +44,10 @@ class IOClientContext : public IIOContext {
 		  server_socket_manager(server_socket_manager),
 		  server_config(server_config),
 		  server_logger(server_logger),
-		  cgi_pid(-1),
-		  cgi_fd(-1),
-		  parser(&request, server_config, server_logger) {}
+		  parser(&request, server_config, server_logger),
+		  is_cgi_request_finished(false),
+		  cgi_started(false),
+		  cgi_fd(-1) {}
 };
 
 #endif // SERVER_IO_CLIENT_CONTEXT_HPP_
