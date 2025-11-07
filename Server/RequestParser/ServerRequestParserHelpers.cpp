@@ -249,8 +249,7 @@ Status utf8_char_decoder(const std::string& string, size_t char_pos, std::string
 			   leading_byte <= static_cast<u_int8_t>('\xF4')) {
 		continuation_byte_size = 3;
 	} else {
-		// TODO utf8_decoder error?
-		return Status::BadRequest();
+		continuation_byte_size = 0;
 	}
 
 	buffer += static_cast<char>(leading_byte);

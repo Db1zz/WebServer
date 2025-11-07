@@ -752,7 +752,6 @@ Status RequestHeaderParser::parse_request_line(const std::string& request_line,
 	}
 
 	request.method = method;
-	request.uri_path = uri_path;
 	request.protocol_version = protocol_version;
 
 	return Status::OK();
