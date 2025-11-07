@@ -26,8 +26,8 @@ class CGIResponseParser {
 
 	bool is_valid_status_code(const std::string& status_str);
 	void log_error(const std::string& failed_component, const std::string& message) const;
-	Status parse_header(const std::string& content, t_request& request);
-	Status parse_body(const std::string& content, t_request& request);
+	Status parse_header(t_request& request);
+	Status parse_body(t_request& request);
 
 	std::string _buffer;
 	bool _header_parsed;

@@ -24,7 +24,7 @@ Status CGIResponseParser::parse_media_type(const std::string& field_value, t_med
 				  std::string("media type is missing: '") + field_value.substr(pos) + "'");
 		return Status::BadRequest();
 	} else if (pos != field_value.size()) {
-		--pos; // do not eat separator.
+		--pos; // do not consume separator.
 	}
 
 	slash_pos = internal_server_request_parser::get_token_with_delim(type_with_subtype, slash_pos,
@@ -202,12 +202,11 @@ CGIResponseParser::FPtrFieldParser CGIResponseParser::get_field_parser_by_field_
 	return it->second;
 }
 
-Status CGIResponseParser::parse_header(const std::string& content, t_request& request) {
+Status CGIResponseParser::parse_header(t_request& request) {
 	// const size_t len = content.size();
 	const std::string header_end_key("\r\n\r\n");
 	Status status;
 
-	_buffer.append(content);
 	size_t header_end = _buffer.find(header_end_key);
 	if (header_end == std::string::npos) {
 		return Status::DataIsNotReady();
@@ -215,7 +214,7 @@ Status CGIResponseParser::parse_header(const std::string& content, t_request& re
 
 	size_t pos = 0;
 
-	// there are only two allowed headers: [Status, Content-Type]
+	// only two allowed headers are allowed: [Status, Content-Type]
 	std::vector<std::string> headers;
 	do {
 		std::string field_type;
@@ -238,7 +237,7 @@ Status CGIResponseParser::parse_header(const std::string& content, t_request& re
 			}
 		}
 	} while (pos < header_end);
-	pos += header_end_key.size();
+	// pos += header_end_key.size();
 	_header_parsed = true;
 	_buffer = _buffer.substr(pos);
 
@@ -254,7 +253,7 @@ void CGIResponseParser::log_error(const std::string& failed_component,
 	_logger->log_error(failed_component, message);
 }
 
-Status CGIResponseParser::parse_body(const std::string& content, t_request& request) {
+Status CGIResponseParser::parse_body(t_request& request) {
 	Status status;
 
 	if (request.content_data.empty() == true) {
@@ -266,23 +265,22 @@ Status CGIResponseParser::parse_body(const std::string& content, t_request& requ
 		_buffer.clear();
 	}
 
-	request.content_data.front().data.append(content);
-
 	return Status::OK();
 }
 
 Status CGIResponseParser::parse(const std::string& content) {
 	Status status;
 
+	_buffer.append(content);
 	if (_header_parsed == false) {
-		status = parse_header(content, *_request);
+		status = parse_header(*_request);
 		if (!status) {
 			log_error("RequestHeaderParser::parse", std::string("failed to parse header'"));
 			return Status::BadRequest(); //TODO
 		}
 	}	
 	if (_header_parsed == true) {
-		status = parse_body(content, *_request);
+		status = parse_body(*_request);
 		if (!status) {
 			log_error("RequestHeaderParser::parse", std::string("failed to parse body'"));
 			return Status::BadRequest(); // TODO
