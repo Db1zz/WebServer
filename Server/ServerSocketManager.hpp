@@ -21,7 +21,7 @@ class ServerSocketManager {
 	Status start();
 	Status stop();
 	Status accept_connection();
-	Status close_connection_with_client(int client_socket_fd);
+	// Status close_connection_with_client(int client_socket_fd);
 	ServerSocket* get_server_socket();
 	const t_config& get_server_config() const;
 

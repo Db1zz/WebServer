@@ -2,12 +2,15 @@
 #define SERVER_IO_SERVER_CONTEXTP_HPP_
 
 #include "IIOContext.hpp"
-
-class ServerSocketManager;
+#include "ServerSocketManager.hpp"
 
 class IOServerContext : public IIOContext {
-	public:
-	// IOServerContext() {}
+   public:
+	IOServerContext(ServerSocketManager* server_socket_manager)
+		: server_socket_manager(server_socket_manager) {}
+
+	~IOServerContext() { delete server_socket_manager; }
+
 	void reset() {};
 
 	ServerSocketManager* server_socket_manager;

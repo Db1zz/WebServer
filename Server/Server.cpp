@@ -53,6 +53,7 @@ Status Server::launch() {
 		return status;
 	}
 
+	signal(SIGINT, sigint_handler);
 	while (g_signal_status != SIGINT) {
 		status = _event.wait_event(0, &amount_of_events);
 		if (!status && status.error() != EINTR) {
@@ -122,14 +123,12 @@ Status Server::create_server_socket_manager(const std::string& host, int port,
 		return status;
 	}
 
-	IOServerContext* io_server_context = new IOServerContext;
+	IOServerContext* io_server_context = new IOServerContext(server_socket_manager);
 	IOServerHandler* io_server_handler = new IOServerHandler(
 		*server_socket_manager->get_server_socket(), *io_server_context, &_server_logger);
 	ServerEventContext* server_event_context = new ServerEventContext();
 	server_event_context->take_data_ownership(io_server_handler, io_server_context,
 											  server_socket_manager->get_server_socket(), NULL);
-
-	io_server_context->server_socket_manager = server_socket_manager;
 
 	status = _event.register_event(SERVER_EVENT_SERVER_EVENTS,
 								   server_socket_manager->get_server_socket()->get_fd(),
@@ -166,21 +165,6 @@ Status Server::create_sockets_from_configs(const std::vector<t_config>& configs)
 	}
 	return Status::OK();
 }
-
-// void Server::destroy_all_server_socket_managers() {
-// 	std::map<int, EventContext*>::iterator it;
-
-// 	it = _events_contexts.begin();
-// 	while (it != _events_contexts.end()) {
-// 		IOServerContext* server_context = static_cast<IOServerContext*>(it->second->context);
-// 		_event.remove_event(server_context->server_socket_manager->get_server_socket()->get_fd());
-// 		delete server_context->server_socket_manager;
-// 		delete server_context;
-// 		delete it->second->handler;
-// 		++it;
-// 	}
-// 	_events_contexts.clear();
-// }
 
 void Server::print_debug_addr(const std::string& address, int port) {
 	std::cout << GREEN400 << "Listening at: " << address << ":" << port << RESET << std::endl;
