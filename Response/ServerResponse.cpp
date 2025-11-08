@@ -33,6 +33,7 @@ ServerResponse& ServerResponse::header(const std::string& key, const std::string
 	return *this;
 }
 
+
 ServerResponse& ServerResponse::handle_get_method(const t_location& location) {
 	if (FileUtils::is_directory(_resolved_file_path)) {
 		handle_directory(location);
@@ -240,6 +241,14 @@ void ServerResponse::choose_method(const t_location& location) {
 	} else {
 		_error_handler->send_error_page(405, "Method Not Allowed", _body, _headers);
 		status = Status::MethodNotAllowed();
+	}
+	handle_session();
+}
+
+void ServerResponse::handle_session() {
+	if (_req_data->session_id.empty()) {
+		_req_data->session_id = HashGenerator::generate(32);
+		header("Set-Cookie", "session_id=" + _req_data->session_id + "; Path=/; HttpOnly");
 	}
 }
 

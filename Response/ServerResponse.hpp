@@ -16,6 +16,7 @@
 #include "../Utilities/colors.hpp"
 #include "../Utilities/fs.hpp"
 #include "../Utilities/status.hpp"
+#include "../Utilities/hash.hpp"
 #include "Chunk.hpp"
 #include "ClientSocket.hpp"
 #include "ErrorResponse.hpp"
@@ -77,6 +78,7 @@ class ServerResponse {
 	std::string _stream_file_path;
 	const t_location* _stream_location;
 
+	void handle_session();
 	void handle_directory(const t_location& location);
 	void handle_file_upload();
 	void handle_file_delete();

@@ -64,6 +64,7 @@ typedef struct s_accept_item {
 // } t_uri_path;
 
 typedef struct s_request {
+	std::string session_id; //parse from client if exists, if not set to ""
 	std::string method;
 	std::string protocol_version;
 	std::string user_agent;
