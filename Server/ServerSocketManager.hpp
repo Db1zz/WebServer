@@ -31,6 +31,7 @@ class ServerSocketManager {
 	ServerEvent* _event_system;
 	t_config _server_config;
 	ServerLogger* _server_logger;
+	//map with session ids
 };
 
 #endif // SERVER_SERVER_SOCKET_MANAGER_HPP_

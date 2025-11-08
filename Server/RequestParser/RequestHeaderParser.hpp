@@ -24,6 +24,7 @@ class RequestHeaderParser {
 	Status parse_complete_header(t_request& request);
 
 	// field parsers
+	Status parse_cookie(const std::string& field_value, t_request& request);
 	Status parse_host(const std::string& field_value, t_request& request);
 	Status parse_content_length(const std::string& field_value, t_request& request);
 	Status parse_user_agent(const std::string& field_value, t_request& request);

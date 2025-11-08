@@ -207,6 +207,7 @@ RequestHeaderParser::FPtrFieldParser RequestHeaderParser::get_field_parser_by_fi
 		parsers["connection"] = &RequestHeaderParser::parse_connection;
 		parsers["content-type"] = &RequestHeaderParser::parse_content_type;
 		parsers["transfer-encoding"] = &RequestHeaderParser::parse_transfer_encoding;
+		parsers["cookie"] = &RequestHeaderParser::parse_cookie;
 	}
 
 	std::map<const std::string, FPtrFieldParser>::const_iterator it = parsers.find(field_type);
@@ -699,6 +700,11 @@ Status RequestHeaderParser::parse_complete_header(t_request& request) {
 	}
 
 	return status;
+}
+
+Status RequestHeaderParser::parse_cookie(const std::string& field_value, t_request& request) {
+	request.session_id = field_value;
+	return Status::OK();
 }
 
 // request-line   = method SP request-target SP HTTP-version CRLF
