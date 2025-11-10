@@ -4,6 +4,7 @@
 
 <head>
 	<link rel="stylesheet" href="styles.css">
+	<script src="login.js" defer></script>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>Login</title>
@@ -22,9 +23,9 @@
 		</div>
 	</div>
 
-	<div class="upload-container" style="max-width:520px; margin-top:40px;">
-		<h2 style="text-align:center; margin-top:0;">sign in</h2>
-		<form action="/login" method="post" class="login-form">
+	<div class="upload-container login-container" id="login-container">
+		<h2 class="login-title">sign in</h2>
+		<form id="loginForm" class="login-form">
 			<div class="form-row">
 				<label class="contact__label" for="username">username</label>
 				<input id="username" name="username" type="text" class="contact__input" required />
@@ -33,11 +34,14 @@
 				<label class="contact__label" for="password">password</label>
 				<input id="password" name="password" type="password" class="contact__input" required />
 			</div>
-			<div class="form-row" style="text-align:center;">
+			<div class="form-row text-center">
 				<button type="submit" class="main_button">login</button>
 			</div>
 		</form>
+		<div id="login-error" class="login-error"></div>
 	</div>
+
+	<div id="login-result"></div>
 
 </body>
 

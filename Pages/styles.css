@@ -409,6 +409,31 @@ button:hover,
 	}
 }
 
+.login-container {
+	max-width: 520px;
+	margin-top: 40px;
+}
+
+.login-title {
+	text-align: center;
+	margin-top: 0;
+}
+
+.text-center {
+	text-align: center;
+}
+
+.login-error {
+	color: #B54854;
+	text-align: center;
+	margin-top: 10px;
+	display: none;
+}
+
+#login-result {
+	display: none;
+}
+
 .welcome {
 	display: block;
 	overflow: hidden;
@@ -568,4 +593,36 @@ button:hover,
 	font-family: monospace;
 	white-space: pre-wrap;
 	min-height: 50px;
+}
+
+.login-success {
+	max-width: 520px;
+	margin: 40px auto;
+	padding: 30px;
+	background: #FAF7F3;
+	border-radius: 16px;
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+.logout-button {
+	max-width: 180px;
+	padding: 10px 16px;
+	font-size: 16px;
+	display: inline-block;
+}
+
+.login-username {
+	color: #B54854;
+	font-weight: 700;
+}
+
+.logout-countdown {
+	font-size: 18px;
+	color: #333;
+}
+
+@media screen and (max-width: 500px) {
+	.login-success {
+		padding: 20px;
+	}
 }
