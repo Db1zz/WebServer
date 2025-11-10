@@ -36,14 +36,14 @@ class Server {
    public:
 	Server(const std::vector<t_config>& configs, ServerLogger& server_logger);
 	~Server();
-	Status launch();
+	void launch();
 
    private:
-	Status handle_epoll_event(int amount_of_events);
-	Status create_server_socket_manager(const std::string& host, int port,
+	void handle_epoll_event(int amount_of_events);
+	void create_server_socket_manager(const std::string& host, int port,
 										const t_config& server_config);
-	Status create_sockets_from_config(const t_config& server_config);
-	Status create_sockets_from_configs(const std::vector<t_config>& configs);
+	void create_sockets_from_config(const t_config& server_config);
+	void create_sockets_from_configs(const std::vector<t_config>& configs);
 	void print_debug_addr(const std::string& address, int port);
 
 	std::vector<t_config> _configs;

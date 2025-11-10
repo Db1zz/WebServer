@@ -43,35 +43,28 @@ Server::Server(const std::vector<t_config>& configs, ServerLogger& server_logger
 Server::~Server() {
 }
 
-Status Server::launch() {
-	Status status;
+void Server::launch() {
 	int amount_of_events = 0;
 
-	status = create_sockets_from_configs(_configs);
-	if (!status) {
-		_server_logger.log_error("Server::launch()", status.msg());
-		return status;
-	}
-
-	while (g_signal_status != SIGINT) {
-		status = _event.wait_event(0, &amount_of_events);
-		if (!status && status.error() != EINTR) {
-			return Status("Server::launch() failed with a error: '" + status.msg() + "'");
-		}
-
-		if (amount_of_events > 0) {
-			status = handle_epoll_event(amount_of_events);
-			if (!status) {
-				return Status("Server::launch() failed with a error: '" + status.msg() + "'");
+	try {
+		create_sockets_from_configs(_configs);
+		while (g_signal_status != SIGINT) {
+			_event.wait_event(0, &amount_of_events);
+			if (amount_of_events > 0) {
+				handle_epoll_event(amount_of_events);
 			}
+
+			// if (!status && status.error() != EINTR) {
+			// 	return Status("Server::launch() failed with a error: '" + status.msg() + "'");
+			// }
 		}
+	} catch (const std::exception& e) {
+		_server_logger.log_error("Server::launch()", e.what());
 	}
 	std::cout << "[Server] shutdown..." << std::endl;
-	return Status::OK();
 }
 
-Status Server::handle_epoll_event(int amount_of_events) {
-	Status status;
+void Server::handle_epoll_event(int amount_of_events) {
 	std::map<int, IEventContext*> events_to_destroy;
 
 	for (int i = 0; i < amount_of_events; ++i) {
@@ -79,21 +72,24 @@ Status Server::handle_epoll_event(int amount_of_events) {
 		IEventContext& event_context = *static_cast<IEventContext*>(event.data.ptr);
 		if (event.events & EPOLLERR ||
 			(event_context.get_io_handler()->is_closing() == true &&
-				events_to_destroy.find(event_context.get_fd()->get_fd()) != events_to_destroy.end())) {
-			events_to_destroy.insert(std::make_pair(event_context.get_fd()->get_fd(), &event_context));
-		} else if (event.events & (EPOLLIN | EPOLLOUT | EPOLLHUP) && event_context.get_io_handler()->is_closing() == false) {
+			 events_to_destroy.find(event_context.get_fd()->get_fd()) != events_to_destroy.end())) {
+			events_to_destroy.insert(
+				std::make_pair(event_context.get_fd()->get_fd(), &event_context));
+		} else if (event.events & (EPOLLIN | EPOLLOUT | EPOLLHUP) &&
+				   event_context.get_io_handler()->is_closing() == false) {
 			if (event_context.get_timer() != NULL &&
 				event_context.get_timer()->is_expired() == true) {
 				event_context.get_timer()->stop();
-				events_to_destroy.insert(std::make_pair(event_context.get_fd()->get_fd(), &event_context));
+				events_to_destroy.insert(
+					std::make_pair(event_context.get_fd()->get_fd(), &event_context));
 			}
 
-			status = event_context.get_io_handler()->handle(&event);
-			if (!status) {
-				_server_logger.log_error("Server::handle_event",
-										 "failed to handle an event: '" + status.msg() + "'");
-				return status;
-			}
+			event_context.get_io_handler()->handle(&event);
+			// if (!status) {
+			// 	_server_logger.log_error("Server::handle_event",
+			// 							 "failed to handle an event: '" + status.msg() + "'");
+			// 	return status;
+			// }
 		}
 	}
 
@@ -107,19 +103,17 @@ Status Server::handle_epoll_event(int amount_of_events) {
 			++it;
 		}
 	}
-	return Status::OK();
 }
 
-Status Server::create_server_socket_manager(const std::string& host, int port,
-											const t_config& server_config) {
-	Status status;
-
+void Server::create_server_socket_manager(const std::string& host, int port,
+										  const t_config& server_config) {
 	ServerSocketManager* server_socket_manager =
 		new ServerSocketManager(host, port, &_event, server_config, &_server_logger);
-	status = server_socket_manager->start();
-	if (!status) {
+
+	try {
+		server_socket_manager->start();
+	} catch (const std::exception& e) {
 		delete server_socket_manager;
-		return status;
 	}
 
 	IOServerContext* io_server_context = new IOServerContext;
@@ -131,40 +125,28 @@ Status Server::create_server_socket_manager(const std::string& host, int port,
 
 	io_server_context->server_socket_manager = server_socket_manager;
 
-	status = _event.register_event(SERVER_EVENT_SERVER_EVENTS,
-								   server_socket_manager->get_server_socket()->get_fd(),
-								   server_event_context);
-	return status;
+	_event.register_event(SERVER_EVENT_SERVER_EVENTS,
+						  server_socket_manager->get_server_socket()->get_fd(),
+						  server_event_context);
 }
 
-Status Server::create_sockets_from_config(const t_config& server_config) {
+void Server::create_sockets_from_config(const t_config& server_config) {
 	const size_t amount_of_addresses = server_config.listen.size();
-	Status status;
 
 	for (size_t i = 0; i < amount_of_addresses; ++i) {
 		const std::string& host = server_config.listen[i].host;
 		int port = server_config.listen[i].port;
 
-		status = create_server_socket_manager(host, port, server_config);
-		if (!status) {
-			return status;
-		}
+		create_server_socket_manager(host, port, server_config);
 	}
-	return Status::OK();
 }
 
-Status Server::create_sockets_from_configs(const std::vector<t_config>& configs) {
-	Status status;
-
+void Server::create_sockets_from_configs(const std::vector<t_config>& configs) {
 	for (size_t i = 0; i < configs.size(); ++i) {
 		const t_config& config = configs[i];
 
-		status = create_sockets_from_config(config);
-		if (!status) {
-			return status;
-		}
+		create_sockets_from_config(config);
 	}
-	return Status::OK();
 }
 
 // void Server::destroy_all_server_socket_managers() {
