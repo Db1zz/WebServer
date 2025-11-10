@@ -138,7 +138,9 @@ Status ServerResponse::generate_cgi_response() {
 	// check if all body receive, if not, receive status continue? var ton check if cgi received?
 	header("server", _server_data->server_name[0]);
 	header("content-type", _req_data->content_data.front().content_type);
-	_body = _req_data->content_data.front().data;
+	if (_req_data->content_data.size() > 0) {
+		_body = _req_data->content_data.front().data;
+	}
 	header("content-length", get_body_size());
 	if (_req_data->status_string.empty())
 		status.set_status_line(200, "OK");

@@ -86,6 +86,10 @@ Status IOClientHandler::handle(void* data) {
 	Status status;
 	epoll_event& event = *static_cast<epoll_event*>(data);
 
+	if (event.events & EPOLLRDHUP) { // when the client closes the write side of pipe
+		set_is_closing();
+	}
+
 	if (event.events & EPOLLIN) {
 		status = read_and_parse();
 		if (!status) {
@@ -96,6 +100,7 @@ Status IOClientHandler::handle(void* data) {
 			return status;
 		}
 	}
+
 	if (event.events & EPOLLOUT) {
 		if (_client_context.request.is_cgi == true) {
 			return handle_cgi_request(status);
@@ -107,6 +112,10 @@ Status IOClientHandler::handle(void* data) {
 
 bool IOClientHandler::is_closing() const {
 	return _is_closing;
+}
+
+void IOClientHandler::set_is_closing() {
+	_is_closing = true;
 }
 
 void IOClientHandler::set_timeout_timer(ITimeoutTimer* timeout_timer) {

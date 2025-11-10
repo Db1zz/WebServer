@@ -51,12 +51,12 @@ Status ServerSocketManager::accept_connection() {
 	ClientEventContext* client_event_context = new ClientEventContext();
 	client_event_context->take_data_ownership(io_client_handler, io_client_context, client_socket, NULL);
 
-	std::cout << "Server accepted new connection with id: " << client_socket->get_fd() << std::endl;
 	status = _server_socket.accept_connection(*client_socket);
 	if (!status) {
 		delete client_socket;
 		return status;
 	}
+	std::cout << "Server accepted new connection with id: " << client_socket->get_fd() << std::endl;
 
 	if (client_socket->set_nonblock() == false) {
 		delete client_socket;

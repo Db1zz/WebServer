@@ -77,7 +77,7 @@ Status Server::handle_epoll_event(int amount_of_events) {
 	for (int i = 0; i < amount_of_events; ++i) {
 		epoll_event& event = *_event[i];
 		IEventContext& event_context = *static_cast<IEventContext*>(event.data.ptr);
-		if (event.events & (EPOLLERR | EPOLLRDHUP) ||
+		if (event.events & EPOLLERR ||
 			(event_context.get_io_handler()->is_closing() == true &&
 				events_to_destroy.find(event_context.get_fd()->get_fd()) != events_to_destroy.end())) {
 			events_to_destroy.insert(std::make_pair(event_context.get_fd()->get_fd(), &event_context));

@@ -20,6 +20,7 @@ class IOClientHandler : public IIOHandler {
 	~IOClientHandler();
 	Status handle(void* data);
 	bool is_closing() const;
+	void set_is_closing();
 	void set_timeout_timer(ITimeoutTimer* timeout_timer);
 
    private:
