@@ -1,17 +1,20 @@
 #include "HTTPResponseSender.hpp"
 
 #include "ServerResponse.hpp"
+#include "ServerSocketManager.hpp"
 
 HTTPResponseSender::HTTPResponseSender(ClientSocket& client_socket, t_request* request,
-									   const t_config* server_config, ServerLogger* server_logger)
-	: _client_socket(client_socket),
-	  _request(request),
-	  _server_config(server_config),
-	  _server_logger(server_logger) {
+																			 const t_config* server_config, ServerLogger* server_logger,
+																			 ServerSocketManager* server_socket_manager)
+		: _client_socket(client_socket),
+			_request(request),
+			_server_config(server_config),
+			_server_logger(server_logger),
+			_server_socket_manager(server_socket_manager) {
 }
 
 Status HTTPResponseSender::send() {
-	ServerResponse resp(_request, *_server_config);
+	ServerResponse resp(_request, *_server_config, _server_socket_manager != NULL ? &_server_socket_manager->get_session_store() : NULL);
 	resp.generate_response();
 
 	if (resp.status.code() == 100) {

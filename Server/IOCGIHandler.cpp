@@ -45,7 +45,8 @@ Status IOCGIHandler::handle(void* data) {
 
 	if (status != DataIsNotReady) {
 		_io_client_context.is_cgi_request_finished = true;
-		HTTPResponseSender response_sender(_io_client_context.client_socket, &_io_cgi_context.request, _server_config, _server_logger);
+	HTTPResponseSender response_sender(_io_client_context.client_socket, &_io_cgi_context.request, _server_config, _server_logger,
+					   &_io_client_context.server_socket_manager);
 		status = response_sender.send();
 		set_is_closing();
 		return status;

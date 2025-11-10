@@ -703,7 +703,25 @@ Status RequestHeaderParser::parse_complete_header(t_request& request) {
 }
 
 Status RequestHeaderParser::parse_cookie(const std::string& field_value, t_request& request) {
-	request.session_id = field_value;
+	std::string::size_type pos = field_value.find("session_id=");
+	if (pos == std::string::npos) {
+		return Status::OK();
+	}
+
+	pos += std::string("session_id=").size();
+	std::string::size_type end = field_value.find(';', pos);
+	std::string value;
+	if (end == std::string::npos) {
+		value = field_value.substr(pos);
+	} else {
+		value = field_value.substr(pos, end - pos);
+	}
+	size_t start = 0;
+	while (start < value.size() && isspace(static_cast<unsigned char>(value[start]))) ++start;
+	size_t finish = value.size();
+	while (finish > start && isspace(static_cast<unsigned char>(value[finish - 1]))) --finish;
+	request.session_id = value.substr(start, finish - start);
+
 	return Status::OK();
 }
 

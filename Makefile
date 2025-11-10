@@ -34,6 +34,7 @@ SRCS = \
 	Server/CGIResponseParser.cpp \
 	Server/ServerUtils.cpp \
 	Server/ServerSocket.cpp \
+	Server/SessionStore.cpp \
 	Server/ClientSocket.cpp \
 	Server/Socket.cpp \
 	Server/Server.cpp \

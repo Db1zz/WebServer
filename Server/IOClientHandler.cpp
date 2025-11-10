@@ -141,8 +141,9 @@ Status IOClientHandler::handle_cgi_request(Status status) {
 
 Status IOClientHandler::handle_default_request(Status status) {
 	if (status.code() != DataIsNotReady && _client_context.parser.is_header_parsed() == true) {
-		HTTPResponseSender response_sender(_client_socket, &_client_context.request,
-										   _client_context.server_config, _server_logger);
+	HTTPResponseSender response_sender(_client_socket, &_client_context.request,
+					   _client_context.server_config, _server_logger,
+					   &_client_context.server_socket_manager);
 		status = response_sender.send();
 		if (!status) {
 			return Status(

@@ -17,8 +17,9 @@ ServerSocketManager::ServerSocketManager(const std::string& server_socket_host,
 										 const t_config& server_config, ServerLogger* server_logger)
 	: _server_socket(server_socket_host, server_socket_port),
 	  _event_system(event_system),
-	  _server_config(server_config),
-	  _server_logger(server_logger) {
+	_server_config(server_config),
+	_server_logger(server_logger),
+	_session_store() {
 }
 
 ServerSocketManager::~ServerSocketManager() {
@@ -94,4 +95,8 @@ ServerSocket* ServerSocketManager::get_server_socket() {
 
 const t_config& ServerSocketManager::get_server_config() const {
 	return _server_config;
+}
+
+SessionStore& ServerSocketManager::get_session_store() {
+	return _session_store;
 }

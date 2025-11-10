@@ -23,6 +23,7 @@
 #include "FileUtils.hpp"
 #include "JsonResponse.hpp"
 #include "Server.hpp"
+#include "../Server/SessionStore.hpp"
 #include "ServerConfig.hpp"
 #include "ServerRequest.hpp"
 #include "ServerResponse.hpp"
@@ -37,7 +38,7 @@ class FileUtils;
 
 class ServerResponse {
    public:
-	ServerResponse(t_request* request, const t_config& server_data);
+	ServerResponse(t_request* request, const t_config& server_data, SessionStore* session_store = NULL);
 	~ServerResponse();
 
 	ServerResponse& header(const std::string& key, const std::string& value);
@@ -62,6 +63,7 @@ class ServerResponse {
    private:
 	const t_config* _server_data;
 	t_request* _req_data;
+	SessionStore* _session_store;
 
 	JsonResponse* _json_handler;
 	ErrorResponse* _error_handler;
@@ -84,6 +86,11 @@ class ServerResponse {
 	void handle_file_delete();
 	void set_binary_headers();
 	void choose_method(const t_location& location);
+
+	void handle_auth_login();
+	void handle_auth_session();
+	void handle_auth_logout();
+	std::string get_query_param(const std::string& key) const;
 };
 
 #endif

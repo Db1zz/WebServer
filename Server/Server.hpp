@@ -13,6 +13,7 @@
 #include "ServerEvent.hpp"
 #include "ServerRequest.hpp"
 #include "colors.hpp"
+#include "SessionStore.hpp"
 
 #define SERVER_DEFAULT_ADDR LOCALHOST_ADDR
 #define SERVER_DEFAULT_PORT "80"
@@ -49,6 +50,7 @@ class Server {
 	std::vector<t_config> _configs;
 	ServerEvent _event;
 	ServerLogger& _server_logger;
+	SessionStore _session_store;
 };
 
 #endif // SERVER_SERVER_HPP

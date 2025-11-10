@@ -6,6 +6,7 @@
 #include "ServerConfig.hpp"
 #include "ServerSocket.hpp"
 #include "ServerEvent.hpp"
+#include "SessionStore.hpp"
 
 class ServerLogger;
 class ClientSocket;
@@ -24,6 +25,7 @@ class ServerSocketManager {
 	// Status close_connection_with_client(int client_socket_fd);
 	ServerSocket* get_server_socket();
 	const t_config& get_server_config() const;
+	SessionStore& get_session_store();
 
    private:
 
@@ -31,7 +33,7 @@ class ServerSocketManager {
 	ServerEvent* _event_system;
 	t_config _server_config;
 	ServerLogger* _server_logger;
-	//map with session ids
+	SessionStore _session_store;
 };
 
 #endif // SERVER_SERVER_SOCKET_MANAGER_HPP_
