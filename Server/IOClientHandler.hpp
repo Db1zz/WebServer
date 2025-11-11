@@ -18,17 +18,19 @@ class IOClientHandler : public IIOHandler {
 	IOClientHandler(ClientSocket& client_socket, IOClientContext& client_context,
 					ServerEvent& server_event, ServerLogger* server_logger);
 	~IOClientHandler();
-	Status handle(void* data);
+	void handle(void* data);
 	bool is_closing() const;
 	void set_is_closing();
 	void set_timeout_timer(ITimeoutTimer* timeout_timer);
 
    private:
-	Status read_and_parse();
-	Status handle_default_request(Status status);
-	Status handle_cgi_request(Status status);
-	Status create_cgi_process();
+	void read_and_parse();
+	void handle_default_request();
+	void handle_cgi_request();
+	void create_cgi_process();
+	void log_error(const std::string &failed_component, const std::string &error);
 
+	Status _status;
 	ClientSocket& _client_socket;
 	IOClientContext& _client_context;
 	ServerEvent& _server_event;

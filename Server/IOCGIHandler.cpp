@@ -25,33 +25,37 @@ IOCGIHandler::IOCGIHandler(CGIFileDescriptor& cgi_fd, IOCGIContext& io_cgi_conte
 IOCGIHandler::~IOCGIHandler() {
 }
 
-Status IOCGIHandler::handle(void* data) {
-	Status status;
+void IOCGIHandler::handle(void* data) {
 	std::string content;
 
 	if (_timeout_timer != NULL && _timeout_timer->is_expired() == true) {
-		handle_timeout(content, status);
-	} else if (handle_default(content, status) == false) {
+		handle_timeout(content);
+	} else if (handle_default(content) == false) {
 		_io_client_context.is_cgi_request_finished = true;
-		return status;
+		return;
 	}
 
-	status = _io_cgi_context.cgi_parser.parse(content);
-	if (!status) {
+	_status = _io_cgi_context.cgi_parser.parse(content);
+	if (!_status) {
 		_io_client_context.is_cgi_request_finished = true;
 		_server_logger->log_error("Server::cgi_fd_routine", "failed to parse CGI response");
-		return status;
+		// Shall we close?
+		return;
 	}
 
-	if (status != DataIsNotReady) {
-		_io_client_context.is_cgi_request_finished = true;
-		HTTPResponseSender response_sender(_io_client_context.client_socket, &_io_cgi_context.request, _server_config, _server_logger);
-		status = response_sender.send();
-		set_is_closing();
-		return status;
+	if (_status != DataIsNotReady) {
+		try {
+			_io_client_context.is_cgi_request_finished = true;
+			HTTPResponseSender response_sender(_io_client_context.client_socket, &_io_cgi_context.request, _server_config, _server_logger);
+			response_sender.send();
+			set_is_closing();
+		} catch (const std::exception& e) {
+			if (_server_logger != NULL) {
+				_server_logger->log_error("IOCGIHandler::handle", "failed to send response: " + std::string(e.what()));
+			}
+			throw;
+		}
 	}
-
-	return status;
 }
 
 bool IOCGIHandler::is_closing() const {
@@ -62,17 +66,17 @@ void IOCGIHandler::set_is_closing() {
 	_is_closing = true;
 }
 
-void IOCGIHandler::handle_timeout(std::string& result, Status& status) {
+void IOCGIHandler::handle_timeout(std::string& result) {
 	result.append(
 		"Status: 504 Gateway Timeout\r\n"
 		"Content-Type: text/plain\r\n"
 		"\r\n"
 		"An timeout occured during CGI exectuion\r\n");
 	_io_client_context.is_cgi_request_finished = true;
-	status = Status::GatewayTimeout();
+	_status = Status::GatewayTimeout();
 }
 
-bool IOCGIHandler::handle_default(std::string& result, Status& status) {
+bool IOCGIHandler::handle_default(std::string& result) {
 	size_t buffer_size = 1000000;
 	char buffer[buffer_size];
 

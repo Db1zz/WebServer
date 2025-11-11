@@ -3,7 +3,6 @@
 
 #include <string>
 #include <netinet/in.h>
-#include <status.hpp>
 
 #include "FileDescriptor.hpp"
 
@@ -38,14 +37,14 @@ public:
 	int get_port() const;
 
 	void set_socket(int socket, const struct sockaddr *sockaddr, socklen_t socklen);
-	Status set_socket_option(SocketOption socket_option, SetMode mode);
+	void set_socket_option(SocketOption socket_option, SetMode mode);
 
-	Status is_connected() const;
+	bool is_connected() const;
 	void close_socket();
 	SocketType get_socket_type() const;
 
 private:
-	Status set_host_ipv4_address_from_sockaddr();
+	void set_host_ipv4_address_from_sockaddr();
 	void set_port_ipv4_from_sockaddr();
 
 protected:

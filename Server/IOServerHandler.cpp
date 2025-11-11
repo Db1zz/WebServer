@@ -13,15 +13,16 @@ IOServerHandler::IOServerHandler(ServerSocket& server_socket, IOServerContext& s
 	  _timeout_timer(NULL) {
 }
 
-Status IOServerHandler::handle(void* data) {
-	Status status;
-
-	status = _server_context.server_socket_manager->accept_connection();
-	if (!status && _server_logger != NULL) {
-		_server_logger->log_error("IOServerHandler::handle",
-								  "failed to accept new connection: '" + status.msg() + "'");
+void IOServerHandler::handle(void* data) {
+	try {
+		_server_context.server_socket_manager->accept_connection();
+	} catch (const std::exception& e) {
+		if (_server_logger != NULL) {
+			_server_logger->log_error("IOServerHandler::handle",
+									  "failed to accept new connection: '" + std::string(e.what()) + "'");
+		}
+		throw;
 	}
-	return status;
 }
 
 void IOServerHandler::set_timeout_timer(ITimeoutTimer* timeout_timer) {

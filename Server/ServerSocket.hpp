@@ -14,11 +14,11 @@ class ClientSocket;
 class ServerSocket : public Socket {
    public:
 	ServerSocket(const std::string& host, int port);
-	Status open_socket();
-	Status accept_connection(ClientSocket& empty_client_socket);
+	void open_socket();
+	void accept_connection(ClientSocket& empty_client_socket);
 
    private:
-	Status create_server_socket();
+	void create_server_socket();
 	// const int _max_connections = 1024;
 };
 

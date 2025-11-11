@@ -12,6 +12,7 @@
 #include <sstream>
 
 #include "ClientSocket.hpp"
+#include "Exceptions/SystemException.hpp"
 #include "IIOHandler.hpp"
 #include "IOServerContext.hpp"
 #include "IOServerHandler.hpp"
@@ -54,12 +55,13 @@ void Server::launch() {
 				handle_epoll_event(amount_of_events);
 			}
 
-			// if (!status && status.error() != EINTR) {
+			// if (!status && status.error() != EINTR) { // ?
 			// 	return Status("Server::launch() failed with a error: '" + status.msg() + "'");
 			// }
 		}
-	} catch (const std::exception& e) {
+	} catch (const SystemException& e) {
 		_server_logger.log_error("Server::launch()", e.what());
+		throw;
 	}
 	std::cout << "[Server] shutdown..." << std::endl;
 }
@@ -70,39 +72,24 @@ void Server::handle_epoll_event(int amount_of_events) {
 	for (int i = 0; i < amount_of_events; ++i) {
 		epoll_event& event = *_event[i];
 		IEventContext& event_context = *static_cast<IEventContext*>(event.data.ptr);
-		if (event.events & EPOLLERR ||
-			(event_context.get_io_handler()->is_closing() == true &&
-			 events_to_destroy.find(event_context.get_fd()->get_fd()) != events_to_destroy.end())) {
-			events_to_destroy.insert(
-				std::make_pair(event_context.get_fd()->get_fd(), &event_context));
-		} else if (event.events & (EPOLLIN | EPOLLOUT | EPOLLHUP) &&
-				   event_context.get_io_handler()->is_closing() == false) {
-			if (event_context.get_timer() != NULL &&
-				event_context.get_timer()->is_expired() == true) {
+		if (event.events & (EPOLLIN | EPOLLOUT | EPOLLHUP) &&
+			event_context.get_io_handler()->is_closing() == false) {
+			if (is_object_expired(event_context) == true) {
 				event_context.get_timer()->stop();
 				events_to_destroy.insert(
 					std::make_pair(event_context.get_fd()->get_fd(), &event_context));
 			}
 
 			event_context.get_io_handler()->handle(&event);
-			// if (!status) {
-			// 	_server_logger.log_error("Server::handle_event",
-			// 							 "failed to handle an event: '" + status.msg() + "'");
-			// 	return status;
-			// }
+		}
+
+		if (check_if_can_destroy_event(event.events, event_context, events_to_destroy) == true) {
+			events_to_destroy.insert(
+				std::make_pair(event_context.get_fd()->get_fd(), &event_context));
 		}
 	}
 
-	if (events_to_destroy.size() > 0) {
-		std::map<int, IEventContext*>::iterator it = events_to_destroy.begin();
-		while (it != events_to_destroy.end()) {
-			std::cout << it->second->get_fd()->get_fd() << " closed connection" << std::endl;
-			_event.unregister_event(it->second->get_fd()->get_fd());
-			delete it->second;
-
-			++it;
-		}
-	}
+	destroy_events(events_to_destroy);
 }
 
 void Server::create_server_socket_manager(const std::string& host, int port,
@@ -114,6 +101,7 @@ void Server::create_server_socket_manager(const std::string& host, int port,
 		server_socket_manager->start();
 	} catch (const std::exception& e) {
 		delete server_socket_manager;
+		throw;
 	}
 
 	IOServerContext* io_server_context = new IOServerContext;
@@ -149,21 +137,30 @@ void Server::create_sockets_from_configs(const std::vector<t_config>& configs) {
 	}
 }
 
-// void Server::destroy_all_server_socket_managers() {
-// 	std::map<int, EventContext*>::iterator it;
-
-// 	it = _events_contexts.begin();
-// 	while (it != _events_contexts.end()) {
-// 		IOServerContext* server_context = static_cast<IOServerContext*>(it->second->context);
-// 		_event.remove_event(server_context->server_socket_manager->get_server_socket()->get_fd());
-// 		delete server_context->server_socket_manager;
-// 		delete server_context;
-// 		delete it->second->handler;
-// 		++it;
-// 	}
-// 	_events_contexts.clear();
-// }
-
 void Server::print_debug_addr(const std::string& address, int port) {
 	std::cout << GREEN400 << "Listening at: " << address << ":" << port << RESET << std::endl;
+}
+
+bool Server::check_if_can_destroy_event(int events, IEventContext& event_context,
+										std::map<int, IEventContext*>& events_to_destroy) {
+	return events & EPOLLERR ||
+		   (event_context.get_io_handler()->is_closing() == true &&
+			events_to_destroy.find(event_context.get_fd()->get_fd()) != events_to_destroy.end());
+}
+
+bool Server::is_object_expired(IEventContext& event_context) {
+	return (event_context.get_timer() != NULL && event_context.get_timer()->is_expired() == true);
+}
+
+void Server::destroy_events(std::map<int, IEventContext*> events) {
+	if (events.size() > 0) {
+		std::map<int, IEventContext*>::iterator it = events.begin();
+		while (it != events.end()) {
+			std::cout << it->second->get_fd()->get_fd() << " closed connection" << std::endl;
+			_event.unregister_event(it->second->get_fd()->get_fd());
+			delete it->second;
+
+			++it;
+		}
+	}
 }

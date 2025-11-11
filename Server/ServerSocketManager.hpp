@@ -9,7 +9,6 @@
 
 class ServerLogger;
 class ClientSocket;
-class Status;
 
 class ServerSocketManager {
    public:
@@ -18,10 +17,9 @@ class ServerSocketManager {
 								 ServerLogger* server_logger);
 	~ServerSocketManager();
 
-	Status start();
-	Status stop();
-	Status accept_connection();
-	Status close_connection_with_client(int client_socket_fd);
+	void start();
+	void stop();
+	void accept_connection();
 	ServerSocket* get_server_socket();
 	const t_config& get_server_config() const;
 

@@ -5,7 +5,6 @@
 #include "Server/Server.hpp"
 #include "ServerLogger.hpp"
 #include "colors.hpp"
-#include "fs.hpp"
 
 int main(int argc, char** argv) {
 	std::string fileName;

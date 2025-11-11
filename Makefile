@@ -29,6 +29,7 @@ SRCS = \
 	Server/RequestParser/RequestMultipartBodyParser.cpp \
 	Server/RequestParser/RequestRawBodyParser.cpp \
 	Server/RequestParser/RequestHeaderParser.cpp \
+	Server/Exceptions/ExceptionsUtils.cpp \
 	Server/ServerSocketManager.cpp \
 	Server/CGIFileDescriptor.cpp \
 	Server/CGIResponseParser.cpp \

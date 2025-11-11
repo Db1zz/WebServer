@@ -2,20 +2,20 @@
 #define SERVER_FILE_DESCRIPTOR_HPP_
 
 #include <errno.h>
+#include <fcntl.h>
 #include <string.h>
 #include <unistd.h>
 
+#include <iostream>
+
+#include "Exceptions/SystemException.hpp"
 #include "status.hpp"
 #include "timer.hpp"
-
-#include <iostream>
-#include <fcntl.h>
 
 class FileDescriptor {
    public:
 	enum Type { NoType, SocketFD, CGIFD };
-	FileDescriptor(Type fd_type, int fd)
-		: _fd_type(fd_type), _fd(fd) {}
+	FileDescriptor(Type fd_type, int fd) : _fd_type(fd_type), _fd(fd) {}
 	FileDescriptor() : _fd_type(NoType), _fd(-1) {}
 	virtual ~FileDescriptor() { close_fd(); }
 
@@ -26,11 +26,14 @@ class FileDescriptor {
 		}
 	}
 
-	bool set_nonblock() {
+	void set_nonblock() {
 		if (_fd < 0) {
-			return false;
+			return;
 		}
-		return (fcntl(_fd, F_SETFL, O_NONBLOCK) >= 0);
+
+		if (fcntl(_fd, F_SETFL, O_NONBLOCK) < 0) {
+			throw SystemException(LOG_INFO(), strerror(errno));
+		}
 	}
 
 	void set_fd(int fd) {

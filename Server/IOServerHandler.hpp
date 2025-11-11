@@ -13,7 +13,7 @@ class IOServerHandler : public IIOHandler {
 	IOServerHandler(ServerSocket& server_socket, IOServerContext& server_context,
 					ServerLogger* server_logger);
 
-	Status handle(void* data);
+	void handle(void* data);
 	bool is_closing() const;
 	void set_timeout_timer(ITimeoutTimer* timeout_timer);
 

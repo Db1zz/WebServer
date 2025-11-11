@@ -74,7 +74,6 @@ Status ServerResponse::generate_response() {
 }
 
 void ServerResponse::serve_default_root() {
-	std::cout << "URI:: " << _req_data->uri_path << std::endl;
 	if (_req_data->uri_path == "/") {
 		t_location default_location;
 		default_location.common.root = _server_data->common.root;
@@ -137,9 +136,11 @@ const std::string& ServerResponse::get_response() const {
 Status ServerResponse::generate_cgi_response() {
 	// check if all body receive, if not, receive status continue? var ton check if cgi received?
 	header("server", _server_data->server_name[0]);
-	header("content-type", _req_data->content_data.front().content_type);
 	if (_req_data->content_data.size() > 0) {
+		header("content-type", _req_data->content_data.front().content_type);
 		_body = _req_data->content_data.front().data;
+	} else {
+		header("content-type", "text/html");
 	}
 	header("content-length", get_body_size());
 	if (_req_data->status_string.empty())

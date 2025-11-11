@@ -9,6 +9,9 @@
 #include <iostream>
 #include <stdexcept>
 
+#include "Exceptions/SystemException.hpp"
+#include "Exceptions/ServerException.hpp"
+
 Socket::Socket()
 	: FileDescriptor(FileDescriptor::SocketFD, -1),
 	  _socket_type(STANDARD_SOCKET),
@@ -65,7 +68,7 @@ void Socket::set_socket(int socket, const struct sockaddr* sockaddr, socklen_t s
 	set_port_ipv4_from_sockaddr();
 }
 
-Status Socket::set_socket_option(SocketOption socket_option, SetMode mode) {
+void Socket::set_socket_option(SocketOption socket_option, SetMode mode) {
 	int mode_int = static_cast<int>(mode);
 	int socket_option_int;
 
@@ -74,20 +77,16 @@ Status Socket::set_socket_option(SocketOption socket_option, SetMode mode) {
 	}
 
 	if (get_fd() < 0) {
-		return Status("Socket failed to set option: socket is not created");
+		throw ServerException(LOG_INFO(), "socket is not created");
 	}
 
 	if (setsockopt(get_fd(), SOL_SOCKET, socket_option_int, &mode_int, sizeof(mode_int)) < 0) {
-		return Status(std::string("Socket failed to set option: ") + strerror(errno));
+		throw SystemException(LOG_INFO(), std::string("setsockopt()") + strerror(errno));
 	}
-	return Status::OK();
 }
 
-Status Socket::is_connected() const {
-	if (get_fd() < 0) {
-		return Status("Socket fd is < 0");
-	}
-	return Status::OK();
+bool Socket::is_connected() const {
+	return _fd >= 0;
 }
 
 /* general functions */
@@ -101,7 +100,7 @@ Socket::SocketType Socket::get_socket_type() const {
 	return _socket_type;
 }
 
-Status Socket::set_host_ipv4_address_from_sockaddr() {
+void Socket::set_host_ipv4_address_from_sockaddr() {
 	const struct sockaddr_in* ipv4_address =
 		reinterpret_cast<const struct sockaddr_in*>(&_sockaddr);
 	const unsigned char* octets =
@@ -114,13 +113,7 @@ Status Socket::set_host_ipv4_address_from_sockaddr() {
 	}
 	ss << static_cast<int>(octets[amount_of_octets - 1]);
 
-	try {
-		_host = ss.str();
-	} catch (const std::exception& e) {
-		return Status(e.what());
-	}
-
-	return Status::OK();
+	_host = ss.str();
 }
 
 void Socket::set_port_ipv4_from_sockaddr() {

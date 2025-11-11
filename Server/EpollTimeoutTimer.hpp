@@ -6,6 +6,7 @@
 #include "FileDescriptor.hpp"
 #include "ITimeoutTimer.hpp"
 #include "ServerEvent.hpp"
+#include "Exceptions/SystemException.hpp"
 
 class EpollTimeoutTimer : public ITimeoutTimer {
    public:
@@ -32,7 +33,7 @@ class EpollTimeoutTimer : public ITimeoutTimer {
 
 		int timerfd = timerfd_create(CLOCK_REALTIME, 0);
 		if (timerfd < 0) {
-			perror("timerfd_create");
+			throw SystemException(LOG_INFO(), "timerfd_create*()" + std::string(strerror(errno)));
 		}
 
 		_timer_fd.set_fd(timerfd);
