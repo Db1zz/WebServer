@@ -15,13 +15,17 @@
 class FileDescriptor {
    public:
 	enum Type { NoType, SocketFD, CGIFD };
-	FileDescriptor(Type fd_type, int fd) : _fd_type(fd_type), _fd(fd) {}
+	FileDescriptor(Type fd_type, int fd) : _fd_type(fd_type), _fd(-1) {
+		set_fd(fd);
+	}
 	FileDescriptor() : _fd_type(NoType), _fd(-1) {}
 	virtual ~FileDescriptor() { close_fd(); }
 
 	void close_fd() {
 		if (_fd >= 0) {
-			close(_fd);
+			if (close(_fd) < 0) {
+				throw SystemException(LOG_INFO(), strerror(errno));
+			}
 			_fd = -1;
 		}
 	}

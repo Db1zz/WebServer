@@ -18,7 +18,6 @@
 #include "ServerEvent.hpp"
 #include "ServerLogger.hpp"
 #include "ServerSocket.hpp"
-#include "ServerSocketManager.hpp"
 #include "ServerUtils.hpp"
 
 IOClientHandler::IOClientHandler(ClientSocket& client_socket, IOClientContext& client_context,
@@ -61,6 +60,7 @@ void IOClientHandler::read_and_parse() {
 				return;
 			}
 		}
+
 		if (_client_context.parser.is_header_parsed() == true) {
 			_status = _client_context.parser.parse_body(_client_context.buffer);
 			if (!_status) {
@@ -123,7 +123,7 @@ void IOClientHandler::handle_cgi_request() {
 			create_cgi_process();
 		} catch (const std::exception& e) {
 			HTTPResponseSender response_sender(_client_socket, &_client_context.request,
-											   _client_context.server_config, _server_logger);
+											   &_client_context.server_socket.get_server_config(), _server_logger);
 			response_sender.send();
 			log_error("IOClientHandler::handle_cgi_request",
 					  std::string("failed with error: '") + e.what() + "'");
@@ -133,6 +133,7 @@ void IOClientHandler::handle_cgi_request() {
 		if (_client_context.is_cgi_request_finished == false) {
 			return;
 		}
+
 		if (_server_logger != NULL) {
 			_server_logger->log_access(_client_socket.get_host(), _client_context.request.method,
 									   _client_context.request.uri_path,
@@ -151,7 +152,7 @@ void IOClientHandler::handle_default_request() {
 		(_client_context.parser.is_header_parsed() == true || !_status)) {
 		try {
 			HTTPResponseSender response_sender(_client_socket, &_client_context.request,
-											   _client_context.server_config, _server_logger);
+											   &_client_context.server_socket.get_server_config(), _server_logger);
 			response_sender.send();
 		} catch (const std::exception& e) {
 			log_error("IOClientHandler::handle_default_request()",
@@ -164,6 +165,7 @@ void IOClientHandler::handle_default_request() {
 					_client_socket.get_host(), _client_context.request.method,
 					_client_context.request.uri_path, _client_context.server_socket.get_port());
 			}
+
 			_client_context.reset();
 			if (_timeout_timer != NULL) {
 				_timeout_timer->reset();
@@ -249,16 +251,15 @@ void IOClientHandler::create_cgi_process() {
 								  std::string("execve() failed with a error: ") + strerror(errno));
 		std::exit(127);
 	}
-
 	close(server_read_pipe[1]);
 
 	CGIFileDescriptor* cgi_fd = new CGIFileDescriptor(server_read_pipe[0], _client_socket);
 	cgi_fd->set_nonblock();
 
 	IOCGIContext* cgi_context =
-		new IOCGIContext(*cgi_fd, _client_context.server_config, _server_logger);
+		new IOCGIContext(*cgi_fd, &_client_context.server_socket.get_server_config(), _server_logger);
 	IOCGIHandler* cgi_handler = new IOCGIHandler(*cgi_fd, *cgi_context, _client_context,
-												 _client_context.server_config, _server_logger);
+												 &_client_context.server_socket.get_server_config(), _server_logger);
 	CGIEventContext* cgi_event_context = new CGIEventContext();
 	EpollTimeoutTimer* cgi_timeout_timer =
 		new EpollTimeoutTimer(&_server_event, cgi_event_context, 20);
@@ -266,10 +267,13 @@ void IOClientHandler::create_cgi_process() {
 	cgi_handler->set_timeout_timer(cgi_timeout_timer);
 	cgi_timeout_timer->start();
 
-	_server_event.register_event(SERVER_EVENT_CLIENT_EVENTS, cgi_fd->get_fd(), cgi_event_context);
-
 	_client_context.cgi_started = true;
 	_client_context.cgi_fd = cgi_fd->get_fd();
+
+	if (!_server_event.register_event(SERVER_EVENT_CLIENT_EVENTS, cgi_fd->get_fd(), cgi_event_context)) {
+		std::cout << "TODO vpadlu\n";
+		std::exit(127);
+	}
 }
 
 void IOClientHandler::log_error(const std::string& failed_component, const std::string& error) {

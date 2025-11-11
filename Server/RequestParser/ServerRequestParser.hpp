@@ -18,6 +18,7 @@ class ServerRequestParser {
 
 	Status parse_header(const std::string& content, std::string& body_out);
 	Status parse_body(const std::string& content);
+	void reset();
 	bool is_header_parsed() const;
 	bool is_body_parsed() const;
 	bool is_finished() const;

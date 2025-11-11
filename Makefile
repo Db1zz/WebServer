@@ -30,7 +30,6 @@ SRCS = \
 	Server/RequestParser/RequestRawBodyParser.cpp \
 	Server/RequestParser/RequestHeaderParser.cpp \
 	Server/Exceptions/ExceptionsUtils.cpp \
-	Server/ServerSocketManager.cpp \
 	Server/CGIFileDescriptor.cpp \
 	Server/CGIResponseParser.cpp \
 	Server/ServerUtils.cpp \
@@ -95,21 +94,21 @@ docker_build:
 run: docker_build
 	docker attach webserv
 
-# install_python_libs:
-# 	python3 -m venv $(VENV_DIR)
-# 	./$(VENV_DIR)/bin/pip install --upgrade pip
-# 	./$(VENV_DIR)/bin/pip install -r $(TESTS_DIR)/requirements.txt
+install_python_libs:
+	python3 -m venv $(VENV_DIR)
+	./$(VENV_DIR)/bin/pip install --upgrade pip
+	./$(VENV_DIR)/bin/pip install -r $(TESTS_DIR)/requirements.txt
 
-# prepare_test_env: all install_python_libs
+prepare_test_env: all install_python_libs
 
-# test: prepare_test_env
-# 	. $(VENV_DIR)/bin/activate; python3 ./$(TESTS_DIR)/test.py
+test: prepare_test_env
+	. $(VENV_DIR)/bin/activate; python3 ./$(TESTS_DIR)/test.py
 
 cmake_configure:
 	cmake -DCMAKE_BUILD_TYPE:STRING=Debug --no-warn-unused-cli -S $(UNIT_TESTS_DIR) -B $(BUILDDIR) -G "Unix Makefiles"
 
-test: all cmake_configure
-	cmake --build $(BUILDDIR) --config Debug --target all -j8	
-	ctest --test-dir $(BUILDDIR)
+# test: all cmake_configure
+# 	cmake --build $(BUILDDIR) --config Debug --target all -j8	
+# 	ctest --test-dir $(BUILDDIR)
 
 .PHONY: all clean fclean re run docker_build test install_python_libs prepare_test_env cmake_configure

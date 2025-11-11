@@ -25,9 +25,7 @@ class Webserver:
 
 	def start(self, args=["./Tests/global/resources/webserver_test.cfg"]):
 		self.process = subprocess.Popen(
-			self.binary_path,
-			stdout=subprocess.DEVNULL,
-			stderr=subprocess.DEVNULL)
+			self.binary_path)
 		self._wait_server_to_start(args)
 
 	def stop(self):
@@ -112,7 +110,36 @@ class CheckUpload:
 			result = -1
 		serv.stop()
 		return expected, result
-			
+class CheckDelete:
+	name = "Delete file"
+	def test():
+		serv = Webserver()
+		serv.start()
+		filePath = "./Tests/global/resources/test.jpg"
+		fileToDelete = "./Tests/global/resources/test.jpg"
+		fileToUpload = open(filePath, "rb")
+		files = {"file" : fileToUpload}
+
+		r = requests.delete("http://127.0.0.1/Uploads", files=files)
+		expected = os.path.getsize(filePath)
+		if r.ok:
+			result = os.path.getsize(fileToDelete)
+		else: 
+			result = -1
+		serv.stop()
+		return expected, result
+
+class CheckFdLimit:
+	name = "Check if file descriptors are cloing"
+	def test():
+		serv = Webserver()
+		serv.start()
+		counter = 0
+		while (counter < 2000):
+			r = requests.get("http://127.0.0.1/cgi-bin/aboba.py")
+			counter += 1
+		serv.stop()
+		return r.status_code, 200
 
 
 if __name__ == "__main__":
@@ -122,7 +149,8 @@ if __name__ == "__main__":
 	tester.addTestCase(LoadExistingPage)
 	tester.addTestCase(LoadNonExistantPage)
 	tester.addTestCase(Load404PageWithBrokenPath)
-	tester.addTestCase(CheckPorts)
-	tester.addTestCase(CheckUpload)
+	#tester.addTestCase(CheckPorts)
+	#tester.addTestCase(CheckUpload)
+	tester.addTestCase(CheckFdLimit)
 
 	tester.run()

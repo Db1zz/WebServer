@@ -3,12 +3,11 @@
 
 #include <unistd.h>
 
+#include "IIOHandler.hpp"
+#include "IIOContext.hpp"
+#include "FileDescriptor.hpp"
 #include "IEventContext.hpp"
-
-class IIOHandler;
-class IIOContext;
-class FileDescriptor;
-class ITimeoutTimer;
+#include "ITimeoutTimer.hpp"
 
 class ClientEventContext : public IEventContext {
 public:

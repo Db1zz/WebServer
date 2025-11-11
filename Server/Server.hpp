@@ -20,7 +20,6 @@ class Status;
 class Socket;
 class ClientSocket;
 class ServerSocket;
-class ServerSocketManager;
 class ServerLogger;
 class CGIFileDescriptor;
 class IOServerContext;
@@ -34,7 +33,7 @@ class Server {
 
    private:
 	void handle_epoll_event(int amount_of_events);
-	void create_server_socket_manager(const std::string& host, int port,
+	void create_server_socket(const std::string& host, int port,
 										const t_config& server_config);
 	void create_sockets_from_config(const t_config& server_config);
 	void create_sockets_from_configs(const std::vector<t_config>& configs);
@@ -42,7 +41,7 @@ class Server {
 
 	bool check_if_can_destroy_event(int events, IEventContext& event_context, std::map<int, IEventContext*>& events_to_destroy);
 	bool is_object_expired(IEventContext& event_context);
-	void destroy_events(std::map<int, IEventContext*> events);
+	void destroy_events(std::map<int, IEventContext*>& events);
 
 	std::vector<t_config> _configs;
 	ServerEvent _event;

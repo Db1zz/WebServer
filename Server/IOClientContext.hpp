@@ -5,19 +5,16 @@
 
 #include "RequestParser/ServerRequestParser.hpp"
 #include "ServerRequest.hpp"
+#include "ServerSocket.hpp"
 
 class ServerLogger;
 class ClientSocket;
-class ServerSocket;
-class ServerSocketManager;
 class IIOContext;
 
 class IOClientContext : public IIOContext {
    public:
 	ClientSocket& client_socket;
 	ServerSocket& server_socket;
-	ServerSocketManager& server_socket_manager;
-	const t_config* server_config;
 	ServerLogger* server_logger;
 	t_request request;
 	std::string buffer;
@@ -30,21 +27,18 @@ class IOClientContext : public IIOContext {
 	void reset() {
 		request = t_request();
 		buffer.clear();
-		parser = ServerRequestParser(&request, server_config, server_logger);
+		parser.reset();
 		is_cgi_request_finished = false;
 		cgi_started = false;
 		cgi_fd = -1;
 	}
 
 	IOClientContext(ClientSocket& client_socket, ServerSocket& server_socket,
-					ServerSocketManager& server_socket_manager, const t_config* server_config,
 					ServerLogger* server_logger)
 		: client_socket(client_socket),
 		  server_socket(server_socket),
-		  server_socket_manager(server_socket_manager),
-		  server_config(server_config),
 		  server_logger(server_logger),
-		  parser(&request, server_config, server_logger),
+		  parser(&request, &server_socket.get_server_config(), server_logger),
 		  is_cgi_request_finished(false),
 		  cgi_started(false),
 		  cgi_fd(-1) {}

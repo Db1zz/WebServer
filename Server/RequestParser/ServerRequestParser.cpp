@@ -17,16 +17,14 @@ ServerRequestParser::ServerRequestParser(t_request* request, const t_config* con
 }
 
 ServerRequestParser::~ServerRequestParser() {
-	if (_body_parser) {
-		delete _body_parser;
-		_body_parser = NULL;
-	}
+	delete _body_parser;
 }
 
 Status ServerRequestParser::parse_header(const std::string& content, std::string& body_out) {
 	if (_header_parsed == true) {
 		return Status::OK();
 	}
+
 	Status status;
 	size_t cursor_pos;
 
@@ -34,6 +32,7 @@ Status ServerRequestParser::parse_header(const std::string& content, std::string
 	if (!status) {
 		return status;
 	}
+
 	status = _header_parser.apply(*_request);
 	if (!status || status.error() == DataIsNotReady) {
 		return status;
@@ -71,6 +70,13 @@ Status ServerRequestParser::parse_body(const std::string& content) {
 	return Status::OK();
 }
 
+void ServerRequestParser::reset() {
+	_header_parsed = false;
+	_is_body_parsed = false;
+	delete _body_parser;
+	_body_parser = NULL;
+}
+
 bool ServerRequestParser::is_header_parsed() const {
 	return _header_parsed;
 }
@@ -82,6 +88,10 @@ bool ServerRequestParser::is_body_parsed() const {
 bool ServerRequestParser::is_finished() const {
 	return is_header_parsed() && is_body_parsed();
 }
+
+// void ServerRequestParser::reset() {
+// 	delete _body_parser;
+// }
 
 void ServerRequestParser::create_body_parser() {
 	if (_request->is_cgi) {

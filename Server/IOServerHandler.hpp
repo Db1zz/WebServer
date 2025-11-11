@@ -7,11 +7,12 @@
 class IOServerContext;
 class ServerLogger;
 class ServerSocket;
+class ServerEvent;
 
 class IOServerHandler : public IIOHandler {
    public:
 	IOServerHandler(ServerSocket& server_socket, IOServerContext& server_context,
-					ServerLogger* server_logger);
+					ServerEvent& server_event, ServerLogger* server_logger);
 
 	void handle(void* data);
 	bool is_closing() const;
@@ -20,6 +21,7 @@ class IOServerHandler : public IIOHandler {
    private:
 	ServerSocket& _server_socket;
 	IOServerContext& _server_context;
+	ServerEvent& _server_event;
 	ServerLogger* _server_logger;
 	ITimeoutTimer* _timeout_timer;
 };

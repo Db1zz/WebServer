@@ -24,10 +24,8 @@
 #include "ServerRequest.hpp"
 #include "ServerResponse.hpp"
 #include "ServerSocket.hpp"
-#include "ServerSocketManager.hpp"
 #include "ServerUtils.hpp"
 #include "Socket.hpp"
-#include "status.hpp"
 
 namespace {
 volatile std::sig_atomic_t g_signal_status = 0;
@@ -47,6 +45,7 @@ Server::~Server() {
 void Server::launch() {
 	int amount_of_events = 0;
 
+	std::signal(SIGINT, sigint_handler);
 	try {
 		create_sockets_from_configs(_configs);
 		while (g_signal_status != SIGINT) {
@@ -54,12 +53,8 @@ void Server::launch() {
 			if (amount_of_events > 0) {
 				handle_epoll_event(amount_of_events);
 			}
-
-			// if (!status && status.error() != EINTR) { // ?
-			// 	return Status("Server::launch() failed with a error: '" + status.msg() + "'");
-			// }
 		}
-	} catch (const SystemException& e) {
+	} catch (const std::exception& e) {
 		_server_logger.log_error("Server::launch()", e.what());
 		throw;
 	}
@@ -92,29 +87,24 @@ void Server::handle_epoll_event(int amount_of_events) {
 	destroy_events(events_to_destroy);
 }
 
-void Server::create_server_socket_manager(const std::string& host, int port,
+void Server::create_server_socket(const std::string& host, int port,
 										  const t_config& server_config) {
-	ServerSocketManager* server_socket_manager =
-		new ServerSocketManager(host, port, &_event, server_config, &_server_logger);
-
+	ServerSocket* server_socket = new ServerSocket(host, port, &server_config, &_server_logger);
 	try {
-		server_socket_manager->start();
+		server_socket->start();
 	} catch (const std::exception& e) {
-		delete server_socket_manager;
+		delete server_socket;
 		throw;
 	}
 
 	IOServerContext* io_server_context = new IOServerContext;
-	IOServerHandler* io_server_handler = new IOServerHandler(
-		*server_socket_manager->get_server_socket(), *io_server_context, &_server_logger);
+	IOServerHandler* io_server_handler =
+		new IOServerHandler(*server_socket, *io_server_context, _event, &_server_logger);
 	ServerEventContext* server_event_context = new ServerEventContext();
-	server_event_context->take_data_ownership(io_server_handler, io_server_context,
-											  server_socket_manager->get_server_socket(), NULL);
+	server_event_context->take_data_ownership(io_server_handler, io_server_context, server_socket,
+											  NULL);
 
-	io_server_context->server_socket_manager = server_socket_manager;
-
-	_event.register_event(SERVER_EVENT_SERVER_EVENTS,
-						  server_socket_manager->get_server_socket()->get_fd(),
+	_event.register_event(SERVER_EVENT_SERVER_EVENTS, server_socket->get_fd(),
 						  server_event_context);
 }
 
@@ -125,7 +115,7 @@ void Server::create_sockets_from_config(const t_config& server_config) {
 		const std::string& host = server_config.listen[i].host;
 		int port = server_config.listen[i].port;
 
-		create_server_socket_manager(host, port, server_config);
+		create_server_socket(host, port, server_config);
 	}
 }
 
@@ -145,14 +135,14 @@ bool Server::check_if_can_destroy_event(int events, IEventContext& event_context
 										std::map<int, IEventContext*>& events_to_destroy) {
 	return events & EPOLLERR ||
 		   (event_context.get_io_handler()->is_closing() == true &&
-			events_to_destroy.find(event_context.get_fd()->get_fd()) != events_to_destroy.end());
+			events_to_destroy.find(event_context.get_fd()->get_fd()) == events_to_destroy.end());
 }
 
 bool Server::is_object_expired(IEventContext& event_context) {
 	return (event_context.get_timer() != NULL && event_context.get_timer()->is_expired() == true);
 }
 
-void Server::destroy_events(std::map<int, IEventContext*> events) {
+void Server::destroy_events(std::map<int, IEventContext*>& events) {
 	if (events.size() > 0) {
 		std::map<int, IEventContext*>::iterator it = events.begin();
 		while (it != events.end()) {

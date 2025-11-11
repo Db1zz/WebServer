@@ -26,11 +26,11 @@ public:
     ~ServerEvent();
 
     // takes ownership over event_context
-    Status register_event(uint32_t events, int event_fd, IEventContext* event_context);
+    bool register_event(uint32_t events, int event_fd, IEventContext* event_context);
+    void unregister_event(int event_fd);
 
-    Status unregister_event(int event_fd);
     Status wait_event(int timeout, int *nfds);
-    Status event_mod(uint32_t events, int event_fd);
+    void event_mod(uint32_t events, int event_fd);
 
     epoll_event *operator[](size_t index);
     size_t size();
@@ -38,10 +38,11 @@ public:
 
     IEventContext* get_event_context(int event_fd);
     const std::map<int, IEventContext*>& get_events_contexts();
+    void destroy_remaining_events();
 
 private:
-    Status init();
-    Status resize_events_arr(size_t new_size);
+    void init();
+    // Status resize_events_arr(size_t new_size);
     void copy_events_arr(size_t src_size, const epoll_event *src, epoll_event *dst);
 
     epoll_event *_events_arr;

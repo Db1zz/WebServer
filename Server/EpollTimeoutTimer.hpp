@@ -17,7 +17,9 @@ class EpollTimeoutTimer : public ITimeoutTimer {
 		  _timer_fd(),
 		  _is_started(false) {}
 
-	~EpollTimeoutTimer() { stop(); }
+	~EpollTimeoutTimer() { 
+		stop();
+	}
 
 	void start() {
 		if (_is_started == true) {
