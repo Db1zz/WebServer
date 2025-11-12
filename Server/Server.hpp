@@ -35,7 +35,6 @@ class Server {
 	std::vector<t_config> _configs;
 	ServerEvent _event;
 	ServerLogger& _server_logger;
-	SessionStore _session_store;
 };
 
 #endif // SERVER_SERVER_HPP

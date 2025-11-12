@@ -63,7 +63,6 @@ class ServerResponse {
    private:
 	const t_config* _server_data;
 	t_request* _req_data;
-	SessionStore* _session_store;
 
 	JsonResponse* _json_handler;
 	ErrorResponse* _error_handler;
@@ -79,6 +78,7 @@ class ServerResponse {
 	bool _needs_streaming;
 	std::string _stream_file_path;
 	const t_location* _stream_location;
+	SessionStore* _session_store;
 
 	void handle_session();
 	void handle_directory(const t_location& location);

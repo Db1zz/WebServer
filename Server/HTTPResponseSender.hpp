@@ -11,7 +11,7 @@ class ServerSocket;
 class HTTPResponseSender : public IResponseSender {
    public:
 	HTTPResponseSender(ClientSocket& client_socket, t_request* request, const t_config* server_config,
-					   ServerSocker& server_socket, ServerLogger* server_logger);
+					   ServerSocket& server_socket, ServerLogger* server_logger);
 	Status send(const Status& status);
 
    private:

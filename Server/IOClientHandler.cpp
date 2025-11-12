@@ -123,7 +123,8 @@ void IOClientHandler::handle_cgi_request() {
 			create_cgi_process();
 		} catch (const std::exception& e) {
 			HTTPResponseSender response_sender(_client_socket, &_client_context.request,
-											   &_client_context.server_socket.get_server_config(), _server_logger);
+											   &_client_context.server_socket.get_server_config(),
+											   _client_context.server_socket, _server_logger);
 			response_sender.send(_status);
 			log_error("IOClientHandler::handle_cgi_request",
 					  std::string("failed with error: '") + e.what() + "'");
@@ -152,7 +153,8 @@ void IOClientHandler::handle_default_request() {
 		(_client_context.parser.is_header_parsed() == true || !_status)) {
 		try {
 			HTTPResponseSender response_sender(_client_socket, &_client_context.request,
-											   &_client_context.server_socket.get_server_config(), _server_logger);
+											   &_client_context.server_socket.get_server_config(),
+											   _client_context.server_socket, _server_logger);
 			response_sender.send(_status);
 		} catch (const std::exception& e) {
 			log_error("IOClientHandler::handle_default_request()",
@@ -255,10 +257,11 @@ void IOClientHandler::create_cgi_process() {
 	close(server_read_pipe[1]);
 	CGIFileDescriptor* cgi_fd = new CGIFileDescriptor(server_read_pipe[0], _client_socket);
 
-	IOCGIContext* cgi_context =
-		new IOCGIContext(*cgi_fd, &_client_context.server_socket.get_server_config(), _server_logger);
-	IOCGIHandler* cgi_handler = new IOCGIHandler(*cgi_fd, *cgi_context, _client_context,
-												 &_client_context.server_socket.get_server_config(), _server_logger);
+	IOCGIContext* cgi_context = new IOCGIContext(
+		*cgi_fd, &_client_context.server_socket.get_server_config(), _server_logger);
+	IOCGIHandler* cgi_handler =
+		new IOCGIHandler(*cgi_fd, *cgi_context, _client_context,
+						 &_client_context.server_socket.get_server_config(), _server_logger);
 	CGIEventContext* cgi_event_context = new CGIEventContext();
 	EpollTimeoutTimer* cgi_timeout_timer =
 		new EpollTimeoutTimer(&_server_event, cgi_event_context, 20);
@@ -269,7 +272,8 @@ void IOClientHandler::create_cgi_process() {
 	_client_context.cgi_started = true;
 	_client_context.cgi_fd = cgi_fd->get_fd();
 
-	if (!_server_event.register_event(SERVER_EVENT_CLIENT_EVENTS, cgi_fd->get_fd(), cgi_event_context)) {
+	if (!_server_event.register_event(SERVER_EVENT_CLIENT_EVENTS, cgi_fd->get_fd(),
+									  cgi_event_context)) {
 		std::cout << "TODO vpadlu\n";
 		std::exit(127);
 	}

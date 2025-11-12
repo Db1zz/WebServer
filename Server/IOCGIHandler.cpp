@@ -2,6 +2,7 @@
 
 #include <sys/wait.h>
 #include <unistd.h>
+
 #include <cstdlib>
 
 #include "CGIFileDescriptor.hpp"
@@ -44,12 +45,15 @@ void IOCGIHandler::handle(void* data) {
 	if (_status != DataIsNotReady) {
 		try {
 			_io_client_context.is_cgi_request_finished = true;
-			HTTPResponseSender response_sender(_io_client_context.client_socket, &_io_cgi_context.request, _server_config, _server_logger);
+			HTTPResponseSender response_sender(_io_client_context.client_socket,
+											   &_io_cgi_context.request, _server_config,
+											   _io_client_context.server_socket, _server_logger);
 			response_sender.send(_status);
 			set_is_closing();
 		} catch (const std::exception& e) {
 			if (_server_logger != NULL) {
-				_server_logger->log_error("IOCGIHandler::handle", "failed to send response: " + std::string(e.what()));
+				_server_logger->log_error("IOCGIHandler::handle",
+										  "failed to send response: " + std::string(e.what()));
 			}
 			throw;
 		}

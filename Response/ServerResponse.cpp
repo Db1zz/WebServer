@@ -6,7 +6,7 @@
 #include "FileUtils.hpp"
 #include "JsonResponse.hpp"
 
-ServerResponse::ServerResponse(t_request* request, const t_config& server_data, const Status& status, SessionStore* session_store = NULL)
+ServerResponse::ServerResponse(t_request* request, const t_config& server_data, const Status& status, SessionStore* session_store)
 	: status(status),
 	  _server_data(&server_data),
 	  _req_data(request),
