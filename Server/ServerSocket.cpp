@@ -65,3 +65,7 @@ void ServerSocket::create_server_socket() {
 		throw SystemException(LOG_INFO(), "socket()" + std::string(strerror(errno)));
 	}
 }
+
+SessionStore& ServerSocket::get_session_store() {
+	return _session_store;
+}

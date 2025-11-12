@@ -11,6 +11,7 @@
 #include "Socket.hpp"
 #include "ServerEvent.hpp"
 #include "ServerConfig.hpp"
+#include "SessionStore.hpp"
 
 class ClientSocket;
 class ServerLogger;
@@ -24,6 +25,7 @@ class ServerSocket : public Socket {
 
 	void accept_connection(ClientSocket& empty_client_socket);
 	const t_config& get_server_config() const;
+	SessionStore& get_session_store();
 
    private:
    	void open_socket();
@@ -31,6 +33,7 @@ class ServerSocket : public Socket {
 
 	const t_config* _server_config;
 	ServerLogger* _server_logger;
+	SessionStore _session_store;
 };
 
 #endif // SERVER_SERVER_SOCKET_HPP
