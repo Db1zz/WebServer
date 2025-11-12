@@ -104,6 +104,7 @@ Status ServerResponse::generate_response() {
 }
 
 Status ServerResponse::generate_error_response() {
+	_error_handler->send_error_page(status.code(), status.msg(), _body, _headers);
 	status.set_status_line(status.code(), status.msg());
 	header("server", _server_data->server_name[0]);
 	if (_is_chunked)
