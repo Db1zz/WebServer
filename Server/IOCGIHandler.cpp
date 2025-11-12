@@ -30,6 +30,7 @@ IOCGIHandler::~IOCGIHandler() {
 void IOCGIHandler::handle(void* data) {
 	std::string content;
 
+	(void) data;
 	if (_timeout_timer != NULL && _timeout_timer->is_expired() == true) {
 		handle_timeout(content);
 	} else if (handle_default(content) == false) {

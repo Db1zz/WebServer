@@ -17,7 +17,7 @@ void ErrorResponse::send_error_page(int code, const std::string& error_msg, std:
 	if (!serve_error_file(error_page_path, body)) {
 		generate_fallback_error_page(code, error_msg, body);
 	}
-	_status = Status::NotFound();
+	//_status = Status::NotFound();
 }
 
 std::string ErrorResponse::get_error_page_path(int code) const {

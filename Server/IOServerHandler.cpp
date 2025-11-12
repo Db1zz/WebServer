@@ -21,6 +21,7 @@ IOServerHandler::IOServerHandler(ServerSocket& server_socket, IOServerContext& s
 }
 
 void IOServerHandler::handle(void* data) {
+	(void) data;
 	ClientSocket* client_socket = new ClientSocket(&_server_socket.get_server_config());
 	IOClientContext* io_client_context =
 		new IOClientContext(*client_socket, _server_socket, _server_logger);
