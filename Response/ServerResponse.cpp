@@ -48,6 +48,8 @@ ServerResponse& ServerResponse::handle_get_method(const t_location& location) {
 }
 
 Status ServerResponse::generate_response() {
+	if (!status)
+		return generate_error_response();
 	const t_location* best_match = _file_utils->find_best_location_match();
 
 	if (_req_data->uri_path == "/login") {
@@ -97,6 +99,18 @@ Status ServerResponse::generate_response() {
 		_response = WS_PROTOCOL + status.status_line() + get_headers() + "\r\n" + get_body();
 	}
 	// std::cout << RED << "response: " << _response << RESET  <<std::endl;
+	return status;
+}
+
+Status ServerResponse::generate_error_response() {
+	_error_handler->send_error_page(status.code(), status.msg(), _body, _headers);
+	status.set_status_line(status.code(), status.msg());
+	header("server", _server_data->server_name[0]);
+	if (_is_chunked)
+		header("transfer-encoding", "chunked");
+	else
+		header("content-length", get_body_size());
+	_response = WS_PROTOCOL + status.status_line() + get_headers() + "\r\n" + get_body();
 	return status;
 }
 
