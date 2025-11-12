@@ -1,31 +1,19 @@
 #include "Server.hpp"
 
 #include <errno.h>
-#include <string.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <unistd.h>
 
-#include <cassert>
 #include <csignal>
-#include <cstdio>
-#include <sstream>
 
-#include "ClientSocket.hpp"
 #include "Exceptions/SystemException.hpp"
+#include "IEventContext.hpp"
 #include "IIOHandler.hpp"
 #include "IOServerContext.hpp"
 #include "IOServerHandler.hpp"
 #include "ITimeoutTimer.hpp"
-#include "RequestParser/ServerRequestParser.hpp"
-#include "ServerConfig.hpp"
 #include "ServerEventContext.hpp"
 #include "ServerLogger.hpp"
-#include "ServerRequest.hpp"
-#include "ServerResponse.hpp"
 #include "ServerSocket.hpp"
-#include "ServerUtils.hpp"
-#include "Socket.hpp"
+#include "colors.hpp"
 
 namespace {
 volatile std::sig_atomic_t g_signal_status = 0;
@@ -71,8 +59,6 @@ void Server::handle_epoll_event(int amount_of_events) {
 			event_context.get_io_handler()->is_closing() == false) {
 			if (is_object_expired(event_context) == true) {
 				event_context.get_timer()->stop();
-				events_to_destroy.insert(
-					std::make_pair(event_context.get_fd()->get_fd(), &event_context));
 			}
 
 			event_context.get_io_handler()->handle(&event);
@@ -88,7 +74,7 @@ void Server::handle_epoll_event(int amount_of_events) {
 }
 
 void Server::create_server_socket(const std::string& host, int port,
-										  const t_config& server_config) {
+								  const t_config& server_config) {
 	ServerSocket* server_socket = new ServerSocket(host, port, &server_config, &_server_logger);
 	try {
 		server_socket->start();
@@ -133,7 +119,7 @@ void Server::print_debug_addr(const std::string& address, int port) {
 
 bool Server::check_if_can_destroy_event(int events, IEventContext& event_context,
 										std::map<int, IEventContext*>& events_to_destroy) {
-	return events & EPOLLERR ||
+	return events & EPOLLERR || is_object_expired(event_context) == true ||
 		   (event_context.get_io_handler()->is_closing() == true &&
 			events_to_destroy.find(event_context.get_fd()->get_fd()) == events_to_destroy.end());
 }

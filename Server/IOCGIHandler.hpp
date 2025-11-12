@@ -24,7 +24,7 @@ class IOCGIHandler : public IIOHandler {
 
    private:
 	void handle_timeout(std::string& result);
-	bool handle_default(std::string& result);
+	void handle_default(std::string& result);
 
 	Status _status;
 	CGIFileDescriptor& _cgi_fd;

@@ -30,17 +30,13 @@ void IOCGIHandler::handle(void* data) {
 
 	if (_timeout_timer != NULL && _timeout_timer->is_expired() == true) {
 		handle_timeout(content);
-	} else if (handle_default(content) == false) {
-		_io_client_context.is_cgi_request_finished = true;
-		return;
+	} else {
+		handle_default(content);
 	}
 
 	_status = _io_cgi_context.cgi_parser.parse(content);
 	if (!_status) {
-		_io_client_context.is_cgi_request_finished = true;
-		_server_logger->log_error("Server::cgi_fd_routine", "failed to parse CGI response");
-		// Shall we close?
-		return;
+		_server_logger->log_error("IOCGIHandler::handle", "failed to parse CGI response");
 	}
 
 	if (_status != DataIsNotReady) {
@@ -76,13 +72,14 @@ void IOCGIHandler::handle_timeout(std::string& result) {
 	_status = Status::GatewayTimeout();
 }
 
-bool IOCGIHandler::handle_default(std::string& result) {
+void IOCGIHandler::handle_default(std::string& result) {
 	size_t buffer_size = 1000000;
 	char buffer[buffer_size];
 
 	ssize_t rd_bytes = read(_cgi_fd.get_fd(), buffer, buffer_size);
 	if (rd_bytes < 0) {
-		return false;
+		_status = Status::InternalServerError();
+		return;
 	}
 
 	int wpidstatus = 0;
@@ -93,14 +90,13 @@ bool IOCGIHandler::handle_default(std::string& result) {
 			"Content-Type: text/plain\r\n"
 			"\r\n"
 			"An internal error occurred. Please try again later.\r\n");
-		return true;
+		_status = Status::InternalServerError();
+		return;
 	}
 
 	if (rd_bytes > 0) {
 		result.append(buffer, rd_bytes);
 	}
-
-	return true;
 }
 
 void IOCGIHandler::set_timeout_timer(ITimeoutTimer* timeout_timer) {
