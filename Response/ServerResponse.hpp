@@ -80,7 +80,6 @@ class ServerResponse {
 	const t_location* _stream_location;
 	SessionStore* _session_store;
 
-	void handle_session();
 	void handle_directory(const t_location& location);
 	void handle_file_upload();
 	void handle_file_delete();
