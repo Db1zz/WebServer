@@ -1,12 +1,12 @@
 #include "ServerEvent.hpp"
 
-#include <unistd.h>
-#include <stdexcept>
-#include <string.h>
 #include <errno.h>
+#include <string.h>
+#include <unistd.h>
 
-#include "Socket.hpp"
-#include "IIOContext.hpp"
+#include <stdexcept>
+
+#include "ClientSocket.hpp"
 #include "IEventContext.hpp"
 #include "ClientSocket.hpp"
 #include "Exceptions/SystemException.hpp"
@@ -18,7 +18,7 @@ ServerEvent::ServerEvent()
 }
 
 ServerEvent::~ServerEvent() {
-    close(_epoll_fd);
+	close(_epoll_fd);
 
     if (_events_arr) {
         delete[] _events_arr;
@@ -57,24 +57,24 @@ void ServerEvent::unregister_event(int event_fd) {
 }
 
 /*
-    The same rules are applied to timeout as for epoll_wait()
+	The same rules are applied to timeout as for epoll_wait()
 
-    read about it: man epoll_wait
+	read about it: man epoll_wait
 */
-Status ServerEvent::wait_event(int timeout, int *nfds) {
-    *nfds = epoll_wait(_epoll_fd, _events_arr, _events_capacity, timeout);
-    if (*nfds < 0) {
-        if (errno == EINTR) {
+Status ServerEvent::wait_event(int timeout, int* nfds) {
+	*nfds = epoll_wait(_epoll_fd, _events_arr, _events_capacity, timeout);
+	if (*nfds < 0) {
+		if (errno == EINTR) {
 			return Status::Interrupted();
 		}
 		return Status(UnknownError, errno, strerror(errno));
 	}
-    return Status::OK();
+	return Status::OK();
 }
 
 #include <iostream>
 
-epoll_event *ServerEvent::operator[](size_t index) {
+epoll_event* ServerEvent::operator[](size_t index) {
 	if (index > _events_capacity) {
 		throw std::runtime_error("Error in ServerEvent::operator[]: index > _events_size");
 	}
@@ -82,7 +82,7 @@ epoll_event *ServerEvent::operator[](size_t index) {
 }
 
 size_t ServerEvent::size() {
-    return _events_size;
+	return _events_size;
 }
 
 size_t ServerEvent::capacity() {
@@ -90,13 +90,13 @@ size_t ServerEvent::capacity() {
 }
 
 IEventContext* ServerEvent::get_event_context(int event_fd) {
-    std::map<int, IEventContext*>::iterator it = _events_contexts.find(event_fd);
+	std::map<int, IEventContext*>::iterator it = _events_contexts.find(event_fd);
 
-    if (it == _events_contexts.end()) {
-        return NULL;
-    }
+	if (it == _events_contexts.end()) {
+		return NULL;
+	}
 
-    return it->second;
+	return it->second;
 }
 
 void ServerEvent::init() {
@@ -124,18 +124,18 @@ void ServerEvent::init() {
 //     return Status::OK();
 // }
 
-void ServerEvent::copy_events_arr(size_t src_size, const epoll_event *src, epoll_event *dst) {
-    for (size_t i = 0; i < src_size; ++i) {
-        dst[i] = src[i];
-    }
+void ServerEvent::copy_events_arr(size_t src_size, const epoll_event* src, epoll_event* dst) {
+	for (size_t i = 0; i < src_size; ++i) {
+		dst[i] = src[i];
+	}
 }
 
 void ServerEvent::event_mod(uint32_t events, int event_fd) {
     int error;
     epoll_event event;
 
-    event.data.fd = event_fd;
-    event.events = events;
+	event.data.fd = event_fd;
+	event.events = events;
 
     error = epoll_ctl(_epoll_fd, EPOLL_CTL_MOD, event_fd, &event);
     if (error < 0) {
@@ -144,7 +144,7 @@ void ServerEvent::event_mod(uint32_t events, int event_fd) {
 }
 
 const std::map<int, IEventContext*>& ServerEvent::get_events_contexts() {
-    return _events_contexts;
+	return _events_contexts;
 }
 
 void ServerEvent::destroy_remaining_events() {

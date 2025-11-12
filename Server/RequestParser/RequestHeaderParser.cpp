@@ -207,6 +207,7 @@ RequestHeaderParser::FPtrFieldParser RequestHeaderParser::get_field_parser_by_fi
 		parsers["connection"] = &RequestHeaderParser::parse_connection;
 		parsers["content-type"] = &RequestHeaderParser::parse_content_type;
 		parsers["transfer-encoding"] = &RequestHeaderParser::parse_transfer_encoding;
+		parsers["cookie"] = &RequestHeaderParser::parse_cookie;
 	}
 
 	std::map<const std::string, FPtrFieldParser>::const_iterator it = parsers.find(field_type);
@@ -699,6 +700,29 @@ Status RequestHeaderParser::parse_complete_header(t_request& request) {
 	}
 
 	return status;
+}
+
+Status RequestHeaderParser::parse_cookie(const std::string& field_value, t_request& request) {
+	std::string::size_type pos = field_value.find("session_id=");
+	if (pos == std::string::npos) {
+		return Status::OK();
+	}
+
+	pos += std::string("session_id=").size();
+	std::string::size_type end = field_value.find(';', pos);
+	std::string value;
+	if (end == std::string::npos) {
+		value = field_value.substr(pos);
+	} else {
+		value = field_value.substr(pos, end - pos);
+	}
+	size_t start = 0;
+	while (start < value.size() && isspace(static_cast<unsigned char>(value[start]))) ++start;
+	size_t finish = value.size();
+	while (finish > start && isspace(static_cast<unsigned char>(value[finish - 1]))) --finish;
+	request.session_id = value.substr(start, finish - start);
+
+	return Status::OK();
 }
 
 // request-line   = method SP request-target SP HTTP-version CRLF

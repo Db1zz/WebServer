@@ -8,7 +8,8 @@ class ITimeoutTimer;
 
 class IEventContext {
 public:
-	virtual ~IEventContext() {}
+	virtual ~IEventContext() {
+	}
 
 	virtual void take_data_ownership(IIOHandler* io_handler, IIOContext* io_context, FileDescriptor* fd, ITimeoutTimer* timer) = 0;
 	virtual IIOHandler* get_io_handler() = 0;

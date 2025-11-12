@@ -5,6 +5,7 @@
 
 class IOServerContext : public IIOContext {
 	public:
+	// IOServerContext() {}
 	void reset() {};
 };
 

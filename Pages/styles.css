@@ -298,15 +298,6 @@ button:hover,
 	padding: 0.25rem 0.5rem 0.5rem 0;
 }
 
-.upload-container {
-	max-width: 500px;
-	margin: 40px auto;
-	padding: 30px;
-	background: #FAF7F3;
-	border-radius: 16px;
-	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-}
-
 .drop-area {
 	border: 2px dashed #DCC5B2;
 	border-radius: 12px;
@@ -398,6 +389,51 @@ button:hover,
 	background-color: #FAF7F3;
 }
 
+.login-form .form-row {
+	margin-bottom: 14px;
+}
+
+.login-form .main_button {
+	max-width: 220px;
+	padding: 12px 20px;
+	font-size: 18px;
+}
+
+@media screen and (max-width: 500px) {
+	.upload-container {
+		padding: 20px;
+	}
+
+	.login-form .main_button {
+		width: 100%;
+	}
+}
+
+.login-container {
+	max-width: 520px;
+	margin-top: 40px;
+}
+
+.login-title {
+	text-align: center;
+	margin-top: 0;
+}
+
+.text-center {
+	text-align: center;
+}
+
+.login-error {
+	color: #B54854;
+	text-align: center;
+	margin-top: 10px;
+	display: none;
+}
+
+#login-result {
+	display: none;
+}
+
 .welcome {
 	display: block;
 	overflow: hidden;
@@ -449,42 +485,6 @@ button:hover,
 	}
 }
 
-/*FORM*/
-
-.contact__container {
-	row-gap: 3rem;
-}
-
-.contact__information {
-	display: flex;
-}
-
-
-.contact__content {
-	border-radius: 0.5rem;
-	padding: 0.75rem 1rem 0.25rem;
-}
-
-.contact__error {
-	border: 1px solid #CE5A67;
-}
-
-.contact_star {
-	color: #CE5A67;
-}
-
-.contact__label {
-	font-size: 15px;
-}
-
-.contact__input {
-	width: 100%;
-	background-color: #F0E4D3;
-	color: black;
-	border: none;
-	outline: none;
-	padding: 0.25rem 0.5rem 0.5rem 0;
-}
 
 .file-item {
 	margin: 15px auto;
@@ -593,4 +593,36 @@ button:hover,
 	font-family: monospace;
 	white-space: pre-wrap;
 	min-height: 50px;
+}
+
+.login-success {
+	max-width: 520px;
+	margin: 40px auto;
+	padding: 30px;
+	background: #FAF7F3;
+	border-radius: 16px;
+	box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+.logout-button {
+	max-width: 180px;
+	padding: 10px 16px;
+	font-size: 16px;
+	display: inline-block;
+}
+
+.login-username {
+	color: #B54854;
+	font-weight: 700;
+}
+
+.logout-countdown {
+	font-size: 18px;
+	color: #333;
+}
+
+@media screen and (max-width: 500px) {
+	.login-success {
+		padding: 20px;
+	}
 }

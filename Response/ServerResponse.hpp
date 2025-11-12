@@ -16,12 +16,14 @@
 #include "../Utilities/colors.hpp"
 #include "../Utilities/fs.hpp"
 #include "../Utilities/status.hpp"
+#include "../Utilities/hash.hpp"
 #include "Chunk.hpp"
 #include "ClientSocket.hpp"
 #include "ErrorResponse.hpp"
 #include "FileUtils.hpp"
 #include "JsonResponse.hpp"
 #include "Server.hpp"
+#include "../Server/SessionStore.hpp"
 #include "ServerConfig.hpp"
 #include "ServerRequest.hpp"
 #include "ServerResponse.hpp"
@@ -36,7 +38,7 @@ class FileUtils;
 
 class ServerResponse {
    public:
-	ServerResponse(t_request* request, const t_config& server_data, const Status& status);
+	ServerResponse(t_request* request, const t_config& server_data, const Status& status, SessionStore* session_store = NULL);
 	~ServerResponse();
 
 	ServerResponse& header(const std::string& key, const std::string& value);
@@ -61,6 +63,7 @@ class ServerResponse {
    private:
 	const t_config* _server_data;
 	t_request* _req_data;
+	SessionStore* _session_store;
 
 	JsonResponse* _json_handler;
 	ErrorResponse* _error_handler;
@@ -77,11 +80,17 @@ class ServerResponse {
 	std::string _stream_file_path;
 	const t_location* _stream_location;
 
+	void handle_session();
 	void handle_directory(const t_location& location);
 	void handle_file_upload();
 	void handle_file_delete();
 	void set_binary_headers();
 	void choose_method(const t_location& location);
+
+	void handle_auth_login();
+	void handle_auth_session();
+	void handle_auth_logout();
+	std::string get_query_param(const std::string& key) const;
 };
 
 #endif

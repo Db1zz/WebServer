@@ -25,9 +25,6 @@ Status::Status(ErrorCode error_type, int error_code, const std::string& error_ms
 	  _is_error(is_error) {
 
 	set_status_line(error_code, error_msg);
-	// If caller didn't explicitly set is_error (passed false), we still use
-	// our heuristic: treat 4xx/5xx as errors; 1xx/2xx/3xx as success;
-	// 6xx+ are treated as non-error (control codes) by default.
 	if (!is_error) {
 		_is_error = default_is_error_for_code(error_code);
 	}
@@ -54,10 +51,6 @@ Status& Status::operator=(const Status& to_copy) {
 }
 
 bool Status::default_is_error_for_code(int code) {
-	// By default:
-	//  - 4xx and 5xx are considered errors.
-	//  - 1xx/2xx/3xx are considered success.
-	//  - 6xx+ (internal/control) are NOT errors by default (they're signals).
 	return (code >= 400 && code < 600);
 }
 
