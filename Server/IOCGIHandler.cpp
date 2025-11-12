@@ -76,6 +76,7 @@ void IOCGIHandler::handle_timeout(std::string& result) {
 		"An timeout occured during CGI exectuion\r\n");
 	_io_client_context.is_cgi_request_finished = true;
 	_status = Status::GatewayTimeout();
+	kill(_io_cgi_context.cgi_pid, SIGKILL);
 }
 
 bool IOCGIHandler::handle_default(std::string& result) {

@@ -256,6 +256,7 @@ void IOClientHandler::create_cgi_process() {
 
 	close(server_read_pipe[1]);
 	CGIFileDescriptor* cgi_fd = new CGIFileDescriptor(server_read_pipe[0], _client_socket);
+	cgi_fd->set_nonblock();
 
 	IOCGIContext* cgi_context = new IOCGIContext(
 		*cgi_fd, &_client_context.server_socket.get_server_config(), _server_logger);
@@ -264,7 +265,7 @@ void IOClientHandler::create_cgi_process() {
 						 &_client_context.server_socket.get_server_config(), _server_logger);
 	CGIEventContext* cgi_event_context = new CGIEventContext();
 	EpollTimeoutTimer* cgi_timeout_timer =
-		new EpollTimeoutTimer(&_server_event, cgi_event_context, 20);
+		new EpollTimeoutTimer(&_server_event, cgi_event_context, 5);
 	cgi_event_context->take_data_ownership(cgi_handler, cgi_context, cgi_fd, cgi_timeout_timer);
 	cgi_handler->set_timeout_timer(cgi_timeout_timer);
 	cgi_timeout_timer->start();
