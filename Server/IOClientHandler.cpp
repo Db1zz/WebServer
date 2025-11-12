@@ -218,7 +218,7 @@ void IOClientHandler::create_cgi_process() {
 			content_length << request.content_length;
 			env_strs.push_back(std::string("REQUEST_METHOD=") + request.method);
 			env_strs.push_back(std::string("CONTENT_LENGTH=") + content_length.str());
-			env_strs.push_back(std::string("CONTENT_TYPE="));
+			env_strs.push_back(std::string("CONTENT_TYPE=") + request.content_type.type);
 			env_strs.push_back(std::string("SERVER_PROTOCOL=HTTP/1.1"));
 			env_strs.push_back(std::string("SCRIPT_NAME="));
 			env_strs.push_back(std::string("PATH_INFO="));

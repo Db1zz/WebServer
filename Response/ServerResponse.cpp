@@ -34,7 +34,6 @@ ServerResponse& ServerResponse::header(const std::string& key, const std::string
 	return *this;
 }
 
-
 ServerResponse& ServerResponse::handle_get_method(const t_location& location) {
 	if (FileUtils::is_directory(_resolved_file_path)) {
 		handle_directory(location);
