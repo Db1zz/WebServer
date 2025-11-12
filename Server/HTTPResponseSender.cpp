@@ -10,8 +10,8 @@ HTTPResponseSender::HTTPResponseSender(ClientSocket& client_socket, t_request* r
 	  _server_logger(server_logger) {
 }
 
-Status HTTPResponseSender::send() {
-	ServerResponse resp(_request, *_server_config);
+Status HTTPResponseSender::send(const Status& status) {
+	ServerResponse resp(_request, *_server_config, status);
 	resp.generate_response();
 
 	if (resp.status.code() == 100) {

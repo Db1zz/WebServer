@@ -124,7 +124,7 @@ void IOClientHandler::handle_cgi_request() {
 		} catch (const std::exception& e) {
 			HTTPResponseSender response_sender(_client_socket, &_client_context.request,
 											   &_client_context.server_socket.get_server_config(), _server_logger);
-			response_sender.send();
+			response_sender.send(_status);
 			log_error("IOClientHandler::handle_cgi_request",
 					  std::string("failed with error: '") + e.what() + "'");
 			throw;
@@ -153,7 +153,7 @@ void IOClientHandler::handle_default_request() {
 		try {
 			HTTPResponseSender response_sender(_client_socket, &_client_context.request,
 											   &_client_context.server_socket.get_server_config(), _server_logger);
-			response_sender.send();
+			response_sender.send(_status);
 		} catch (const std::exception& e) {
 			log_error("IOClientHandler::handle_default_request()",
 					  "failed to send response: " + std::string(e.what()));
@@ -251,10 +251,9 @@ void IOClientHandler::create_cgi_process() {
 								  std::string("execve() failed with a error: ") + strerror(errno));
 		std::exit(127);
 	}
-	close(server_read_pipe[1]);
 
+	close(server_read_pipe[1]);
 	CGIFileDescriptor* cgi_fd = new CGIFileDescriptor(server_read_pipe[0], _client_socket);
-	cgi_fd->set_nonblock();
 
 	IOCGIContext* cgi_context =
 		new IOCGIContext(*cgi_fd, &_client_context.server_socket.get_server_config(), _server_logger);

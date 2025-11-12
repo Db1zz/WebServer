@@ -36,7 +36,7 @@ class FileUtils;
 
 class ServerResponse {
    public:
-	ServerResponse(t_request* request, const t_config& server_data);
+	ServerResponse(t_request* request, const t_config& server_data, const Status& status);
 	~ServerResponse();
 
 	ServerResponse& header(const std::string& key, const std::string& value);

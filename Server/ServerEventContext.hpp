@@ -4,11 +4,10 @@
 #include <unistd.h>
 
 #include "IEventContext.hpp"
-
-class IIOHandler;
-class IIOContext;
-class FileDescriptor;
-class ITimeoutTimer;
+#include "IIOHandler.hpp"
+#include "IIOContext.hpp"
+#include "FileDescriptor.hpp"
+#include "ITimeoutTimer.hpp"
 
 class ServerEventContext : public IEventContext {
 public:

@@ -6,8 +6,9 @@
 #include "FileUtils.hpp"
 #include "JsonResponse.hpp"
 
-ServerResponse::ServerResponse(t_request* request, const t_config& server_data)
-	: status(),
+ServerResponse::ServerResponse(t_request* request, const t_config& server_data,
+							   const Status& status)
+	: status(status),
 	  _server_data(&server_data),
 	  _req_data(request),
 	  _json_handler(NULL),
@@ -17,8 +18,8 @@ ServerResponse::ServerResponse(t_request* request, const t_config& server_data)
 	  _needs_streaming(false),
 	  _response(""),
 	  _stream_location(NULL) {
-	_json_handler = new JsonResponse(_req_data, status);
-	_error_handler = new ErrorResponse(_req_data, status, _server_data);
+	_json_handler = new JsonResponse(_req_data, this->status);
+	_error_handler = new ErrorResponse(_req_data, this->status, _server_data);
 	_file_utils = new FileUtils(_req_data, _server_data);
 }
 

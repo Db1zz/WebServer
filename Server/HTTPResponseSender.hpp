@@ -10,7 +10,7 @@ class HTTPResponseSender : public IResponseSender {
    public:
 	HTTPResponseSender(ClientSocket& client_socket, t_request* request, const t_config* server_config,
 					   ServerLogger* server_logger);
-	Status send();
+	Status send(const Status& status);
 
    private:
 	ClientSocket& _client_socket;

@@ -135,7 +135,6 @@ void Server::destroy_events(std::map<int, IEventContext*>& events) {
 			std::cout << it->second->get_fd()->get_fd() << " closed connection" << std::endl;
 			_event.unregister_event(it->second->get_fd()->get_fd());
 			delete it->second;
-
 			++it;
 		}
 	}

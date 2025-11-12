@@ -25,21 +25,20 @@ int main(int argc, char** argv) {
 		std::cerr << e.what() << '\n';
 		return 1;
 	}
-		ServerLogger server_logger("./Logs/");
-		Status status = server_logger.init();
-		if (!status) {
-			std::cout << "[ServerLogger] " << RED300 << "Fatal Error: " << RESET << status.msg()
-					  << std::endl;
-			return 1;
-		}
-		Server server(configs, server_logger);
-		try {
-			server.launch();
-		} catch (const std::exception& e) {
-			std::cout << "[Server] " << RED300 << "Fatal Error: " << RESET << e.what()
-					  << std::endl;
-			return 1;
-		}
+	ServerLogger server_logger("./Logs/");
+	Status status = server_logger.init();
+	if (!status) {
+		std::cout << "[ServerLogger] " << RED300 << "Fatal Error: " << RESET << status.msg()
+				  << std::endl;
+		return 1;
+	}
+	Server server(configs, server_logger);
+	try {
+		server.launch();
+	} catch (const std::exception& e) {
+		std::cout << "[Server] " << RED300 << "Fatal Error: " << RESET << e.what() << std::endl;
+		return 1;
+	}
 
 	return 0;
 }

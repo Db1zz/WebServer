@@ -71,6 +71,7 @@ Status ServerRequestParser::parse_body(const std::string& content) {
 }
 
 void ServerRequestParser::reset() {
+	_header_parser = RequestHeaderParser(_config, _logger);
 	_header_parsed = false;
 	_is_body_parsed = false;
 	delete _body_parser;
