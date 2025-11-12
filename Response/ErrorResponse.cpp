@@ -7,6 +7,7 @@ ErrorResponse::ErrorResponse(t_request* req_data, Status& status, const t_config
 ErrorResponse::~ErrorResponse() {
 }
 
+
 void ErrorResponse::send_error_page(int code, const std::string& error_msg, std::string& body,
 									std::string& headers) {
 	add_header("content-type", "text/html", headers);

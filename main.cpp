@@ -5,7 +5,6 @@
 #include "Server/Server.hpp"
 #include "ServerLogger.hpp"
 #include "colors.hpp"
-#include "fs.hpp"
 
 int main(int argc, char** argv) {
 	std::string fileName;
@@ -18,33 +17,28 @@ int main(int argc, char** argv) {
 	} else if (argc == 2) {
 		fileName = argv[argc - 1];
 	}
-	std::vector<t_config> config;
+	std::vector<t_config> configs;
 	try {
 		Parser parser(fileName.c_str());
-		config = parser.getConfigStruct();
-
+		configs = parser.getConfigStruct();
 	} catch (const std::exception& e) {
 		std::cerr << e.what() << '\n';
 		return 1;
 	}
-	// try {
-		ServerLogger server_logger("./Logs/");
-		Status status = server_logger.init();
-		if (!status) {
-			std::cout << "[ServerLogger] " << RED300 << "Fatal Error: " << RESET << status.msg()
-					  << std::endl;
-			return 1;
-		}
-		Server server(config, server_logger);
-		status = server.launch();
-		if (!status) {
-			std::cout << "[Server] " << RED300 << "Fatal Error: " << RESET << status.msg()
-					  << std::endl;
-			return 1;
-		}
-	// } catch (const std::exception& e) {
-	// 	std::cout << "[Server] " << RED300 << "Fatal Error: " << RESET << e.what() << std::endl;
-	// 	return 1;
-	// }
+	ServerLogger server_logger("./Logs/");
+	Status status = server_logger.init();
+	if (!status) {
+		std::cout << "[ServerLogger] " << RED300 << "Fatal Error: " << RESET << status.msg()
+				  << std::endl;
+		return 1;
+	}
+	Server server(configs, server_logger);
+	try {
+		server.launch();
+	} catch (const std::exception& e) {
+		std::cout << "[Server] " << RED300 << "Fatal Error: " << RESET << e.what() << std::endl;
+		return 1;
+	}
+
 	return 0;
 }

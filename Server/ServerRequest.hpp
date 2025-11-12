@@ -9,6 +9,14 @@
 #include <string>
 #include <vector>
 
+class RequestType {
+public:
+	enum {
+		STANDARD_REQUEST,
+		CGI_REQUEST
+	};
+};
+
 typedef struct s_request_content {
 	std::string filename; // only filename extracted from the bottom part of the header 
 	std::string name; //dont use
@@ -56,6 +64,7 @@ typedef struct s_accept_item {
 // } t_uri_path;
 
 typedef struct s_request {
+	std::string session_id; //parse from client if exists, if not set to ""
 	std::string method;
 	std::string protocol_version;
 	std::string user_agent;
@@ -79,11 +88,15 @@ typedef struct s_request {
 	std::string path_parameter; //dont use for now
 	std::vector<std::string> path_queries; //cgi
 	std::vector<std::string> transfer_encoding;
+	std::string status_string;
 
 	std::list<t_request_content> content_data;
 
 	bool is_file_created; // TODO remove me
 	bool is_chunked_request;
+	RequestType requesst_type;
+	std::string cgi_bin;
+	bool is_cgi;
 
 	bool is_request_ready() const { return transfered_length >= content_length; }
 
@@ -91,7 +104,8 @@ typedef struct s_request {
 		: connection("keep-alive"),
 		  content_length(0),
 		  transfered_length(0),
-		  is_chunked_request(false) {}
+		  is_chunked_request(false),
+		  is_cgi(false) {}
 } t_request;
 
 #endif

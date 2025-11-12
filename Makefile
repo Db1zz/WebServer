@@ -1,7 +1,7 @@
 NAME = ./webserv
 INCLUDE_DIR = -I Sockets -I Server -I Response -I Parser -I Utilities -I Logger
 CXX = c++ -std=c++98 -g -static-libasan
-CXXFLAGS = -Wall -Wextra -Werror $(INCLUDE_DIR)
+CXXFLAGS = -Wall -Wextra $(INCLUDE_DIR)
 
 BUILDDIR = Build
 OBJSDIR = $(BUILDDIR)/Objs
@@ -29,12 +29,20 @@ SRCS = \
 	Server/RequestParser/RequestMultipartBodyParser.cpp \
 	Server/RequestParser/RequestRawBodyParser.cpp \
 	Server/RequestParser/RequestHeaderParser.cpp \
-	Server/ServerSocketManager.cpp \
+	Server/Exceptions/ExceptionsUtils.cpp \
+	Server/CGIFileDescriptor.cpp \
+	Server/CGIResponseParser.cpp \
+	Server/ServerUtils.cpp \
 	Server/ServerSocket.cpp \
+	Server/SessionStore.cpp \
 	Server/ClientSocket.cpp \
 	Server/Socket.cpp \
 	Server/Server.cpp \
 	Server/ServerEvent.cpp \
+	Server/IOCGIHandler.cpp \
+	Server/IOClientHandler.cpp \
+	Server/IOServerHandler.cpp \
+	Server/HTTPResponseSender.cpp \
 	Response/ServerResponse.cpp \
 	Response/JsonResponse.cpp \
 	Response/ErrorResponse.cpp \
@@ -47,6 +55,7 @@ SRCS = \
 	Utilities/fs.cpp \
 	Utilities/status.cpp \
 	Utilities/hash.cpp \
+	Utilities/timer.cpp \
 	Parser/Parser.cpp \
 	Parser/Token.cpp \
 
@@ -86,21 +95,21 @@ docker_build:
 run: docker_build
 	docker attach webserv
 
-# install_python_libs:
-# 	python3 -m venv $(VENV_DIR)
-# 	./$(VENV_DIR)/bin/pip install --upgrade pip
-# 	./$(VENV_DIR)/bin/pip install -r $(TESTS_DIR)/requirements.txt
+install_python_libs:
+	python3 -m venv $(VENV_DIR)
+	./$(VENV_DIR)/bin/pip install --upgrade pip
+	./$(VENV_DIR)/bin/pip install -r $(TESTS_DIR)/requirements.txt
 
-# prepare_test_env: all install_python_libs
+prepare_test_env: all install_python_libs
 
-# test: prepare_test_env
-# 	. $(VENV_DIR)/bin/activate; python3 ./$(TESTS_DIR)/test.py
+test: prepare_test_env
+	. $(VENV_DIR)/bin/activate; python3 ./$(TESTS_DIR)/test.py
 
 cmake_configure:
 	cmake -DCMAKE_BUILD_TYPE:STRING=Debug --no-warn-unused-cli -S $(UNIT_TESTS_DIR) -B $(BUILDDIR) -G "Unix Makefiles"
 
-test: all cmake_configure
-	cmake --build $(BUILDDIR) --config Debug --target all -j8	
-	ctest --test-dir $(BUILDDIR)
+# test: all cmake_configure
+# 	cmake --build $(BUILDDIR) --config Debug --target all -j8	
+# 	ctest --test-dir $(BUILDDIR)
 
 .PHONY: all clean fclean re run docker_build test install_python_libs prepare_test_env cmake_configure

@@ -11,9 +11,10 @@
 
 #include "ServerRequest.hpp"
 #include "ServerRequestParserHelpers.hpp"
+#include "ServerUtils.hpp"
 
-RequestHeaderParser::RequestHeaderParser(ServerLogger* logger)
-	: _end_found(false), _logger(logger) {
+RequestHeaderParser::RequestHeaderParser(const t_config* server_config, ServerLogger* logger)
+	: _end_found(false), _server_config(server_config), _logger(logger) {
 }
 
 Status RequestHeaderParser::feed(const std::string& content, size_t& body_start_pos) {
@@ -206,6 +207,7 @@ RequestHeaderParser::FPtrFieldParser RequestHeaderParser::get_field_parser_by_fi
 		parsers["connection"] = &RequestHeaderParser::parse_connection;
 		parsers["content-type"] = &RequestHeaderParser::parse_content_type;
 		parsers["transfer-encoding"] = &RequestHeaderParser::parse_transfer_encoding;
+		parsers["cookie"] = &RequestHeaderParser::parse_cookie;
 	}
 
 	std::map<const std::string, FPtrFieldParser>::const_iterator it = parsers.find(field_type);
@@ -503,7 +505,8 @@ Status RequestHeaderParser::parse_connection(const std::string& field_value, t_r
 	std::transform(lower_field_value.begin(), lower_field_value.end(), lower_field_value.begin(),
 				   static_cast<int (*)(int)>(std::tolower));
 
-	if (lower_field_value != "keep-alive" && lower_field_value != "transfer-encoding") {
+	if (lower_field_value != "keep-alive" && lower_field_value != "transfer-encoding" &&
+		lower_field_value != "close") {
 		log_error("RequestHeaderParser::parse_connection",
 				  std::string("unkown field: '") + field_value.substr(pos) + "'");
 		return Status::BadRequest();
@@ -526,10 +529,10 @@ bool RequestHeaderParser::is_content_type_valid(t_request& request) {
 }
 
 bool RequestHeaderParser::is_request_valid(t_request& request) {
-	if (request.host.empty()) {
-		log_error("RequestHeaderParser::is_request_valid", std::string("HOST was not provided"));
-		return false;
-	}
+	// if (request.host.empty()) {
+	// 	log_error("RequestHeaderParser::is_request_valid", std::string("HOST was not provided"));
+	// 	return false;
+	// }
 
 	// TODO: we can avoid content_length with POST method when chunked encoding is sent.
 	if (request.method == "POST" && request.content_length == 0) {
@@ -604,7 +607,8 @@ Status RequestHeaderParser::parse_content_type(const std::string& field_value, t
 	return Status::OK();
 }
 
-Status RequestHeaderParser::parse_encoding_types(const std::string& field_value, std::vector<std::string>& out) {
+Status RequestHeaderParser::parse_encoding_types(const std::string& field_value,
+												 std::vector<std::string>& out) {
 	if (field_value.empty()) {
 		log_error("RequestHeaderParser::parse_encoding_types", std::string("value is empty"));
 		return Status::BadRequest();
@@ -614,16 +618,19 @@ Status RequestHeaderParser::parse_encoding_types(const std::string& field_value,
 	size_t pos = 0;
 	std::vector<std::string> encoding_types;
 
-		while (pos < len) {
+	while (pos < len) {
 		std::string type;
-		pos = internal_server_request_parser::get_token_with_delim(field_value, pos, type, ",", true);
+		pos =
+			internal_server_request_parser::get_token_with_delim(field_value, pos, type, ",", true);
 		if (type.empty()) {
-			log_error("RequestHeaderParser::parse_encoding_types", std::string("type is empty in this field value: '") + field_value + "'");
+			log_error("RequestHeaderParser::parse_encoding_types",
+					  std::string("type is empty in this field value: '") + field_value + "'");
 			return Status::BadRequest();
 		}
 
 		if (!internal_server_request_parser::is_string_valid_token(type.c_str())) {
-			log_error("RequestHeaderParser::parse_encoding_types", std::string("type '") + type + "' is not a valid token");
+			log_error("RequestHeaderParser::parse_encoding_types",
+					  std::string("type '") + type + "' is not a valid token");
 			return Status::BadRequest();
 		}
 		encoding_types.push_back(type);
@@ -634,7 +641,8 @@ Status RequestHeaderParser::parse_encoding_types(const std::string& field_value,
 	return Status::OK();
 }
 
-Status RequestHeaderParser::parse_transfer_encoding(const std::string& field_value, t_request& request) {
+Status RequestHeaderParser::parse_transfer_encoding(const std::string& field_value,
+													t_request& request) {
 	return parse_encoding_types(field_value, request.transfer_encoding);
 }
 
@@ -657,6 +665,10 @@ Status RequestHeaderParser::parse_complete_header(t_request& request) {
 		log_error("RequestHeaderParser::parse_complete_header",
 				  std::string("failed to parse request line: '") + _buffer.substr(pos) + "'");
 		return status;
+	}
+
+	if (server_utils::get_cgi_bin(request.uri_path, *_server_config, request.cgi_bin)) {
+		request.is_cgi = true;
 	}
 
 	do {
@@ -690,6 +702,29 @@ Status RequestHeaderParser::parse_complete_header(t_request& request) {
 	return status;
 }
 
+Status RequestHeaderParser::parse_cookie(const std::string& field_value, t_request& request) {
+	std::string::size_type pos = field_value.find("session_id=");
+	if (pos == std::string::npos) {
+		return Status::OK();
+	}
+
+	pos += std::string("session_id=").size();
+	std::string::size_type end = field_value.find(';', pos);
+	std::string value;
+	if (end == std::string::npos) {
+		value = field_value.substr(pos);
+	} else {
+		value = field_value.substr(pos, end - pos);
+	}
+	size_t start = 0;
+	while (start < value.size() && isspace(static_cast<unsigned char>(value[start]))) ++start;
+	size_t finish = value.size();
+	while (finish > start && isspace(static_cast<unsigned char>(value[finish - 1]))) --finish;
+	request.session_id = value.substr(start, finish - start);
+
+	return Status::OK();
+}
+
 // request-line   = method SP request-target SP HTTP-version CRLF
 // method         = token
 // request-target = origin-form
@@ -697,15 +732,18 @@ Status RequestHeaderParser::parse_complete_header(t_request& request) {
 //                / authority-form
 //                / asterisk-form
 // HTTP-version   = "HTTP/" DIGIT "." DIGIT
-Status RequestHeaderParser::parse_request_line(const std::string& request_line, t_request& request) {
+Status RequestHeaderParser::parse_request_line(const std::string& request_line,
+											   t_request& request) {
 	Status status;
 	size_t pos = 0;
 	std::string method;
 	std::string uri_path;
 	std::string protocol_version;
 
-	pos = internal_server_request_parser::get_token_with_delims(request_line, pos, method, " ", true);
-	pos = internal_server_request_parser::get_token_with_delim(request_line, pos, uri_path, " ", true);
+	pos =
+		internal_server_request_parser::get_token_with_delims(request_line, pos, method, " ", true);
+	pos = internal_server_request_parser::get_token_with_delim(request_line, pos, uri_path, " ",
+															   true);
 	protocol_version = request_line.substr(pos);
 
 	if (method.empty() || uri_path.empty() || protocol_version.empty()) {
@@ -891,7 +929,7 @@ Status RequestHeaderParser::parse_absolute_path(const std::string& uri_path, t_r
 	}
 
 	request.uri_path = path;
-	internal_server_request_parser::extract_filename(request.uri_path, request.filename);
+	server_utils::get_filename(request.uri_path, request.filename);
 	internal_server_request_parser::extract_mime(request.filename, request.mime_type);
 	return Status::OK();
 }

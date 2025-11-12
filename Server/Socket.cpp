@@ -9,17 +9,21 @@
 #include <iostream>
 #include <stdexcept>
 
-Socket::Socket() : _port(-1), _socket_fd(-1), _socklen(-1) {
+#include "Exceptions/SystemException.hpp"
+#include "Exceptions/ServerException.hpp"
+
+Socket::Socket()
+	: FileDescriptor(FileDescriptor::SocketFD, -1),
+	  _socket_type(STANDARD_SOCKET),
+	  _port(-1),
+	  _socklen(-1) {
 }
 
-Socket::Socket(Socket& other) {
+Socket::Socket(Socket& other) : FileDescriptor(FileDescriptor::SocketFD, -1) {
 	*this = other;
 }
 
 Socket::~Socket() {
-	if (is_connected()) {
-		close_socket();
-	}
 }
 
 Socket& Socket::operator=(Socket& other) {
@@ -27,26 +31,23 @@ Socket& Socket::operator=(Socket& other) {
 		if (is_connected()) {
 			close_socket();
 		}
-		_socket_fd = other._socket_fd;
+		set_fd(other.get_fd());
 		_sockaddr = other._sockaddr;
 		_port = other._port;
 		_host = other._host;
-		other._socket_fd = -1;	
+		other.set_fd(-1);
 	}
 	return (*this);
 }
 
 /* getters */
-int Socket::get_fd() const {
-	return _socket_fd;
-}
 
 const struct sockaddr* Socket::get_address() const {
 	return &_sockaddr;
 }
 
-const std::string* Socket::get_host() const {
-	return &_host;
+const std::string& Socket::get_host() const {
+	return _host;
 }
 
 int Socket::get_port() const {
@@ -61,13 +62,13 @@ socklen_t Socket::get_socklen() const {
 void Socket::set_socket(int socket, const struct sockaddr* sockaddr, socklen_t socklen) {
 	_sockaddr = *sockaddr;
 	_socklen = socklen;
-	_socket_fd = socket;
+	set_fd(socket);
 
 	set_host_ipv4_address_from_sockaddr();
 	set_port_ipv4_from_sockaddr();
 }
 
-Status Socket::set_socket_option(SocketOption socket_option, SetMode mode) {
+void Socket::set_socket_option(SocketOption socket_option, SetMode mode) {
 	int mode_int = static_cast<int>(mode);
 	int socket_option_int;
 
@@ -75,33 +76,31 @@ Status Socket::set_socket_option(SocketOption socket_option, SetMode mode) {
 		socket_option_int = SO_REUSEADDR;
 	}
 
-	if (_socket_fd < 0) {
-		return Status("Socket failed to set option: socket is not created");
+	if (get_fd() < 0) {
+		throw ServerException(LOG_INFO(), "socket is not created");
 	}
 
-	if (setsockopt(_socket_fd, SOL_SOCKET, socket_option_int, &mode_int, sizeof(mode_int)) < 0) {
-		return Status(std::string("Socket failed to set option: ") + strerror(errno));
+	if (setsockopt(get_fd(), SOL_SOCKET, socket_option_int, &mode_int, sizeof(mode_int)) < 0) {
+		throw SystemException(LOG_INFO(), std::string("setsockopt()") + strerror(errno));
 	}
-	return Status::OK();
 }
 
-Status Socket::is_connected() const {
-	if (_socket_fd < 0) {
-		return Status("Socket fd is < 0");
-	}
-	return Status::OK();
+bool Socket::is_connected() const {
+	return _fd >= 0;
 }
 
 /* general functions */
-Status Socket::close_socket() {
-	if (close(_socket_fd) < 0) {
-		return Status(std::string("close() ") + strerror(errno));
+void Socket::close_socket() {
+	if (get_fd() >= 0) {
+		close_fd();
 	}
-	_socket_fd = -1;
-	return Status::OK();
 }
 
-Status Socket::set_host_ipv4_address_from_sockaddr() {
+Socket::SocketType Socket::get_socket_type() const {
+	return _socket_type;
+}
+
+void Socket::set_host_ipv4_address_from_sockaddr() {
 	const struct sockaddr_in* ipv4_address =
 		reinterpret_cast<const struct sockaddr_in*>(&_sockaddr);
 	const unsigned char* octets =
@@ -114,13 +113,7 @@ Status Socket::set_host_ipv4_address_from_sockaddr() {
 	}
 	ss << static_cast<int>(octets[amount_of_octets - 1]);
 
-	try {
-		_host = ss.str();
-	} catch (const std::exception& e) {
-		return Status(e.what());
-	}
-
-	return Status::OK();
+	_host = ss.str();
 }
 
 void Socket::set_port_ipv4_from_sockaddr() {

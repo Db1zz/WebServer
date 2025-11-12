@@ -16,12 +16,14 @@
 #include "../Utilities/colors.hpp"
 #include "../Utilities/fs.hpp"
 #include "../Utilities/status.hpp"
+#include "../Utilities/hash.hpp"
 #include "Chunk.hpp"
 #include "ClientSocket.hpp"
 #include "ErrorResponse.hpp"
 #include "FileUtils.hpp"
 #include "JsonResponse.hpp"
 #include "Server.hpp"
+#include "../Server/SessionStore.hpp"
 #include "ServerConfig.hpp"
 #include "ServerRequest.hpp"
 #include "ServerResponse.hpp"
@@ -30,20 +32,20 @@
 #define PAGE_404 "Pages/404.html"
 #define STYLESHEET "Pages/styles.css"
 
-class ClientSocket;
 class JsonResponse;
 class ErrorResponse;
 class FileUtils;
 
 class ServerResponse {
    public:
-	ServerResponse(ClientSocket* client_socket, const t_config& server_data);
+	ServerResponse(t_request* request, const t_config& server_data, const Status& status, SessionStore* session_store = NULL);
 	~ServerResponse();
 
 	ServerResponse& header(const std::string& key, const std::string& value);
 	ServerResponse& handle_get_method(const t_location& loc);
 	Status generate_response();
-	Status generate_cgi_response(Status status, std::string& cgi_body);
+	Status generate_cgi_response();
+	Status generate_error_response();
 	void serve_default_root();
 	bool serve_file(const std::string& path, bool is_error_page);
 
@@ -77,12 +79,18 @@ class ServerResponse {
 	bool _needs_streaming;
 	std::string _stream_file_path;
 	const t_location* _stream_location;
+	SessionStore* _session_store;
 
 	void handle_directory(const t_location& location);
 	void handle_file_upload();
 	void handle_file_delete();
 	void set_binary_headers();
 	void choose_method(const t_location& location);
+
+	void handle_auth_login();
+	void handle_auth_session();
+	void handle_auth_logout();
+	std::string get_query_param(const std::string& key) const;
 };
 
 #endif

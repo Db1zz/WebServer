@@ -4,8 +4,12 @@
 #include <errno.h>
 
 #include "ClientSocket.hpp"
+#include "ServerLogger.hpp"
+#include "Exceptions/SystemException.hpp"
 
-ServerSocket::ServerSocket(const std::string& host, int port) {
+ServerSocket::ServerSocket(const std::string& host, int port, const t_config* server_config, ServerLogger* server_logger)
+	: Socket(), _server_config(server_config), _server_logger(server_logger) {
+	_socket_type = Socket::SERVER_SOCKET;
 	_host = host;
 	_port = port;
 	struct sockaddr_in* sockaddr = (struct sockaddr_in*) &_sockaddr;
@@ -15,46 +19,53 @@ ServerSocket::ServerSocket(const std::string& host, int port) {
 	sockaddr->sin_addr.s_addr = inet_addr(_host.c_str());
 }
 
-Status ServerSocket::open_socket() {
-	Status status;
-
-	status = create_server_socket();
-	if (!status) {
-	return status;
-	}
-
-	status = set_socket_option(kReuseAddr, kSet);
-	if (!status) {
-		return status;
-	}
-
-	if (bind(_socket_fd, &_sockaddr, _socklen) < 0) {
-		return Status(std::string("ServerSocket failed to bind socket: ") + strerror(errno));
-	}
-	if (listen(_socket_fd, SOCKET_DEFAULT_MAX_CONNECTIONS) < 0) {
-		return Status(std::string("ServerSocket failed to listen socket: ") + strerror(errno));
-	}
-
-	return Status();
+ServerSocket::~ServerSocket() {
+	stop();
 }
 
-Status ServerSocket::accept_connection(ClientSocket& empty_client_socket) {
+void ServerSocket::start() {
+	open_socket();
+}
+
+void ServerSocket::stop() {
+	close_socket();
+}
+
+void ServerSocket::accept_connection(ClientSocket& empty_client_socket) {
 	struct sockaddr sockaddr;
 	socklen_t socklen = sizeof(sockaddr);
 
-	empty_client_socket.set_socket(accept(_socket_fd, &sockaddr, &socklen), &sockaddr, socklen);
+	empty_client_socket.set_socket(accept(get_fd(), &sockaddr, &socklen), &sockaddr, socklen);
 	if (empty_client_socket.get_fd() < 0) {
-		return Status(strerror(errno));
+		throw SystemException(LOG_INFO(), strerror(errno));
 	}
-	empty_client_socket.set_server_fd(_socket_fd);
-
-	return Status();
+	empty_client_socket.set_server_fd(get_fd());
 }
 
-Status ServerSocket::create_server_socket() {
-	_socket_fd = socket(AF_INET, SOCK_STREAM, 0);
-	if (_socket_fd < 0) {
-		return Status("ServerSocket failed to create a socket: " + std::string(strerror(errno)));
+const t_config& ServerSocket::get_server_config() const {
+	return *_server_config;
+}
+
+void ServerSocket::open_socket() {
+	create_server_socket();
+	set_socket_option(kReuseAddr, kSet);
+
+	if (bind(get_fd(), &_sockaddr, _socklen) < 0) {
+		throw SystemException(LOG_INFO(), "bind()" + std::string(strerror(errno)));
 	}
-	return Status();
+
+	if (listen(get_fd(), SOCKET_DEFAULT_MAX_CONNECTIONS) < 0) {
+		throw SystemException(LOG_INFO(), "listen()" + std::string(strerror(errno)));
+	}
+}
+
+void ServerSocket::create_server_socket() {
+	set_fd(socket(AF_INET, SOCK_STREAM, 0));
+	if (get_fd() < 0) {
+		throw SystemException(LOG_INFO(), "socket()" + std::string(strerror(errno)));
+	}
+}
+
+SessionStore& ServerSocket::get_session_store() {
+	return _session_store;
 }

@@ -5,11 +5,12 @@
 
 #include "ServerLogger.hpp"
 #include "ServerRequest.hpp"
+#include "ServerConfig.hpp"
 #include "status.hpp"
 
 class RequestHeaderParser {
    public:
-	RequestHeaderParser(ServerLogger* logger = NULL);
+	RequestHeaderParser(const t_config* server_config, ServerLogger* logger = NULL);
 	Status feed(const std::string& content, size_t& body_start_pos);
 	Status apply(t_request& request);
 
@@ -23,6 +24,7 @@ class RequestHeaderParser {
 	Status parse_complete_header(t_request& request);
 
 	// field parsers
+	Status parse_cookie(const std::string& field_value, t_request& request);
 	Status parse_host(const std::string& field_value, t_request& request);
 	Status parse_content_length(const std::string& field_value, t_request& request);
 	Status parse_user_agent(const std::string& field_value, t_request& request);
@@ -50,12 +52,12 @@ class RequestHeaderParser {
 	bool is_protocol_valid(const std::string& protocol_version);
 
 	typedef Status (RequestHeaderParser::*FPtrFieldParser)(const std::string&, t_request&);
-
 	FPtrFieldParser get_field_parser_by_field_type(const std::string& field_type);
 
 	void log_error(const std::string& failed_component, const std::string& message) const;
 	std::string _buffer;
 	bool _end_found;
+	const t_config* _server_config;
 	ServerLogger* _logger;
 };
 

@@ -3,11 +3,12 @@
 
 #include <string>
 #include <netinet/in.h>
-#include <status.hpp>
+
+#include "FileDescriptor.hpp"
 
 #define SOCKET_DEFAULT_MAX_CONNECTIONS 100024
 
-class Socket {
+class Socket : public FileDescriptor {
 public:
 	enum SocketOption {
 		kReuseAddr
@@ -20,9 +21,9 @@ public:
 	};
 
 	enum SocketType {
+		STANDARD_SOCKET,
 		CLIENT_SOCKET,
-		SERVER_SOCKET, 
-		CGI_SOCKET
+		SERVER_SOCKET,
 	};
 
 	Socket();
@@ -30,26 +31,26 @@ public:
 	virtual ~Socket();
 	Socket &operator=(Socket &other);
 
-	int get_fd() const;
 	const struct sockaddr *get_address() const;
 	socklen_t get_socklen() const;
-	const std::string *get_host() const;
+	const std::string &get_host() const;
 	int get_port() const;
 
 	void set_socket(int socket, const struct sockaddr *sockaddr, socklen_t socklen);
-	Status set_socket_option(SocketOption socket_option, SetMode mode);
+	void set_socket_option(SocketOption socket_option, SetMode mode);
 
-	Status is_connected() const;
-	Status close_socket();
+	bool is_connected() const;
+	void close_socket();
+	SocketType get_socket_type() const;
 
 private:
-	Status set_host_ipv4_address_from_sockaddr();
+	void set_host_ipv4_address_from_sockaddr();
 	void set_port_ipv4_from_sockaddr();
 
 protected:
+	SocketType _socket_type;
 	std::string _host;
 	int _port;
-	int _socket_fd;
 	struct sockaddr _sockaddr;
 	socklen_t _socklen;
 };

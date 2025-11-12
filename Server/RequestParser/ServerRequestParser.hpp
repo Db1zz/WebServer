@@ -8,16 +8,17 @@
 class Status;
 class ServerLogger;
 class IRequestBodyParser;
+typedef struct s_config t_config;
 typedef struct s_request t_request;
 
 class ServerRequestParser {
    public:
-	explicit ServerRequestParser(t_request* request, ServerLogger* logger = NULL);
+	explicit ServerRequestParser(t_request* request, const t_config* config, ServerLogger* logger = NULL);
 	~ServerRequestParser();
 
 	Status parse_header(const std::string& content, std::string& body_out);
 	Status parse_body(const std::string& content);
-	bool is_cgi_request() const;
+	void reset();
 	bool is_header_parsed() const;
 	bool is_body_parsed() const;
 	bool is_finished() const;
@@ -26,12 +27,12 @@ class ServerRequestParser {
 	void create_body_parser();
 
    private:
+	const t_config* _config;
 	ServerLogger* _logger;
 
 	RequestHeaderParser _header_parser;
 	IRequestBodyParser* _body_parser;
 
-	bool _is_cgi;
 	bool _header_parsed;
 	bool _is_body_parsed;
 

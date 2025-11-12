@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+
+
+<head>
+	<link rel="stylesheet" href="styles.css">
+	<script src="login.js" defer></script>
+	<meta charset="UTF-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Login</title>
+</head>
+
+<body>
+
+	<div class="header">
+		<a href="/" class="home">home</a>
+		<div class="header-right">
+			<a href="form.html">form</a>
+			<a href="upload.html">upload</a>
+			<a href="files.html">files</a>
+			<a href="cgi.html">cgi</a>
+			<a class="active" href="login.html">login</a>
+		</div>
+	</div>
+
+	<div class="upload-container login-container" id="login-container">
+		<h2 class="login-title">sign in</h2>
+		<form id="loginForm" class="login-form">
+			<div class="form-row">
+				<label class="contact__label" for="username">username</label>
+				<input id="username" name="username" type="text" class="contact__input" required />
+			</div>
+			<div class="form-row">
+				<label class="contact__label" for="password">password</label>
+				<input id="password" name="password" type="password" class="contact__input" required />
+			</div>
+			<div class="form-row text-center">
+				<button type="submit" class="main_button">login</button>
+			</div>
+		</form>
+		<div id="login-error" class="login-error"></div>
+	</div>
+
+	<div id="login-result"></div>
+
+</body>
+
+</html>

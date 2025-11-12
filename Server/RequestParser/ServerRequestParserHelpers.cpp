@@ -151,11 +151,12 @@ size_t get_token_with_delim(const std::string& data, size_t start, std::string& 
 	return start + result.size();
 }
 
-// Status parse_nonencoded_filename(const std::string& filename) {
-// 	Status status;
+Status parse_nonencoded_filename(const std::string& filename) {
+	(void)filename;  // Suppress unused parameter warning
+	Status status;
 
-// 	return status;
-// } //?delete
+	return status;
+}
 
 // syntax: <charset>'<language>'<percent-encoded-octets>
 // the file name must already be separated from the path part, without the leading / character
@@ -191,8 +192,8 @@ Status parse_encoded_filename(const std::string& encoded_filename, std::string& 
 
 Status decode_filename(const std::string& charset, const std::string& language,
 					   const std::string& encoded_filename, std::string& decoded_filename) {
-	(void)charset;  // ?delete from parameters(unused)
-	(void)language; // ?delete from parameters(unused)
+	(void)charset;   // Suppress unused parameter warning
+	(void)language;  // Suppress unused parameter warning
 	Status status;
 	std::string decoded_buffer;
 
@@ -248,8 +249,7 @@ Status utf8_char_decoder(const std::string& string, size_t char_pos, std::string
 			   leading_byte <= static_cast<u_int8_t>('\xF4')) {
 		continuation_byte_size = 3;
 	} else {
-		// TODO utf8_decoder error?
-		return Status::BadRequest();
+		continuation_byte_size = 0;
 	}
 
 	buffer += static_cast<char>(leading_byte);
@@ -274,6 +274,7 @@ bool is_quoted_pair_char(unsigned char c) {
 }
 
 Status parse_quoted_string(const std::string& s, size_t pos, size_t& next_pos, std::string& out) {
+	const size_t ows_last_char_pos = 2;
 	const size_t escape_last_char_pos = 1;
 	const size_t len = s.size();
 	std::string buffer;
@@ -282,7 +283,6 @@ Status parse_quoted_string(const std::string& s, size_t pos, size_t& next_pos, s
 		return Status::InvalidFilenameFormat();
 	}
 	++pos;
-	skip_ws(s, pos);
 
 	while (pos < len && s[pos] != '\"') {
 		if (pos + escape_last_char_pos < len && s[pos] == '\\') {
@@ -291,6 +291,14 @@ Status parse_quoted_string(const std::string& s, size_t pos, size_t& next_pos, s
 			}
 			buffer.push_back(s[pos + escape_last_char_pos]);
 			pos += escape_last_char_pos + 1;
+			continue;
+		}
+		if (pos + ows_last_char_pos < len && is_ows(s.c_str() + pos)) {
+			pos = s.find_first_not_of("	 ", pos + ows_last_char_pos + 1);
+			if (pos == std::string::npos) {
+				return Status::InvalidFilenameFormat();
+			}
+			buffer.push_back(' ');
 			continue;
 		} else if (!is_qd_text(s[pos])) {
 			return Status::InvalidFilenameFormat();
@@ -306,16 +314,6 @@ Status parse_quoted_string(const std::string& s, size_t pos, size_t& next_pos, s
 	return Status::OK();
 }
 
-void extract_filename(const std::string& full_path, std::string& out) {
-	size_t last_slash_pos = 0;
-
-	last_slash_pos = full_path.find_last_of("/");
-	if (last_slash_pos == std::string::npos) {
-		return;
-	}
-	out = full_path.substr(last_slash_pos + 1);
-}
-
 void extract_mime(const std::string& filename, std::string& out) {
 	size_t last_slash_pos = 0;
 
@@ -327,7 +325,7 @@ void extract_mime(const std::string& filename, std::string& out) {
 }
 
 void skip_ws(const std::string& s, size_t& pos) {
-	while (is_ws(s[pos])) {
+	while (internal_server_request_parser::is_ws(s[pos])) {
 		++pos;
 	}
 }

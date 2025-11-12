@@ -1,10 +1,6 @@
 #ifndef SERVER_SERVER_HPP
 #define SERVER_SERVER_HPP
 
-#include <netdb.h> /* getnameinfo() */
-#include <unistd.h>
-
-#include <iostream>
 #include <map>
 #include <string>
 #include <vector>
@@ -12,57 +8,33 @@
 #include "ServerConfig.hpp"
 #include "ServerEvent.hpp"
 #include "ServerRequest.hpp"
-#include "colors.hpp"
 
-#define SERVER_DEFAULT_ADDR LOCALHOST_ADDR
-#define SERVER_DEFAULT_PORT "80"
-#define LOCALHOST_ADDR "127.0.0.1"
 #define WS_PROTOCOL "HTTP/1.1"
-#define IPV4_STR_MAX_SIZE 15
-#define IPV4_OCTETS_SIZE 4
-#define READ_BUFFER_SIZE 100000
 
-class Status;
-class Socket;
-class ClientSocket;
-class ServerSocket;
-class ServerSocketManager;
 class ServerLogger;
+class IEventContext;
 
 class Server {
    public:
 	Server(const std::vector<t_config>& configs, ServerLogger& server_logger);
 	~Server();
-	Status launch();
+	void launch();
 
    private:
-	bool is_a_new_connection(const epoll_event& event);
-	Status handle_new_connection_event(const epoll_event& connection_event);
-	Status handle_request_event(const epoll_event& request_event);
-
-	Status receive_request_header(ClientSocket* client_socket);
-
-	Status receive_request_body_chunk(ClientSocket* client_socket);
-	Status create_cgi_process(ClientSocket* client_socket);
-	Status handle_cgi_request(ClientSocket* client_socket, int event_fd);
-
-	Status handle_normal_request(ClientSocket* client_socket);
-	Status handle_event(int amount_of_events);
-	Status read_data(ClientSocket* client_socket, std::string& buff, int& rd_bytes);
-	Status response_handler(ClientSocket* client_socket);
-	Status create_server_socket_manager(const std::string& host, int port,
-										const t_config& server_config);
-	Status create_sockets_from_config(const t_config& server_config);
-	Status create_sockets_from_configs(const std::vector<t_config>& configs);
+	void handle_epoll_event(int amount_of_events);
+	void create_server_socket(const std::string& host, int port, const t_config& server_config);
+	void create_sockets_from_config(const t_config& server_config);
+	void create_sockets_from_configs(const std::vector<t_config>& configs);
 	void print_debug_addr(const std::string& address, int port);
-	ServerSocketManager* find_server_socket_manager(int server_socket_fd);
-	void destroy_all_server_socket_managers();
+
+	bool check_if_can_destroy_event(int events, IEventContext& event_context,
+									std::map<int, IEventContext*>& events_to_destroy);
+	bool is_object_expired(IEventContext& event_context);
+	void destroy_events(std::map<int, IEventContext*>& events);
 
 	std::vector<t_config> _configs;
-	std::map<int, ServerSocketManager*> _server_socket_managers;
 	ServerEvent _event;
 	ServerLogger& _server_logger;
-
 };
 
 #endif // SERVER_SERVER_HPP
