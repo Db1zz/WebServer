@@ -12,12 +12,12 @@ ServerResponse::ServerResponse(t_request* request, const t_config& server_data, 
 	  _req_data(request),
 	  _json_handler(NULL),
 	  _error_handler(NULL),
-	  _file_utils(NULL),
-	  _is_chunked(false),
-	  _needs_streaming(false),
-	  _response(""),
-	  _stream_location(NULL),
-	  _session_store(session_store) {
+	_file_utils(NULL),
+	_response(""),
+	_is_chunked(false),
+	_needs_streaming(false),
+	_stream_location(NULL),
+	_session_store(session_store) {
 	_json_handler = new JsonResponse(_req_data, this->status);
 	_error_handler = new ErrorResponse(_req_data, this->status, _server_data);
 	_file_utils = new FileUtils(_req_data, _server_data);
