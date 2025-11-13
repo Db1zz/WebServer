@@ -12,7 +12,7 @@ function createUploadModal() {
 	const modal = document.createElement('div');
 	modal.className = 'modal';
 	modal.style.display = 'none';
-	modal.innerHTML = '<div class="modal-content"><h3>please do not close this page</h3><p>your upload is in progress. u dont want your files to be only partially uploaded, right?.</p><div class="btn-spinner" aria-hidden="true"></div></div>';
+	modal.innerHTML = '<div class="modal-content"><h3>please do not close this page</h3><p>your upload is in progress. u dont want your files to be only partially uploaded, right?</p><div class="btn-spinner" aria-hidden="true"></div></div>';
 	document.body.appendChild(modal);
 	return modal;
 }
