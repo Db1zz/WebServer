@@ -47,6 +47,7 @@ class ServerResponse {
 	Status generate_cgi_response();
 	Status generate_error_response();
 	void serve_default_root();
+	void construct_response_line();
 	bool serve_file(const std::string& path, bool is_error_page);
 
 	std::string get_body_size() const;

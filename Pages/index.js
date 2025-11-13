@@ -15,13 +15,30 @@ function createFileElement(filename) {
 	const downloadButton = document.createElement("button");
 	downloadButton.textContent = "Download";
 	downloadButton.className = "file-download-button";
-	downloadButton.onclick = () => {
-		const link = document.createElement('a');
-		link.href = `/Uploads/${filename}`;
-		link.download = filename;
-		document.body.appendChild(link);
-		link.click();
-		document.body.removeChild(link);
+	downloadButton.onclick = async () => {
+		if (downloadButton.disabled) return;
+		downloadButton.disabled = true;
+		const origText = downloadButton.textContent;
+		downloadButton.textContent = 'Downloading...';
+		try {
+			const resp = await fetch(`/Uploads/${filename}`);
+			if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+			const blob = await resp.blob();
+			const url = URL.createObjectURL(blob);
+			const link = document.createElement('a');
+			link.href = url;
+			link.download = filename;
+			document.body.appendChild(link);
+			link.click();
+			document.body.removeChild(link);
+			setTimeout(() => URL.revokeObjectURL(url), 10000);
+		} catch (err) {
+			console.error('download error', err);
+			alert('Failed to download file.');
+		} finally {
+			downloadButton.disabled = false;
+			downloadButton.textContent = origText;
+		}
 	};
 
 	const deleteButton = document.createElement("button");
