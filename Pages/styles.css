@@ -626,3 +626,36 @@ button:hover,
 		padding: 20px;
 	}
 }
+
+.disabled,
+.file-button-group button.disabled,
+button.disabled,
+.main_button.disabled {
+	opacity: 0.6;
+	pointer-events: none;
+}
+
+
+.btn-spinner {
+	display: inline-block;
+	width: 16px;
+	height: 16px;
+	border: 2px solid rgba(255, 255, 255, 0.35);
+	border-top-color: rgba(255, 255, 255, 0.9);
+	border-radius: 50%;
+	animation: spin 1s linear infinite;
+	vertical-align: middle;
+	margin-left: 8px;
+}
+
+@keyframes spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+.drop-area.disabled {
+	opacity: 0.7;
+	pointer-events: none;
+	background: #EFEFEF;
+}

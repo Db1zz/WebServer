@@ -62,8 +62,25 @@ function updateFileInput() {
 document.addEventListener('DOMContentLoaded', function () {
 	const form = document.querySelector('form');
 	if (!form) return;
+	let isUploading = false;
+	const submitBtn = form.querySelector('button[type="submit"]') || form.querySelector('button');
+	const dropAreaEl = document.getElementById('drop-area');
+
+	function setUploading(state) {
+		isUploading = state;
+		if (submitBtn) {
+			submitBtn.disabled = state;
+			submitBtn.dataset.origText = submitBtn.dataset.origText || submitBtn.textContent;
+			submitBtn.textContent = state ? 'Uploading...' : (submitBtn.dataset.origText || 'upload');
+			submitBtn.classList.toggle('disabled', state);
+		}
+		if (fileInput) fileInput.disabled = state;
+		if (dropAreaEl) dropAreaEl.classList.toggle('disabled', state);
+	}
+
 	form.addEventListener('submit', async function (e) {
 		e.preventDefault();
+		if (isUploading) return;
 		const fileInput = document.getElementById('file');
 		const files = fileInput.files;
 		if (!files.length) {
@@ -75,6 +92,7 @@ document.addEventListener('DOMContentLoaded', function () {
 			formData.append('file', files[i]);
 		}
 		try {
+			setUploading(true);
 			const response = await fetch('/Uploads/', {
 				method: 'POST',
 				body: formData
@@ -97,6 +115,8 @@ document.addEventListener('DOMContentLoaded', function () {
 			}
 		} catch (err) {
 			alert('An error occurred while uploading.');
+		} finally {
+			setUploading(false);
 		}
 	});
 });
