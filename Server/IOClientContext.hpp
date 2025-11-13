@@ -38,7 +38,7 @@ class IOClientContext : public IIOContext {
 		: client_socket(client_socket),
 		  server_socket(server_socket),
 		  server_logger(server_logger),
-		  parser(&request, &server_socket.get_server_config(), server_logger),
+		  parser(&server_socket.get_server_config(), server_logger),
 		  is_cgi_request_finished(false),
 		  cgi_started(false),
 		  cgi_fd(-1) {}

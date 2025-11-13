@@ -6,44 +6,65 @@
 #include "ServerConfig.hpp"
 #include "status.hpp"
 
-ServerRequestParser::ServerRequestParser(t_request* request, const t_config* config, ServerLogger* logger)
+ServerRequestParser::ServerRequestParser(const t_config* config, ServerLogger* logger)
 	: 
 	  _config(config),
 	  _logger(logger),
 	  _header_parser(config, logger),
 	  _body_parser(NULL),
 	  _header_parsed(false),
-	  _request(request) {
+	  _body_parsed(false) {
 }
 
 ServerRequestParser::~ServerRequestParser() {
 	delete _body_parser;
 }
 
-Status ServerRequestParser::parse_header(const std::string& content, std::string& body_out) {
+Status ServerRequestParser::parse(const std::string& content, t_request& request) {
+	Status status;
+	size_t body_pos_start = 0;
+
+	if (_header_parsed == false) {
+		status = parse_header(content, body_pos_start, request);
+		if (!status) {
+			if (_logger != NULL) {
+				_logger->log_error("ServerRequestParser::parse()", "failed to parse header: " + status.msg());
+			}
+			return status;
+		}
+	}
+	if (_header_parsed == true && _body_parser != NULL) {
+		status = parse_body(content, body_pos_start, request);
+		if (!status) {
+			if (_logger != NULL) {
+				_logger->log_error("ServerRequestParser::parse()", "failed to parse body: " + status.msg());
+			}
+			return status;
+		}
+	}
+
+	return status;
+}
+
+Status ServerRequestParser::parse_header(const std::string& content, size_t& body_pos_start, t_request& request) {
 	if (_header_parsed == true) {
 		return Status::OK();
 	}
 
 	Status status;
-	size_t cursor_pos;
 
-	status = _header_parser.feed(content, cursor_pos);
+	status = _header_parser.feed(content, body_pos_start);
 	if (!status) {
 		return status;
 	}
 
-	status = _header_parser.apply(*_request);
+	status = _header_parser.apply(request);
 	if (!status || status.error() == DataIsNotReady) {
 		return status;
 	}
 
-	if (cursor_pos != content.size()) {
-		body_out = content.substr(cursor_pos);
-	}
-
-	if (_request->method == "POST" || _request->is_cgi == true) {
-		create_body_parser();
+	if (request.method == "POST" || request.is_cgi == true) {
+		create_body_parser(request);
 	}
 
 	_header_parsed = true;
@@ -51,20 +72,24 @@ Status ServerRequestParser::parse_header(const std::string& content, std::string
 	return Status::OK();
 }
 
-Status ServerRequestParser::parse_body(const std::string& content) {
-	if (_header_parsed == false) {
-		return Status::DataIsNotReady();
-	} else if (_body_parser == NULL) {
-		return Status::OK();
-	}
-
+Status ServerRequestParser::parse_body(const std::string& content, size_t body_pos_start, t_request& request) {
 	Status status;
-	status = _body_parser->feed(content, 0);
+
+	status = _body_parser->feed(content, body_pos_start);
 	if (!status) {
 		return status;
 	}
+
 	if (status != DataIsNotReady) {
-		_body_parser->apply(*_request);
+		_body_parser->apply(request);
+	}
+
+	if (is_body_parsed() == true) {
+		_body_parsed = true;
+	}
+
+	if (_body_parsed == true && request.transfered_length != request.content_length) {
+		return Status::BadRequest();
 	}
 
 	return Status::OK();
@@ -73,7 +98,7 @@ Status ServerRequestParser::parse_body(const std::string& content) {
 void ServerRequestParser::reset() {
 	_header_parser = RequestHeaderParser(_config, _logger);
 	_header_parsed = false;
-	_is_body_parsed = false;
+	_body_parsed = false;
 	delete _body_parser;
 	_body_parser = NULL;
 }
@@ -90,18 +115,14 @@ bool ServerRequestParser::is_finished() const {
 	return is_header_parsed() && is_body_parsed();
 }
 
-// void ServerRequestParser::reset() {
-// 	delete _body_parser;
-// }
-
-void ServerRequestParser::create_body_parser() {
-	if (_request->is_cgi) {
-		_body_parser = new RequestRawBodyParser(_request->content_length, InFile);
-	} else if (_request->content_type.type == "multipart" &&
-			   _request->content_type.subtype == "form-data") {
-		const std::string* boundary = _request->content_type.find_parameter("boundary");
-		_body_parser = new RequestMultipartParser(*boundary, _request->content_length, _logger);
+void ServerRequestParser::create_body_parser(t_request& request) {
+	if (request.is_cgi) {
+		_body_parser = new RequestRawBodyParser(request.content_length, InFile);
+	} else if (request.content_type.type == "multipart" &&
+			   request.content_type.subtype == "form-data") {
+		const std::string* boundary = request.content_type.find_parameter("boundary");
+		_body_parser = new RequestMultipartParser(*boundary, request.content_length, _logger);
 	} else {
-		_body_parser = new RequestRawBodyParser(_request->content_length, InBuffer);
+		_body_parser = new RequestRawBodyParser(request.content_length, InBuffer);
 	}
 }

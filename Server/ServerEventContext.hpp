@@ -15,6 +15,7 @@ public:
 	~ServerEventContext() {
 		delete _io_handler;
 		delete _io_context;
+		delete _fd;
 		delete _timer;
 	}
 

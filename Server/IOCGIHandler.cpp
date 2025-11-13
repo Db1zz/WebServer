@@ -25,6 +25,10 @@ IOCGIHandler::IOCGIHandler(CGIFileDescriptor& cgi_fd, IOCGIContext& io_cgi_conte
 }
 
 IOCGIHandler::~IOCGIHandler() {
+	if (_io_cgi_context.cgi_pid > 0) {
+		kill(_io_cgi_context.cgi_pid, SIGKILL);
+		_io_cgi_context.cgi_pid = -1;
+	}
 }
 
 void IOCGIHandler::handle(void* data) {
@@ -77,6 +81,7 @@ void IOCGIHandler::handle_timeout(std::string& result) {
 	_io_client_context.is_cgi_request_finished = true;
 	_status = Status::GatewayTimeout();
 	kill(_io_cgi_context.cgi_pid, SIGKILL);
+	_io_cgi_context.cgi_pid = -1;
 }
 
 bool IOCGIHandler::handle_default(std::string& result) {

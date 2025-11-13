@@ -57,7 +57,7 @@ Status Chunk::stream_file_chunked(const std::string& file_path, int client_fd, c
 			if (++chunk_count % 100 == 0)
 				usleep(1000);
 		}
-	}
+		}
 	std::string final_chunk = generate_final_chunk();
 	if (write(client_fd, final_chunk.c_str(), final_chunk.size()) < 0) {
 		file.close();

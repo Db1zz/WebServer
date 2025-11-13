@@ -14,7 +14,7 @@ HTTPResponseSender::HTTPResponseSender(ClientSocket& client_socket, t_request* r
 
 Status HTTPResponseSender::send(const Status& status) {
 	ServerResponse resp(_request, *_server_config, status, &_server_socket->get_session_store());
-	resp.generate_response();
+	Status response_status = resp.generate_response();
 
 	if (resp.status.code() == 100) {
 		return Status();
@@ -31,5 +31,5 @@ Status HTTPResponseSender::send(const Status& status) {
 		if (write(_client_socket.get_fd(), res.c_str(), res.size()) < 0)
 			return Status("failed to send response to client");
 	}
-	return Status::OK();
+	return response_status;
 }

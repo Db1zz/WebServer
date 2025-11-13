@@ -52,19 +52,10 @@ void IOClientHandler::read_and_parse() {
 			return;
 		}
 
-		if (_client_context.parser.is_header_parsed() == false) {
-			_status =
-				_client_context.parser.parse_header(_client_context.buffer, _client_context.buffer);
+		_status = _client_context.parser.parse(_client_context.buffer, _client_context.request);
+		if (!_status) {
 			if (!_status) {
-				log_error("IOClientHandler::read_and_parse", "failed to parse header");
-				return;
-			}
-		}
-
-		if (_client_context.parser.is_header_parsed() == true) {
-			_status = _client_context.parser.parse_body(_client_context.buffer);
-			if (!_status) {
-				log_error("IOClientHandler::read_and_parse", "failed to parse body");
+				log_error("IOClientHandler::read_and_parse", "failed to parse request");
 				return;
 			}
 		}
@@ -74,11 +65,6 @@ void IOClientHandler::read_and_parse() {
 
 void IOClientHandler::handle(void* data) {
 	epoll_event& event = *static_cast<epoll_event*>(data);
-
-	if (event.events & EPOLLRDHUP) {
-		set_is_closing();
-	}
-
 	if (event.events & EPOLLIN) {
 		read_and_parse();
 		if (_status == DataIsNotReady) {
@@ -155,7 +141,12 @@ void IOClientHandler::handle_default_request() {
 			HTTPResponseSender response_sender(_client_socket, &_client_context.request,
 											   &_client_context.server_socket.get_server_config(),
 											   _client_context.server_socket, _server_logger);
-			response_sender.send(_status);
+			Status temp_status = response_sender.send(_status);
+			if (!temp_status) {
+				set_is_closing();
+				std::cout << "STATUS: " << temp_status.msg() << std::endl;
+				return;
+			}
 		} catch (const std::exception& e) {
 			log_error("IOClientHandler::handle_default_request()",
 					  "failed to send response: " + std::string(e.what()));
@@ -259,7 +250,7 @@ void IOClientHandler::create_cgi_process() {
 	cgi_fd->set_nonblock();
 
 	IOCGIContext* cgi_context = new IOCGIContext(
-		*cgi_fd, &_client_context.server_socket.get_server_config(), _server_logger);
+		*cgi_fd, cgi_process, &_client_context.server_socket.get_server_config(), _server_logger);
 	IOCGIHandler* cgi_handler =
 		new IOCGIHandler(*cgi_fd, *cgi_context, _client_context,
 						 &_client_context.server_socket.get_server_config(), _server_logger);

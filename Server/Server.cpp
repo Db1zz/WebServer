@@ -55,6 +55,12 @@ void Server::handle_epoll_event(int amount_of_events) {
 	for (int i = 0; i < amount_of_events; ++i) {
 		epoll_event& event = *_event[i];
 		IEventContext& event_context = *static_cast<IEventContext*>(event.data.ptr);
+		if (event.events & (EPOLLRDHUP | EPOLLHUP | EPOLLERR)) {
+			events_to_destroy.insert(
+				std::make_pair(event_context.get_fd()->get_fd(), &event_context));
+			continue;
+		}
+		
 		if (event.events & (EPOLLIN | EPOLLOUT | EPOLLHUP) &&
 			event_context.get_io_handler()->is_closing() == false) {
 			if (is_object_expired(event_context) == true) {
@@ -119,7 +125,7 @@ void Server::print_debug_addr(const std::string& address, int port) {
 
 bool Server::check_if_can_destroy_event(int events, IEventContext& event_context,
 										std::map<int, IEventContext*>& events_to_destroy) {
-	return events & EPOLLERR || is_object_expired(event_context) == true ||
+	return is_object_expired(event_context) == true ||
 		   (event_context.get_io_handler()->is_closing() == true &&
 			events_to_destroy.find(event_context.get_fd()->get_fd()) == events_to_destroy.end());
 }

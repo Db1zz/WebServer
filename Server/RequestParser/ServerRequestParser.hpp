@@ -13,18 +13,20 @@ typedef struct s_request t_request;
 
 class ServerRequestParser {
    public:
-	explicit ServerRequestParser(t_request* request, const t_config* config, ServerLogger* logger = NULL);
+	explicit ServerRequestParser(const t_config* config, ServerLogger* logger = NULL);
 	~ServerRequestParser();
 
-	Status parse_header(const std::string& content, std::string& body_out);
-	Status parse_body(const std::string& content);
+	Status parse(const std::string& content, t_request& request);
 	void reset();
 	bool is_header_parsed() const;
 	bool is_body_parsed() const;
 	bool is_finished() const;
 
    private:
-	void create_body_parser();
+   Status parse_header(const std::string& content, size_t& body_pos_start, t_request& request);
+   Status parse_body(const std::string& content, size_t body_pos_start, t_request& request);
+
+	void create_body_parser(t_request& request);
 
    private:
 	const t_config* _config;
@@ -34,9 +36,7 @@ class ServerRequestParser {
 	IRequestBodyParser* _body_parser;
 
 	bool _header_parsed;
-	bool _is_body_parsed;
-
-	t_request* _request;
+	bool _body_parsed;
 };
 
 #endif // SERVER_SERVER_REQUEST_PARSER

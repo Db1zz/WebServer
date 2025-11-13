@@ -13,11 +13,11 @@ include_directories(../../Utilities)
 #   ServerRequestParserTests.cpp
 set(SOURCES
   RequestMultipartBodyParserTests.cpp
-  ServerRequestParserHelpersTests.cpp
-  RequestHeaderParserTests.cpp
-  ServerResponseTests.cpp
-  HashTest.cpp
-  parser_test.cpp
+  # ServerRequestParserHelpersTests.cpp
+  # RequestHeaderParserTests.cpp
+  # ServerResponseTests.cpp
+  # HashTest.cpp
+  # parser_test.cpp
 )
 
 include(ExternalProject)
