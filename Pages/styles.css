@@ -434,6 +434,51 @@ button:hover,
 	display: none;
 }
 
+.login-form .form-row {
+	margin-bottom: 14px;
+}
+
+.login-form .main_button {
+	max-width: 220px;
+	padding: 12px 20px;
+	font-size: 18px;
+}
+
+@media screen and (max-width: 500px) {
+	.upload-container {
+		padding: 20px;
+	}
+
+	.login-form .main_button {
+		width: 100%;
+	}
+}
+
+.login-container {
+	max-width: 520px;
+	margin-top: 40px;
+}
+
+.login-title {
+	text-align: center;
+	margin-top: 0;
+}
+
+.text-center {
+	text-align: center;
+}
+
+.login-error {
+	color: #B54854;
+	text-align: center;
+	margin-top: 10px;
+	display: none;
+}
+
+#login-result {
+	display: none;
+}
+
 .welcome {
 	display: block;
 	overflow: hidden;
@@ -625,4 +670,45 @@ button:hover,
 	.login-success {
 		padding: 20px;
 	}
+}
+
+.disabled,
+.file-button-group button.disabled,
+button.disabled,
+.main_button.disabled {
+	opacity: 0.6;
+	pointer-events: none;
+}
+
+
+.btn-spinner {
+	display: inline-block;
+	width: 16px;
+	height: 16px;
+	border: 2px solid rgba(255, 255, 255, 0.35);
+	border-top-color: rgba(255, 255, 255, 0.9);
+	border-radius: 50%;
+	animation: spin 1s linear infinite;
+	vertical-align: middle;
+	margin-left: 8px;
+}
+
+@keyframes spin {
+	to {
+		transform: rotate(360deg);
+	}
+}
+
+.drop-area.disabled {
+	opacity: 0.7;
+	pointer-events: none;
+	background: #EFEFEF;
+}
+
+.modal .btn-spinner {
+	width: 36px;
+	height: 36px;
+	margin-left: 0;
+	border: 3px solid rgba(0, 0, 0, 0.12);
+	border-top-color: #4B9CD3;
 }

@@ -7,6 +7,16 @@ const dropArea = document.getElementById('drop-area');
 const fileInput = document.getElementById('file');
 const fileList = document.getElementById('file-list');
 
+let uploadModal = null;
+function createUploadModal() {
+	const modal = document.createElement('div');
+	modal.className = 'modal';
+	modal.style.display = 'none';
+	modal.innerHTML = '<div class="modal-content"><h3>please do not close this page</h3><p>your upload is in progress. u dont want your files to be only partially uploaded, right?</p><div class="btn-spinner" aria-hidden="true"></div></div>';
+	document.body.appendChild(modal);
+	return modal;
+}
+
 let filesArray = [];
 
 document.querySelector('.file-label').addEventListener('click', (e) => {
@@ -62,12 +72,45 @@ function updateFileInput() {
 document.addEventListener('DOMContentLoaded', function () {
 	const form = document.querySelector('form');
 	if (!form) return;
+	uploadModal = createUploadModal();
+	let isUploading = false;
+	const submitBtn = form.querySelector('button[type="submit"]') || form.querySelector('button');
+	const dropAreaEl = document.getElementById('drop-area');
+
+	function beforeUnloadHandler(e) {
+		const message = 'an upload is in progress. Are you sure you want to leave?';
+		e.preventDefault();
+		e.returnValue = message;
+		return message;
+	}
+
+	function setUploading(state) {
+		isUploading = state;
+		if (submitBtn) {
+			submitBtn.disabled = state;
+			submitBtn.dataset.origText = submitBtn.dataset.origText || submitBtn.textContent;
+			submitBtn.textContent = state ? 'uploading...' : (submitBtn.dataset.origText || 'upload');
+			submitBtn.classList.toggle('disabled', state);
+		}
+		if (fileInput) fileInput.disabled = state;
+		if (dropAreaEl) dropAreaEl.classList.toggle('disabled', state);
+		if (uploadModal) {
+			uploadModal.style.display = state ? 'flex' : 'none';
+		}
+		if (state) {
+			window.addEventListener('beforeunload', beforeUnloadHandler);
+		} else {
+			window.removeEventListener('beforeunload', beforeUnloadHandler);
+		}
+	}
+
 	form.addEventListener('submit', async function (e) {
 		e.preventDefault();
+		if (isUploading) return;
 		const fileInput = document.getElementById('file');
 		const files = fileInput.files;
 		if (!files.length) {
-			alert('Please select a file to upload.');
+			alert('please select a file to upload.');
 			return;
 		}
 		const formData = new FormData();
@@ -75,6 +118,7 @@ document.addEventListener('DOMContentLoaded', function () {
 			formData.append('file', files[i]);
 		}
 		try {
+			setUploading(true);
 			const response = await fetch('/Uploads/', {
 				method: 'POST',
 				body: formData
@@ -96,7 +140,9 @@ document.addEventListener('DOMContentLoaded', function () {
 				alert('upload failed');
 			}
 		} catch (err) {
-			alert('An error occurred while uploading.');
+			alert('an error occurred while uploading.');
+		} finally {
+			setUploading(false);
 		}
 	});
 });
