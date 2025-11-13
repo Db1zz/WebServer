@@ -93,7 +93,6 @@ bool get_cgi_bin(const std::string& uri_path, const t_config& server_config,
 
 	const std::vector<t_location>& locations = server_config.location;
 	for (size_t i = 0; i < locations.size(); ++i) {
-		std::cout << locations[i].path << " != " << dir_path << std::endl;
 		if (locations[i].path != dir_path) {
 			continue;
 		}

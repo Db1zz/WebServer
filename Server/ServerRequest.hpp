@@ -76,7 +76,7 @@ typedef struct s_request {
 	t_media_type content_type;
 	// std::string boundary;
 
-	uint64_t transfered_length; // length of the whole body that was transfered
+	uint64_t transfered_length; // length of the whole request that was transfered
 
 	std::string body_chunk;
 	std::string cache;

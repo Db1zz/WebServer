@@ -29,12 +29,17 @@ RequestMultipartParser::RequestMultipartParser(const std::string& boundary, int 
 	  _last_content(NULL),
 	  _end_boundary_found(false),
 	  _finished(false),
+	  _first_header_found(false),
 	  _server_logger(server_logger) {
 	_start_boundary = "--" + boundary + "\r\n";
 	_end_boundary = "\r\n--" + boundary + "--\r\n";
 }
 
 Status RequestMultipartParser::feed(const std::string& content, size_t start_pos) {
+	if (_finished == true) {
+		return Status::BadRequest();
+	}
+
 	Status status;
 	_data_size += content.size() - start_pos;
 	_buffer.append(content.substr(start_pos));
@@ -56,7 +61,10 @@ Status RequestMultipartParser::feed(const std::string& content, size_t start_pos
 				continue;
 			}
 			status = parse_body_with_header(boundary_pos);
-		} else {
+		} else if (_first_header_found == false && _buffer.size() >= _start_boundary.size()) {
+			return Status::BadRequest();
+		}
+		else {
 			status = parse_body_without_any_boundary();
 		}
 	} while (_buffer.size() > _end_boundary.size() && status && status.error() != DataIsNotReady);
@@ -86,6 +94,8 @@ void RequestMultipartParser::apply(t_request& request) {
 
 		if (!_content_data.front().is_finished) {
 			if (!request.content_data.empty() && !last_request_content.is_finished) {
+				std::cout << "this content data size: " << _content_data.front().data.size() << std::endl;
+				std::cout << "client content data size: " << last_request_content.data.size() << std::endl;
 				last_request_content.data.append(_content_data.front().data);
 			} else if (!file_already_exists) {
 				request.content_data.push_back(_content_data.front());
@@ -120,8 +130,10 @@ Status RequestMultipartParser::parse_body_without_any_boundary() {
 	if (_end_boundary.size() > _buffer.size()) {
 		return Status::DataIsNotReady();
 	}
-
 	size_t content_size = _buffer.size() - _end_boundary.size();
+	if (_last_content == NULL) {
+		std::cout << "NULL!!\n"; // wtf
+	}
 	_last_content->data.append(_buffer.begin(), _buffer.begin() + content_size);
 
 	_buffer.erase(0, content_size);
@@ -142,6 +154,9 @@ Status RequestMultipartParser::parse_body_with_header(size_t boundary_pos) {
 	update_last_content();
 	status = parse_body_header(boundary_pos);
 	_buffer = _buffer.substr(header_end + header_end_key.size());
+	if (_first_header_found == false) {
+		_first_header_found = true;
+	}
 	return status;
 }
 
@@ -292,7 +307,6 @@ Status RequestMultipartParser::parse_filename(const std::string& line, std::stri
 	}
 
 	pos += filename_key.size();
-	pos = pos;
 
 	skip_ows_and_folds(line, pos);
 	if (line[pos] != '=') {

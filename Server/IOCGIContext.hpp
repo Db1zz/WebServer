@@ -21,23 +21,25 @@ class IOCGIContext : public IIOContext {
 	pid_t cgi_pid;
 	bool is_finished;
 
-	IOCGIContext(CGIFileDescriptor& cgi_fd, const t_config* server_config, ServerLogger* server_logger) 
+	IOCGIContext(CGIFileDescriptor& cgi_fd, pid_t cgi_pid, const t_config* server_config, ServerLogger* server_logger) 
 		: cgi_fd(cgi_fd),
 		  server_config(server_config),
 		  server_logger(server_logger),
 		  cgi_parser(&request, server_logger),
-		  cgi_pid(-1),
+		  cgi_pid(cgi_pid),
 		  is_finished(false)
 		  {
 			request.is_cgi = true;
 		  }
 
 	void reset() {
-        request = t_request();
-        buffer.clear();
-        cgi_pid = -1;
-		cgi_parser = CGIResponseParser(&request, server_logger);
-		is_finished = false;
+		// NOTE: The cgi context should be non-resetable(can be used only once)
+
+        // request = t_request();
+        // buffer.clear();
+        // cgi_pid = -1;
+		// cgi_parser = CGIResponseParser(&request, server_logger);
+		// is_finished = false;
 	}
 };
 

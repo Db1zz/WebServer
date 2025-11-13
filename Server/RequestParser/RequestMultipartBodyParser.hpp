@@ -5,7 +5,7 @@
 
 #include "IRequestBodyParser.hpp"
 
-#define MAX_REQUEST_BODY_HEADER_LENGTH 101023012031023
+#define MAX_REQUEST_BODY_HEADER_LENGTH 2048
 #define MAX_FILENAME_SIZE 78
 #define MIME_TYPE_MAX_SIZE 127
 #define MIME_SUBTYPE_MAX_SIZE 127
@@ -43,6 +43,7 @@ class RequestMultipartParser : public IRequestBodyParser {
 	t_request_content* _last_content;
 	bool _end_boundary_found;
 	bool _finished;
+	bool _first_header_found;
 
 	ServerLogger* _server_logger;
 };
