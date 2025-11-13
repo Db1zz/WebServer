@@ -434,6 +434,51 @@ button:hover,
 	display: none;
 }
 
+.login-form .form-row {
+	margin-bottom: 14px;
+}
+
+.login-form .main_button {
+	max-width: 220px;
+	padding: 12px 20px;
+	font-size: 18px;
+}
+
+@media screen and (max-width: 500px) {
+	.upload-container {
+		padding: 20px;
+	}
+
+	.login-form .main_button {
+		width: 100%;
+	}
+}
+
+.login-container {
+	max-width: 520px;
+	margin-top: 40px;
+}
+
+.login-title {
+	text-align: center;
+	margin-top: 0;
+}
+
+.text-center {
+	text-align: center;
+}
+
+.login-error {
+	color: #B54854;
+	text-align: center;
+	margin-top: 10px;
+	display: none;
+}
+
+#login-result {
+	display: none;
+}
+
 .welcome {
 	display: block;
 	overflow: hidden;

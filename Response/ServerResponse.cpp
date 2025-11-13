@@ -16,8 +16,8 @@ ServerResponse::ServerResponse(t_request* request, const t_config& server_data, 
 	_response(""),
 	_is_chunked(false),
 	_needs_streaming(false),
-	_stream_location(NULL),
-	_session_store(session_store) {
+	  _stream_location(NULL),
+	  _session_store(session_store) {
 	_json_handler = new JsonResponse(_req_data, this->status);
 	_error_handler = new ErrorResponse(_req_data, this->status, _server_data);
 	_file_utils = new FileUtils(_req_data, _server_data);
@@ -33,6 +33,7 @@ ServerResponse& ServerResponse::header(const std::string& key, const std::string
 	_headers += key + ": " + value + "\r\n";
 	return *this;
 }
+
 
 ServerResponse& ServerResponse::handle_get_method(const t_location& location) {
 	if (FileUtils::is_directory(_resolved_file_path)) {
@@ -54,31 +55,21 @@ Status ServerResponse::generate_response() {
 
 	if (_req_data->uri_path == "/login") {
 		handle_auth_login();
-		header("server", _server_data->server_name[0]);
-		header("content-length", get_body_size());
-		status.set_status_line(status.code(), status.msg());
-		_response = WS_PROTOCOL + status.status_line() + get_headers() + "\r\n" + get_body();
+		construct_response_line();
 		return status;
 	}
 	if (_req_data->uri_path == "/session") {
 		handle_auth_session();
-		header("server", _server_data->server_name[0]);
-		header("content-length", get_body_size());
-		status.set_status_line(status.code(), status.msg());
-		_response = WS_PROTOCOL + status.status_line() + get_headers() + "\r\n" + get_body();
+		construct_response_line();
 		return status;
 	}
 	if (_req_data->uri_path == "/logout") {
 		handle_auth_logout();
-		header("server", _server_data->server_name[0]);
-		header("content-length", get_body_size());
-		status.set_status_line(status.code(), status.msg());
-		_response = WS_PROTOCOL + status.status_line() + get_headers() + "\r\n" + get_body();
+		construct_response_line();
 		return status;
 	}
 
 	if (_req_data->is_cgi == true) {
-		// std::cout << CYAN500 << "entered cgi block" << RESET << std::endl;
 		return generate_cgi_response();
 	}
 
@@ -102,15 +93,20 @@ Status ServerResponse::generate_response() {
 	return status;
 }
 
-Status ServerResponse::generate_error_response() {
-	_error_handler->send_error_page(status.code(), status.msg(), _body, _headers);
-	status.set_status_line(status.code(), status.msg());
+void ServerResponse::construct_response_line() {
 	header("server", _server_data->server_name[0]);
 	if (_is_chunked)
 		header("transfer-encoding", "chunked");
 	else
 		header("content-length", get_body_size());
+	status.set_status_line(status.code(), status.msg());
 	_response = WS_PROTOCOL + status.status_line() + get_headers() + "\r\n" + get_body();
+}
+
+Status ServerResponse::generate_error_response() {
+	_error_handler->send_error_page(status.code(), status.msg(), _body, _headers);
+	status.set_status_line(status.code(), status.msg());
+	construct_response_line();
 	return status;
 }
 
@@ -175,7 +171,6 @@ const std::string& ServerResponse::get_response() const {
 }
 
 Status ServerResponse::generate_cgi_response() {
-	// check if all body receive, if not, receive status continue? var ton check if cgi received?
 	header("server", _server_data->server_name[0]);
 	if (_req_data->content_data.size() > 0) {
 		header("content-type", _req_data->content_data.front().content_type);
@@ -270,8 +265,8 @@ void ServerResponse::handle_file_delete() {
 }
 
 void ServerResponse::choose_method(const t_location& location) {
-	_file_utils->resolve_file_path(location, _resolved_file_path);
 
+	_file_utils->resolve_file_path(location, _resolved_file_path);
 	if (_req_data->method == "DELETE" && location.common.methods.deleteMethod) {
 		handle_file_delete();
 	} else if (_req_data->method == "GET" && location.common.methods.getMethod) {
