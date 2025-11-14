@@ -89,6 +89,7 @@ typedef struct s_request {
 	std::vector<std::string> path_queries; //cgi
 	std::vector<std::string> transfer_encoding;
 	std::string status_string;
+	std::vector<t_accept_item> accept_items;
 
 	std::list<t_request_content> content_data;
 
@@ -97,6 +98,8 @@ typedef struct s_request {
 	RequestType requesst_type;
 	std::string cgi_bin;
 	bool is_cgi;
+	
+	size_t rewrite_count;
 	
 	bool is_streaming;
 	size_t stream_offset;
@@ -113,6 +116,7 @@ typedef struct s_request {
 		  transfered_length(0),
 		  is_chunked_request(false),
 		  is_cgi(false),
+		  rewrite_count(0),
 		  is_streaming(false),
 		  stream_offset(0),
 		  stream_file_path(""),

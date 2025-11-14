@@ -18,7 +18,7 @@ typedef struct s_commonConfig {
 	std::map<int, std::string> errorPage;
 	bool auto_index;
 	int returnCode;
-	std::string returnPath;
+	std::string returnPath;  //HERE
 	std::map<std::string, std::string> cgi;
 	size_t max_client_body;
 } t_commonConfig;

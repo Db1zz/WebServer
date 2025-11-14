@@ -470,6 +470,7 @@ Status RequestHeaderParser::parse_accept(const std::string& field_value, t_reque
 	}
 
 	request.accept = field_value; // LMAO it's made on purpose, trust me :)
+	request.accept_items = accept_items;
 	return Status::OK();
 }
 
