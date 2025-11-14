@@ -21,33 +21,32 @@ IOCGIHandler::IOCGIHandler(CGIFileDescriptor& cgi_fd, IOCGIContext& io_cgi_conte
 	  _server_config(server_config),
 	  _server_logger(server_logger),
 	  _timeout_timer(NULL),
-	  _is_closing(false) {
+	  _is_closing(false),
+	  _child_exited(false) {
 }
 
 IOCGIHandler::~IOCGIHandler() {
 	if (_io_cgi_context.cgi_pid > 0) {
 		kill(_io_cgi_context.cgi_pid, SIGKILL);
 		_io_cgi_context.cgi_pid = -1;
+		_timeout_timer->stop();
 	}
 }
 
 void IOCGIHandler::handle(void* data) {
 	(void)data;
-	std::string content;
 
 	if (_timeout_timer != NULL && _timeout_timer->is_expired() == true) {
-		handle_timeout(content);
-	} else if (handle_default(content) == false) {
-		_io_client_context.is_cgi_request_finished = true;
-		return;
+		handle_timeout();
+	} else {
+		handle_default();
 	}
 
-	_status = _io_cgi_context.cgi_parser.parse(content);
-	if (!_status) {
-		_server_logger->log_error("IOCGIHandler::handle", "failed to parse CGI response");
-	}
-
-	if (_status != DataIsNotReady) {
+	if (_child_exited == true || _timeout_timer->is_expired()) {
+		_status = _io_cgi_context.cgi_parser.parse(_buffer);
+		if (!_status) {
+			_server_logger->log_error("IOCGIHandler::handle", "failed to parse CGI response");
+		}
 		try {
 			_io_client_context.is_cgi_request_finished = true;
 			HTTPResponseSender response_sender(_io_client_context.client_socket,
@@ -73,8 +72,8 @@ void IOCGIHandler::set_is_closing() {
 	_is_closing = true;
 }
 
-void IOCGIHandler::handle_timeout(std::string& result) {
-	result.append(
+void IOCGIHandler::handle_timeout() {
+	_buffer = std::string(
 		"Status: 504 Gateway Timeout\r\n"
 		"Content-Type: text/plain\r\n"
 		"\r\n"
@@ -85,29 +84,32 @@ void IOCGIHandler::handle_timeout(std::string& result) {
 	_io_cgi_context.cgi_pid = -1;
 }
 
-bool IOCGIHandler::handle_default(std::string& result) {
+bool IOCGIHandler::handle_default() {
 	size_t buffer_size = 1000000;
 	char buffer[buffer_size];
 
 	ssize_t rd_bytes = read(_cgi_fd.get_fd(), buffer, buffer_size);
 	if (rd_bytes < 0) {
-		return false;
+		return true;
 	}
 
+	_buffer.append(buffer, rd_bytes);
+
 	int wpidstatus = 0;
-	waitpid(_io_cgi_context.cgi_pid, &wpidstatus, 0);
+	pid_t pid = waitpid(_io_cgi_context.cgi_pid, &wpidstatus, WNOHANG);
+	if (pid != _io_cgi_context.cgi_pid) {
+		return true;
+	}
+
+	_child_exited = true;
 	if ((WIFSIGNALED(wpidstatus) || WIFEXITED(wpidstatus)) && WEXITSTATUS(wpidstatus) != 0) {
-		result.append(
+		_buffer = std::string(
 			"Status: 500 Internal Server Error\r\n"
 			"Content-Type: text/plain\r\n"
 			"\r\n"
 			"An internal error occurred. Please try again later.\r\n");
 		_status = Status::InternalServerError();
 		return true;
-	}
-
-	if (rd_bytes > 0) {
-		result.append(buffer, rd_bytes);
 	}
 	return true;
 }

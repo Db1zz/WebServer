@@ -144,7 +144,6 @@ void IOClientHandler::handle_default_request() {
 			Status temp_status = response_sender.send(_status);
 			if (!temp_status) {
 				set_is_closing();
-				std::cout << "STATUS: " << temp_status.msg() << std::endl;
 				return;
 			}
 			// i refresh timer for streaming chunked files here otherwise все идет по жопе
