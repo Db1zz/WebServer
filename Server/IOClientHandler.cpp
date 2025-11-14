@@ -147,21 +147,27 @@ void IOClientHandler::handle_default_request() {
 				std::cout << "STATUS: " << temp_status.msg() << std::endl;
 				return;
 			}
+			// i refresh timer for streaming chunked files here otherwise все идет по жопе
+			if (_client_context.request.is_streaming && _timeout_timer != NULL) {
+				_timeout_timer->reset();
+			}
 		} catch (const std::exception& e) {
 			log_error("IOClientHandler::handle_default_request()",
 					  "failed to send response: " + std::string(e.what()));
 			throw;
 		}
 		if (_client_context.request.is_request_ready()) {
-			if (_server_logger != NULL) {
-				_server_logger->log_access(
-					_client_socket.get_host(), _client_context.request.method,
-					_client_context.request.uri_path, _client_context.server_socket.get_port());
-			}
+			if (!_client_context.request.is_streaming) {
+				if (_server_logger != NULL) {
+					_server_logger->log_access(
+						_client_socket.get_host(), _client_context.request.method,
+						_client_context.request.uri_path, _client_context.server_socket.get_port());
+				}
 
-			_client_context.reset();
-			if (_timeout_timer != NULL) {
-				_timeout_timer->reset();
+				_client_context.reset();
+				if (_timeout_timer != NULL) {
+					_timeout_timer->reset();
+				}
 			}
 		}
 	}
