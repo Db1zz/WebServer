@@ -193,7 +193,7 @@ const std::string& ServerResponse::get_content_type() const {
 
 void ServerResponse::handle_directory(const t_location& location) {
 	if (location.common.auto_index &&
-		(_req_data->mime_type == ".json" || _req_data->accept == "*/*")) {
+		(_req_data->mime_type == ".json" || _req_data->accept == "*/*" || _req_data->accept.find("*/*") != std::string::npos)) {
 		_json_handler->create_json_response(_resolved_file_path, _body, _headers);
 		return;
 	}
