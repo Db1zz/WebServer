@@ -89,7 +89,7 @@ Status ServerResponse::generate_response() {
 	} else {
 		_response = WS_PROTOCOL + status.status_line() + get_headers() + "\r\n" + get_body();
 	}
-	// std::cout << RED << "response: " << _response << RESET  <<std::endl;
+	//std::cout << RED500 << "response: " << _response << RESET  <<std::endl;
 	return status;
 }
 
