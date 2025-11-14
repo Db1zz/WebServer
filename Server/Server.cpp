@@ -125,6 +125,7 @@ void Server::print_debug_addr(const std::string& address, int port) {
 
 bool Server::check_if_can_destroy_event(int events, IEventContext& event_context,
 										std::map<int, IEventContext*>& events_to_destroy) {
+    (void)events;
 	return is_object_expired(event_context) == true ||
 		   (event_context.get_io_handler()->is_closing() == true &&
 			events_to_destroy.find(event_context.get_fd()->get_fd()) == events_to_destroy.end());
