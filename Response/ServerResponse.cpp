@@ -267,6 +267,18 @@ void ServerResponse::handle_file_delete() {
 void ServerResponse::choose_method(const t_location& location) {
 
 	_file_utils->resolve_file_path(location, _resolved_file_path);
+	const size_t MAX_INTERNAL_REWRITES = 5;
+	if (!location.common.returnPath.empty() && _req_data->rewrite_count < MAX_INTERNAL_REWRITES) {
+		if (_req_data->uri_path != location.common.returnPath) {
+			_req_data->uri_path = location.common.returnPath;
+			++_req_data->rewrite_count;
+			const t_location* new_location = _file_utils->find_best_location_match();
+			if (new_location != NULL) {
+				choose_method(*new_location);
+				return;
+			}
+		}
+	}
 	if (_req_data->method == "DELETE" && location.common.methods.deleteMethod) {
 		handle_file_delete();
 	} else if (_req_data->method == "GET" && location.common.methods.getMethod) {
