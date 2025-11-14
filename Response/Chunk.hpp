@@ -19,7 +19,7 @@ class Chunk {
 	
 	static bool is_chunked_response(const std::string& file_path, const t_location* location);
 	static size_t get_file_size(const std::string& file_path);
-	static Status stream_file_chunked(const std::string& file_path, int client_fd, const t_location* location);
+	static Status stream_file_chunked(const std::string& file_path, int client_fd, const t_location* location, size_t& offset, bool& finished, std::string* pending_data = 0, size_t* pending_sent = 0);
 	
    private:
 	static const size_t DEFAULT_10MB_THRESHOLD = 10 * 1024 * 1024;
