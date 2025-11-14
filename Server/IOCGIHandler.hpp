@@ -23,8 +23,8 @@ class IOCGIHandler : public IIOHandler {
 	void set_timeout_timer(ITimeoutTimer* timeout_timer);
 
    private:
-	void handle_timeout(std::string& result);
-	bool handle_default(std::string& result);
+	void handle_timeout();
+	bool handle_default();
 
 	Status _status;
 	CGIFileDescriptor& _cgi_fd;
@@ -34,6 +34,8 @@ class IOCGIHandler : public IIOHandler {
 	ServerLogger* _server_logger;
 	ITimeoutTimer* _timeout_timer;
 	bool _is_closing;
+	bool _child_exited;
+	std::string _buffer;
 };
 
 #endif // SERVER_IO_CGI_HANDLER_HPP_
