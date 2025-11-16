@@ -29,8 +29,8 @@
 #include "ServerResponse.hpp"
 
 #define PAGE_INITIAL "Pages/index.html"
-#define PAGE_404 "Pages/404.html"
-#define STYLESHEET "Pages/styles.css"
+#define PAGE_404 "/Pages/404.html"
+#define STYLESHEET "/Pages/styles.css"
 
 class JsonResponse;
 class ErrorResponse;
@@ -84,9 +84,14 @@ class ServerResponse {
 
 	void handle_directory(const t_location& location);
 	void handle_file_upload();
+	void handle_multipart_upload();
 	void handle_file_delete();
 	void set_binary_headers();
 	void choose_method(const t_location& location);
+
+	std::string get_upload_file_path(const std::string& filename);
+	void set_upload_success(const std::string& message);
+	void set_upload_error(const Status& error_status, const std::string& message);
 
 	void handle_auth_login();
 	void handle_auth_session();

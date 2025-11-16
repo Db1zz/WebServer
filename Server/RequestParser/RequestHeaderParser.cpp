@@ -262,7 +262,7 @@ Status RequestHeaderParser::parse_media_type(const std::string& field_value,
 	}
 
 	if (!(type == "text" || type == "image" || type == "audio" || type == "video" ||
-		  type == "application" || type == "multipart" || type == "message" || type == "font")) {
+		  type == "application" || type == "multipart" || type == "message" || type == "font" || type == "plain")) {
 		// */* == any
 		type = "*";
 		subtype = "*";

@@ -34,7 +34,6 @@ ServerResponse& ServerResponse::header(const std::string& key, const std::string
 	return *this;
 }
 
-
 ServerResponse& ServerResponse::handle_get_method(const t_location& location) {
 	if (FileUtils::is_directory(_resolved_file_path)) {
 		handle_directory(location);
@@ -52,7 +51,12 @@ Status ServerResponse::generate_response() {
 	if (!status)
 		return generate_error_response();
 	const t_location* best_match = _file_utils->find_best_location_match();
-
+	// std::cout << "data len: " << _req_data->content_data.front().data.length() << std::endl;
+	//std::cout << "best max max client body: " << best_match->common.max_client_body << std::endl;
+	if (best_match && _req_data->content_data.size() > 0 && (_req_data->content_data.front().data.length() > best_match->common.max_client_body ) && (best_match->common.max_client_body != 0 )) {
+		status = Status::RequestEntityTooLarge();
+		return generate_error_response();
+	}
 	if (_req_data->uri_path == "/login") {
 		handle_auth_login();
 		construct_response_line();
@@ -192,21 +196,28 @@ const std::string& ServerResponse::get_content_type() const {
 }
 
 void ServerResponse::handle_directory(const t_location& location) {
-	if (location.common.auto_index &&
-		(_req_data->mime_type == ".json" || _req_data->accept == "*/*" || _req_data->accept.find("*/*") != std::string::npos)) {
-		_json_handler->create_json_response(_resolved_file_path, _body, _headers);
-		return;
-	}
 	if (!_resolved_file_path.empty() &&
 		_resolved_file_path[_resolved_file_path.size() - 1] != '/') {
 		_resolved_file_path += "/";
 	}
-	_resolved_file_path += location.common.index.empty() ? "index.html" : location.common.index[0];
+	std::string index_file_path = _resolved_file_path + (location.common.index.empty() ? "index.html" : location.common.index[0]);
 
-	_req_data->mime_type = ".html";
-	_resp_content_type = _file_utils->identify_mime_type();
-	header("content-type", _resp_content_type);
-	serve_file(_resolved_file_path, false);
+	bool index_exists = FileUtils::is_file_exists(index_file_path);
+
+	bool json_requested = (_req_data->mime_type == ".json");
+	
+	if (index_exists && !json_requested) {
+		_resolved_file_path = index_file_path;
+		_req_data->mime_type = ".html";
+		_resp_content_type = _file_utils->identify_mime_type();
+		header("content-type", _resp_content_type);
+		serve_file(_resolved_file_path, false);
+	} else if (location.common.auto_index && (!index_exists || json_requested)) {
+		_json_handler->create_json_response(_resolved_file_path, _body, _headers);
+	} else {
+		status = Status::Forbidden();
+		_error_handler->send_error_page(403, "Forbidden", _body, _headers);
+	}
 }
 
 void ServerResponse::set_binary_headers() {
@@ -215,37 +226,63 @@ void ServerResponse::set_binary_headers() {
 }
 
 void ServerResponse::handle_file_upload() {
+	//std::cout << "uri path: " << _req_data->uri_path << std::endl;
+	if ((_req_data->content_type.type == "text" && _req_data->content_type.subtype == "plain") ||
+		(_req_data->content_type.type == "plain" && _req_data->content_type.subtype == "text")) {
+		status = Status::Forbidden();
+		_error_handler->send_error_page(403, "Forbidden", _body, _headers);
+		return;
+	}
+	if (!_req_data->content_data.empty()) {
+		handle_multipart_upload();
+	} else {
+		set_upload_error(Status::BadRequest(), "no data to upload");
+	}
+}
+
+void ServerResponse::handle_multipart_upload() {
 	while (!_req_data->content_data.empty()) {
 		t_request_content& content_data = _req_data->content_data.front();
-		std::string upload_dir = _resolved_file_path;
-		FileUtils::ensureTrailingSlash(upload_dir);
-
-		std::string file_path = upload_dir + content_data.filename;
+		std::string file_path = get_upload_file_path(content_data.filename);
+		//std::cout << "file path:" << file_path << std::endl;
 
 		if (FileUtils::is_file_exists(file_path) && !content_data.is_file_created) {
-			status = Status::Conflict();
-			_json_handler->set_error_response("File already exists", _body, _headers);
+			set_upload_error(Status::Conflict(), "file already exists");
 			return;
 		}
-		bool file_saved = _file_utils->save_uploaded_file(file_path, content_data);
-		if (file_saved) {
-			status = Status::OK();
-			_json_handler->set_success_response("Upload successful", _body, _headers);
+
+		if (_file_utils->save_uploaded_file(file_path, content_data)) {
+			set_upload_success("upload successful");
 		} else if (content_data.is_finished) {
-			status = Status::BadRequest();
-			_json_handler->set_error_response("No file uploaded or failed to save file(s)", _body,
-											  _headers);
+			set_upload_error(Status::BadRequest(), "no file uploaded or failed to save file(s)");
 		} else {
 			content_data.is_file_created = true;
 			status = Status::Continue();
 		}
+
 		if (content_data.is_finished) {
 			_req_data->content_data.pop_front();
-		} else if (!content_data.is_finished) {
+		} else {
 			content_data.data.clear();
 			break;
 		}
 	}
+}
+
+std::string ServerResponse::get_upload_file_path(const std::string& filename) {
+	std::string upload_dir = _resolved_file_path;
+	FileUtils::ensureTrailingSlash(upload_dir);
+	return upload_dir + filename;
+}
+
+void ServerResponse::set_upload_success(const std::string& message) {
+	status = Status::OK();
+	_json_handler->set_success_response(message, _body, _headers);
+}
+
+void ServerResponse::set_upload_error(const Status& error_status, const std::string& message) {
+	status = error_status;
+	_json_handler->set_error_response(message, _body, _headers);
 }
 
 void ServerResponse::handle_file_delete() {

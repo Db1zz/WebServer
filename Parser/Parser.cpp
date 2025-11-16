@@ -329,8 +329,9 @@ std::string Parser::parsePath() {
 t_location Parser::parseLocation() {
 	t_location tempLocation;
 	t_commonConfig tempCommon;
-	tempCommon.auto_index = false;
-	tempCommon.max_client_body = 0;
+
+	tempCommon.max_client_body = tempConfig.common.max_client_body;
+	tempCommon.index = tempConfig.common.index;
 	tempCommon.methods.deleteMethod = false;
 	tempCommon.methods.getMethod = false;
 	tempCommon.methods.postMethod = false;
@@ -339,7 +340,7 @@ t_location Parser::parseLocation() {
 	tempLocation.path = parsePath();
 	tempCommon.cgi.clear();
 	tempCommon.errorPage.clear();
-	tempCommon.index.clear();
+	tempCommon.auto_index = tempConfig.common.auto_index;
 	tempLocation.chunked_size = 0;
 	tempLocation.chunked_threshold = 0;
 	tempLocation.chunked_transfer_encoding = false;
