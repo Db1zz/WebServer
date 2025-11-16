@@ -34,7 +34,6 @@ ServerResponse& ServerResponse::header(const std::string& key, const std::string
 	return *this;
 }
 
-
 ServerResponse& ServerResponse::handle_get_method(const t_location& location) {
 	if (FileUtils::is_directory(_resolved_file_path)) {
 		handle_directory(location);
@@ -52,10 +51,9 @@ Status ServerResponse::generate_response() {
 	if (!status)
 		return generate_error_response();
 	const t_location* best_match = _file_utils->find_best_location_match();
-
-	std::cout << "data len: " << _req_data->content_data.front().data.length() << std::endl;
-	std::cout << "best max max client body: " << best_match->common.max_client_body << std::endl;
-	if ((_req_data->content_data.front().data.length() > best_match->common.max_client_body ) && (best_match->common.max_client_body != 0 )) {
+	// std::cout << "data len: " << _req_data->content_data.front().data.length() << std::endl;
+	//std::cout << "best max max client body: " << best_match->common.max_client_body << std::endl;
+	if (best_match && _req_data->content_data.size() > 0 && (_req_data->content_data.front().data.length() > best_match->common.max_client_body ) && (best_match->common.max_client_body != 0 )) {
 		status = Status::RequestEntityTooLarge();
 		return generate_error_response();
 	}
