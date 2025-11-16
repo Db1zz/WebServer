@@ -223,7 +223,8 @@ void ServerResponse::set_binary_headers() {
 
 void ServerResponse::handle_file_upload() {
 	//std::cout << "uri path: " << _req_data->uri_path << std::endl;
-	if (_req_data->content_type.type == "text" && _req_data->content_type.subtype == "plain") {
+	if ((_req_data->content_type.type == "text" && _req_data->content_type.subtype == "plain") ||
+		(_req_data->content_type.type == "plain" && _req_data->content_type.subtype == "text")) {
 		status = Status::Forbidden();
 		_error_handler->send_error_page(403, "Forbidden", _body, _headers);
 		return;
