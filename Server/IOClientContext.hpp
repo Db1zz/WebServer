@@ -6,6 +6,8 @@
 #include "RequestParser/ServerRequestParser.hpp"
 #include "ServerRequest.hpp"
 #include "ServerSocket.hpp"
+#include "IEventContext.hpp"
+#include "DolbayobPTR.hpp"
 
 class ServerLogger;
 class ClientSocket;
@@ -20,17 +22,22 @@ class IOClientContext : public IIOContext {
 	std::string buffer;
 	ServerRequestParser parser;
 
+	DolbayobPTR<IEventContext> cgi_event_context;
 	bool is_cgi_request_finished;
 	bool cgi_started;
 	int cgi_fd;
+	std::string cgi_buffer;
 
 	void reset() {
 		request = t_request();
 		buffer.clear();
 		parser.reset();
+
+		cgi_event_context.unlink_ptr();
 		is_cgi_request_finished = false;
 		cgi_started = false;
 		cgi_fd = -1;
+		cgi_buffer.clear();
 	}
 
 	IOClientContext(ClientSocket& client_socket, ServerSocket& server_socket,
@@ -39,6 +46,7 @@ class IOClientContext : public IIOContext {
 		  server_socket(server_socket),
 		  server_logger(server_logger),
 		  parser(&server_socket.get_server_config(), server_logger),
+		  cgi_event_context(NULL),
 		  is_cgi_request_finished(false),
 		  cgi_started(false),
 		  cgi_fd(-1) {}

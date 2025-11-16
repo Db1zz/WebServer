@@ -29,38 +29,28 @@ IOCGIHandler::~IOCGIHandler() {
 	if (_io_cgi_context.cgi_pid > 0) {
 		kill(_io_cgi_context.cgi_pid, SIGKILL);
 		_io_cgi_context.cgi_pid = -1;
+	}
+
+	if (_timeout_timer != NULL) {
 		_timeout_timer->stop();
 	}
 }
 
 void IOCGIHandler::handle(void* data) {
-	(void)data;
-
 	if (_timeout_timer != NULL && _timeout_timer->is_expired() == true) {
 		handle_timeout();
 	} else {
-		handle_default();
+		epoll_event& event = *static_cast<epoll_event*>(data);
+		handle_default(event);
 	}
 
-	if (_child_exited == true || _timeout_timer->is_expired()) {
+	if (_child_exited == true || (_timeout_timer != NULL && _timeout_timer->is_expired())) {
 		_status = _io_cgi_context.cgi_parser.parse(_buffer);
 		if (!_status) {
 			_server_logger->log_error("IOCGIHandler::handle", "failed to parse CGI response");
 		}
-		try {
-			_io_client_context.is_cgi_request_finished = true;
-			HTTPResponseSender response_sender(_io_client_context.client_socket,
-											   &_io_cgi_context.request, _server_config,
-											   _io_client_context.server_socket, _server_logger);
-			response_sender.send(_status);
-			set_is_closing();
-		} catch (const std::exception& e) {
-			if (_server_logger != NULL) {
-				_server_logger->log_error("IOCGIHandler::handle",
-										  "failed to send response: " + std::string(e.what()));
-			}
-			throw;
-		}
+		_io_client_context.is_cgi_request_finished = true;
+		set_is_closing();
 	}
 }
 
@@ -84,21 +74,24 @@ void IOCGIHandler::handle_timeout() {
 	_io_cgi_context.cgi_pid = -1;
 }
 
-bool IOCGIHandler::handle_default() {
+void IOCGIHandler::handle_default(const epoll_event& event) {
 	size_t buffer_size = 1000000;
 	char buffer[buffer_size];
+	ssize_t rd_bytes;
 
-	ssize_t rd_bytes = read(_cgi_fd.get_fd(), buffer, buffer_size);
-	if (rd_bytes < 0) {
-		return true;
-	}
-
-	_buffer.append(buffer, rd_bytes);
+	do {
+		rd_bytes = read(_cgi_fd.get_fd(), buffer, buffer_size);
+		if (rd_bytes < 0) {
+			return;
+		}
+	
+		_buffer.append(buffer, rd_bytes);
+	} while (event.events & (EPOLLHUP | EPOLLRDHUP) && rd_bytes != 0);
 
 	int wpidstatus = 0;
 	pid_t pid = waitpid(_io_cgi_context.cgi_pid, &wpidstatus, WNOHANG);
 	if (pid != _io_cgi_context.cgi_pid) {
-		return true;
+		return;
 	}
 
 	_child_exited = true;
@@ -109,9 +102,7 @@ bool IOCGIHandler::handle_default() {
 			"\r\n"
 			"An internal error occurred. Please try again later.\r\n");
 		_status = Status::InternalServerError();
-		return true;
 	}
-	return true;
 }
 
 void IOCGIHandler::set_timeout_timer(ITimeoutTimer* timeout_timer) {

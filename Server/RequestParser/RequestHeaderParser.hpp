@@ -47,7 +47,7 @@ class RequestHeaderParser {
 	bool is_valid_ipv4_addr(const std::string& addr);
 
 	bool is_content_type_valid(t_request& request);
-	bool is_request_valid(t_request& request);
+	Status is_request_valid(t_request& request);
 	bool is_supported_protocol_version(const std::string& protocol_version);
 	bool is_protocol_valid(const std::string& protocol_version);
 

@@ -11,6 +11,8 @@
 #include "ServerLogger.hpp"
 #include "ServerSocket.hpp"
 
+#include "DolbayobPTR.hpp"
+
 IOServerHandler::IOServerHandler(ServerSocket& server_socket, IOServerContext& server_context,
 								 ServerEvent& server_event, ServerLogger* server_logger)
 	: _server_socket(server_socket),
@@ -27,8 +29,8 @@ void IOServerHandler::handle(void* data) {
 		new IOClientContext(*client_socket, _server_socket, _server_logger);
 	IOClientHandler* io_client_handler =
 		new IOClientHandler(*client_socket, *io_client_context, _server_event, _server_logger);
-	ClientEventContext* client_event_context = new ClientEventContext();
-	client_event_context->take_data_ownership(io_client_handler, io_client_context, client_socket,
+	DolbayobPTR<IEventContext> client_event_context(new ClientEventContext());
+	client_event_context.get()->take_data_ownership(io_client_handler, io_client_context, client_socket,
 											  NULL);
 
 	try {
@@ -42,7 +44,6 @@ void IOServerHandler::handle(void* data) {
 			std::exit(127);
 		}
 	} catch (const std::exception& e) {
-		delete client_event_context;
 		if (_server_logger != NULL) {
 			_server_logger->log_error("IOServerHandler::handle()", strerror(errno));
 		}
@@ -54,6 +55,11 @@ void IOServerHandler::set_timeout_timer(ITimeoutTimer* timeout_timer) {
 	_timeout_timer = timeout_timer;
 }
 
+
 bool IOServerHandler::is_closing() const {
 	return false;
+}
+
+void IOServerHandler::set_is_closing() {
+	return;
 }
