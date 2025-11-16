@@ -32,10 +32,6 @@ void get_directory_path(const std::string& full_path, std::string& out) {
 	}
 
 	size_t end = full_path.size() - 1;
-	if (!full_path.empty() && full_path[end] == '/') {
-		--end;
-	}
-
 	end = full_path.rfind("/", end);
 	if (end == std::string::npos) {
 		out.clear();
@@ -107,6 +103,25 @@ bool get_cgi_bin(const std::string& uri_path, const t_config& server_config,
 		return true;
 	}
 	return false;
+}
+
+size_t get_location_max_body_size(const std::string& uri_path, const t_config& server_config) {
+	std::map<std::string, std::string>::const_iterator it;
+	std::string dir_path;
+
+	get_directory_path(uri_path, dir_path);
+	if (dir_path == "/") {
+		return server_config.common.max_client_body;
+	}
+
+	const std::vector<t_location>& locations = server_config.location;
+	for (size_t i = 0; i < locations.size(); ++i) {
+		if (locations[i].path != dir_path) {
+			continue;
+		}
+		return locations[i].common.max_client_body;
+	}
+	return 0;
 }
 
 Status read_data(int fd, ssize_t read_buff_size, std::string& buff, int& rd_bytes) {

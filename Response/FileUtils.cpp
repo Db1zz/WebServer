@@ -90,7 +90,7 @@ bool FileUtils::save_uploaded_file(const std::string& file_path, t_request_conte
 	outfile.write(content_data.data.c_str(), content_data.data.size());
 
 	if (content_data.is_finished) {
-		std::cout << "data is finished, file close return true" << std::endl;
+		//std::cout << "data is finished, file close return true" << std::endl;
 		outfile.close();
 		return true;
 	}

@@ -1,3 +1,6 @@
+
+#include "StandardTimeoutTimer.hpp"
+
 #include <string>
 #include <vector>
 
@@ -39,6 +42,5 @@ int main(int argc, char** argv) {
 		std::cout << "[Server] " << RED300 << "Fatal Error: " << RESET << e.what() << std::endl;
 		return 1;
 	}
-
 	return 0;
 }

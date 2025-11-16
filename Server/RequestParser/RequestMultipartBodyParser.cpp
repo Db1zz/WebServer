@@ -94,8 +94,6 @@ void RequestMultipartParser::apply(t_request& request) {
 
 		if (!_content_data.front().is_finished) {
 			if (!request.content_data.empty() && !last_request_content.is_finished) {
-				//std::cout << "this content data size: " << _content_data.front().data.size() << std::endl;
-				//std::cout << "client content data size: " << last_request_content.data.size() << std::endl;
 				last_request_content.data.append(_content_data.front().data);
 			} else if (!file_already_exists) {
 				request.content_data.push_back(_content_data.front());
