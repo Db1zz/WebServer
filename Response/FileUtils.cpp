@@ -98,16 +98,6 @@ bool FileUtils::save_uploaded_file(const std::string& file_path, t_request_conte
 	return false;
 }
 
-bool FileUtils::save_text_file(const std::string& file_path, const std::string& content) {
-	std::ofstream file(file_path.c_str());
-	if (file.is_open()) {
-		file << content;
-		file.close();
-		return true;
-	}
-	return false;
-}
-
 bool FileUtils::is_binary(const std::string& mime_type) const {
 	return (mime_type == ".jpg" || mime_type == ".jpeg" || mime_type == ".png" ||
 			mime_type == ".gif" || mime_type == ".ico" || mime_type == ".webp");

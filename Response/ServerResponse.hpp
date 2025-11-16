@@ -85,7 +85,6 @@ class ServerResponse {
 	void handle_directory(const t_location& location);
 	void handle_file_upload();
 	void handle_multipart_upload();
-	void handle_text_upload();
 	void handle_file_delete();
 	void set_binary_headers();
 	void choose_method(const t_location& location);

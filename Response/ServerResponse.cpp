@@ -222,10 +222,14 @@ void ServerResponse::set_binary_headers() {
 }
 
 void ServerResponse::handle_file_upload() {
+	//std::cout << "uri path: " << _req_data->uri_path << std::endl;
+	if (_req_data->content_type.type == "text" && _req_data->content_type.subtype == "plain") {
+		status = Status::Forbidden();
+		_error_handler->send_error_page(403, "Forbidden", _body, _headers);
+		return;
+	}
 	if (!_req_data->content_data.empty()) {
 		handle_multipart_upload();
-	} else if (!_req_data->body_chunk.empty()) {
-		handle_text_upload();
 	} else {
 		set_upload_error(Status::BadRequest(), "no data to upload");
 	}
@@ -235,6 +239,7 @@ void ServerResponse::handle_multipart_upload() {
 	while (!_req_data->content_data.empty()) {
 		t_request_content& content_data = _req_data->content_data.front();
 		std::string file_path = get_upload_file_path(content_data.filename);
+		//std::cout << "file path:" << file_path << std::endl;
 
 		if (FileUtils::is_file_exists(file_path) && !content_data.is_file_created) {
 			set_upload_error(Status::Conflict(), "file already exists");
@@ -256,16 +261,6 @@ void ServerResponse::handle_multipart_upload() {
 			content_data.data.clear();
 			break;
 		}
-	}
-}
-
-void ServerResponse::handle_text_upload() {
-	std::string file_path = get_upload_file_path("uploaded_text.txt");
-	
-	if (_file_utils->save_text_file(file_path, _req_data->body_chunk)) {
-		set_upload_success("text data uploaded successfully");
-	} else {
-		set_upload_error(Status::InternalServerError(), "failed to save text data");
 	}
 }
 
