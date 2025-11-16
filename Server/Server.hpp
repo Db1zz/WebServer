@@ -26,15 +26,13 @@ class Server {
 	void create_sockets_from_config(const t_config& server_config);
 	void create_sockets_from_configs(const std::vector<t_config>& configs);
 	void print_debug_addr(const std::string& address, int port);
+	// void destroy_server_event_contexts();
 
-	bool check_if_can_destroy_event(int events, IEventContext& event_context,
-									std::map<int, IEventContext*>& events_to_destroy);
-	bool is_object_expired(IEventContext& event_context);
-	void destroy_events(std::map<int, IEventContext*>& events);
 
 	std::vector<t_config> _configs;
 	ServerEvent _event;
 	ServerLogger& _server_logger;
+	std::vector<IEventContext*> _server_event_contexts;
 };
 
 #endif // SERVER_SERVER_HPP

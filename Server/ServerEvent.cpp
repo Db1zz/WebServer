@@ -23,21 +23,24 @@ ServerEvent::~ServerEvent() {
     if (_events_arr) {
         delete[] _events_arr;
     }
-    destroy_remaining_events();
 }
 
-bool ServerEvent::register_event(uint32_t events, int event_fd, IEventContext* event_context) {
+bool ServerEvent::register_event(uint32_t events, int event_fd, DolbayobPTR<IEventContext> event_context) {
     if (_events_size == _events_capacity) {
         return false;
     }
 
+    if (_events_contexts.find(event_fd) != _events_contexts.end()) {
+        return true; // TODO
+    }
+
     epoll_event new_event;
 
-    new_event.data.ptr = event_context;
+    new_event.data.ptr = event_context.get();
     new_event.events = events;
 
     if (epoll_ctl(_epoll_fd, EPOLL_CTL_ADD, event_fd, &new_event) < 0) {
-        return Status(strerror(errno));
+        throw SystemException(LOG_INFO(), "epoll_ctl() " + std::string(strerror(errno)));
     }
     _events_contexts.insert(std::make_pair(event_fd, event_context));
     ++_events_size;
@@ -45,23 +48,23 @@ bool ServerEvent::register_event(uint32_t events, int event_fd, IEventContext* e
 }
 
 void ServerEvent::unregister_event(int event_fd) {
+    std::map<int, DolbayobPTR<IEventContext> >::iterator it = _events_contexts.find(event_fd);
+    if (it == _events_contexts.end()) {
+        return;
+    }
+
     if (epoll_ctl(_epoll_fd, EPOLL_CTL_DEL, event_fd, NULL) < 0) {
         throw SystemException(LOG_INFO(), "epoll_ctl() " + std::string(strerror(errno)));
     }
 
-    std::map<int, IEventContext*>::iterator it = _events_contexts.find(event_fd);
-    if (it != _events_contexts.end()) {
-        _events_contexts.erase(it);
-    }
+    _closed_events_contexts.push_back(it->second);
+    _events_contexts.erase(it);
     --_events_size;
+    std::cout << "Connection with " << event_fd << " is closed\n";
 }
 
-/*
-	The same rules are applied to timeout as for epoll_wait()
-
-	read about it: man epoll_wait
-*/
 Status ServerEvent::wait_event(int timeout, int* nfds) {
+    _closed_events_contexts.clear();
 	*nfds = epoll_wait(_epoll_fd, _events_arr, _events_capacity, timeout);
 	if (*nfds < 0) {
 		if (errno == EINTR) {
@@ -89,8 +92,8 @@ size_t ServerEvent::capacity() {
 	return _events_capacity;
 }
 
-IEventContext* ServerEvent::get_event_context(int event_fd) {
-	std::map<int, IEventContext*>::iterator it = _events_contexts.find(event_fd);
+DolbayobPTR<IEventContext> ServerEvent::get_event_context(int event_fd) {
+	std::map<int, DolbayobPTR<IEventContext> >::iterator it = _events_contexts.find(event_fd);
 
 	if (it == _events_contexts.end()) {
 		return NULL;
@@ -108,22 +111,6 @@ void ServerEvent::init() {
     _events_arr = new epoll_event[_events_capacity];
 }
 
-// Status ServerEvent::resize_events_arr(size_t new_size) {
-//     epoll_event *new_events_arr;
-
-//     try {
-//         new_events_arr = new epoll_event[new_size];
-//         copy_events_arr(_events_capacity, _events_arr, new_events_arr);
-//         delete[] _events_arr;
-//         _events_arr = new_events_arr;
-//         _events_capacity = new_size;
-//     } catch (const std::exception &e) {
-//         return Status(e.what());
-//     }
-
-//     return Status::OK();
-// }
-
 void ServerEvent::copy_events_arr(size_t src_size, const epoll_event* src, epoll_event* dst) {
 	for (size_t i = 0; i < src_size; ++i) {
 		dst[i] = src[i];
@@ -140,23 +127,5 @@ void ServerEvent::event_mod(uint32_t events, int event_fd) {
     error = epoll_ctl(_epoll_fd, EPOLL_CTL_MOD, event_fd, &event);
     if (error < 0) {
         throw SystemException(LOG_INFO(), "epoll_ctl() " + std::string(strerror(errno)));
-    }
-}
-
-const std::map<int, IEventContext*>& ServerEvent::get_events_contexts() {
-	return _events_contexts;
-}
-
-void ServerEvent::destroy_remaining_events() {
-    if (_events_contexts.size() == 0) {
-        return;
-    }
-        
-    std::map<int, IEventContext*>::iterator it = _events_contexts.begin();
-    while (it != _events_contexts.end()) {
-        std::map<int, IEventContext*>::iterator to_delete = it;
-        ++it;
-        delete to_delete->second;
-        _events_contexts.erase(to_delete);
     }
 }

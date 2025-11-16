@@ -6,6 +6,7 @@
 #include "ServerLogger.hpp"
 #include "ServerConfig.hpp"
 #include "status.hpp"
+#include "ServerEvent.hpp"
 
 
 class CGIFileDescriptor;
@@ -24,7 +25,7 @@ class IOCGIHandler : public IIOHandler {
 
    private:
 	void handle_timeout();
-	bool handle_default();
+	void handle_default(const epoll_event& event);
 
 	Status _status;
 	CGIFileDescriptor& _cgi_fd;

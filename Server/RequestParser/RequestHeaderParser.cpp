@@ -529,7 +529,7 @@ bool RequestHeaderParser::is_content_type_valid(t_request& request) {
 	return true;
 }
 
-bool RequestHeaderParser::is_request_valid(t_request& request) {
+Status RequestHeaderParser::is_request_valid(t_request& request) {
 	// if (request.host.empty()) {
 	// 	log_error("RequestHeaderParser::is_request_valid", std::string("HOST was not provided"));
 	// 	return false;
@@ -539,14 +539,19 @@ bool RequestHeaderParser::is_request_valid(t_request& request) {
 	if (request.method == "POST" && request.content_length == 0) {
 		log_error("RequestHeaderParser::is_request_valid",
 				  std::string("request method is 'POST' but content length was not provided."));
-		return false;
+		return Status::BadRequest();
 	}
 
 	if (!is_content_type_valid(request)) {
-		return false;
+		return Status::BadRequest();
 	}
 
-	return true;
+	size_t max_body_size = server_utils::get_location_max_body_size(request.uri_path, *_server_config);
+	if (request.method == "POST" && max_body_size > 0 && max_body_size < request.content_length) {
+		return Status::RequestEntityTooLarge();
+	}
+
+	return Status::OK();
 }
 
 Status RequestHeaderParser::parse_content_type(const std::string& field_value, t_request& request) {
@@ -696,10 +701,7 @@ Status RequestHeaderParser::parse_complete_header(t_request& request) {
 		}
 	} while (pos < len);
 
-	if (!is_request_valid(request)) {
-		return Status::BadRequest();
-	}
-
+	status = is_request_valid(request);
 	return status;
 }
 

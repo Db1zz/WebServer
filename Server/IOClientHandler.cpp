@@ -8,7 +8,10 @@
 #include "CGIEventContext.hpp"
 #include "CGIFileDescriptor.hpp"
 #include "ClientSocket.hpp"
-#include "EpollTimeoutTimer.hpp"
+
+// #include "EpollTimeoutTimer.hpp"
+#include "StandardTimeoutTimer.hpp"
+
 #include "Exceptions/SystemException.hpp"
 #include "FileDescriptor.hpp"
 #include "HTTPResponseSender.hpp"
@@ -19,6 +22,7 @@
 #include "ServerLogger.hpp"
 #include "ServerSocket.hpp"
 #include "ServerUtils.hpp"
+#include "IOCGIContext.hpp"
 
 IOClientHandler::IOClientHandler(ClientSocket& client_socket, IOClientContext& client_context,
 								 ServerEvent& server_event, ServerLogger* server_logger)
@@ -31,13 +35,7 @@ IOClientHandler::IOClientHandler(ClientSocket& client_socket, IOClientContext& c
 }
 
 IOClientHandler::~IOClientHandler() {
-	CGIEventContext* cgi_event_context =
-		static_cast<CGIEventContext*>(_server_event.get_event_context(_client_context.cgi_fd));
-	if (cgi_event_context != NULL) {
-		IOCGIHandler* io_cgi_handler =
-			static_cast<IOCGIHandler*>(cgi_event_context->get_io_handler());
-		io_cgi_handler->set_is_closing();
-	}
+	_client_context.reset();
 }
 
 void IOClientHandler::read_and_parse() {
@@ -65,7 +63,12 @@ void IOClientHandler::read_and_parse() {
 
 void IOClientHandler::handle(void* data) {
 	epoll_event& event = *static_cast<epoll_event*>(data);
-	if (event.events & EPOLLIN) {
+	if (event.events & (EPOLLHUP | EPOLLRDHUP)) {
+		set_is_closing();
+		return;
+	}
+
+	if (event.events & EPOLLIN && _client_context.request.is_cgi == false) {
 		read_and_parse();
 		if (_status == DataIsNotReady) {
 			return;
@@ -117,9 +120,18 @@ void IOClientHandler::handle_cgi_request() {
 			throw;
 		}
 	} else if (_client_context.cgi_started == true) {
-		if (_client_context.is_cgi_request_finished == false) {
+		ITimeoutTimer* timeout_timer = _client_context.cgi_event_context.get()->get_timer();
+		if (timeout_timer != NULL && timeout_timer->is_expired() == true) {
+			_client_context.cgi_event_context.get()->get_io_handler()->handle(NULL);
+			_server_event.unregister_event(_client_context.cgi_event_context.get()->get_fd()->get_fd());
+		} else if (_client_context.is_cgi_request_finished == false) {
 			return;
 		}
+		IOCGIContext* cgi_context = static_cast<IOCGIContext*>(_client_context.cgi_event_context.get()->get_io_context());
+		HTTPResponseSender response_sender(_client_socket, &cgi_context->request,
+											&_client_context.server_socket.get_server_config(),
+											_client_context.server_socket, _server_logger);
+		response_sender.send(_status);
 
 		if (_server_logger != NULL) {
 			_server_logger->log_access(_client_socket.get_host(), _client_context.request.method,
@@ -137,23 +149,17 @@ void IOClientHandler::handle_cgi_request() {
 void IOClientHandler::handle_default_request() {
 	if (_status.code() != DataIsNotReady &&
 		(_client_context.parser.is_header_parsed() == true || !_status)) {
-		try {
-			HTTPResponseSender response_sender(_client_socket, &_client_context.request,
-											   &_client_context.server_socket.get_server_config(),
-											   _client_context.server_socket, _server_logger);
-			Status temp_status = response_sender.send(_status);
-			if (!temp_status) {
-				set_is_closing();
-				return;
-			}
-			// i refresh timer for streaming chunked files here otherwise все идет по жопе
-			if (_client_context.request.is_streaming && _timeout_timer != NULL) {
-				_timeout_timer->reset();
-			}
-		} catch (const std::exception& e) {
-			log_error("IOClientHandler::handle_default_request()",
-					  "failed to send response: " + std::string(e.what()));
-			throw;
+		HTTPResponseSender response_sender(_client_socket, &_client_context.request,
+											&_client_context.server_socket.get_server_config(),
+											_client_context.server_socket, _server_logger);
+		Status temp_status = response_sender.send(_status);
+		if (!temp_status) {
+			set_is_closing();
+			return;
+		}
+		// i refresh timer for streaming chunked files here otherwise все идет по жопе
+		if (_client_context.request.is_streaming && _timeout_timer != NULL) {
+			_timeout_timer->reset();
 		}
 		if (_client_context.request.is_request_ready()) {
 			if (!_client_context.request.is_streaming) {
@@ -251,29 +257,37 @@ void IOClientHandler::create_cgi_process() {
 	}
 
 	close(server_read_pipe[1]);
+
 	CGIFileDescriptor* cgi_fd = new CGIFileDescriptor(server_read_pipe[0], _client_socket);
 	cgi_fd->set_nonblock();
 
 	IOCGIContext* cgi_context = new IOCGIContext(
 		*cgi_fd, cgi_process, &_client_context.server_socket.get_server_config(), _server_logger);
+
 	IOCGIHandler* cgi_handler =
 		new IOCGIHandler(*cgi_fd, *cgi_context, _client_context,
 						 &_client_context.server_socket.get_server_config(), _server_logger);
-	CGIEventContext* cgi_event_context = new CGIEventContext();
-	EpollTimeoutTimer* cgi_timeout_timer =
-		new EpollTimeoutTimer(&_server_event, cgi_event_context, 5);
-	cgi_event_context->take_data_ownership(cgi_handler, cgi_context, cgi_fd, cgi_timeout_timer);
+
+	DolbayobPTR<IEventContext> cgi_event_context(new CGIEventContext);
+	
+	// 5 seconds is standard for us.
+	// EpollTimeoutTimer* cgi_timeout_timer =
+	// 	new EpollTimeoutTimer(&_server_event, cgi_event_context, 5);
+	StandardTimeoutTimer* cgi_timeout_timer = new StandardTimeoutTimer(5);
+
+	cgi_event_context.get()->take_data_ownership(cgi_handler, cgi_context, cgi_fd, cgi_timeout_timer);
 	cgi_handler->set_timeout_timer(cgi_timeout_timer);
 	cgi_timeout_timer->start();
-
-	_client_context.cgi_started = true;
-	_client_context.cgi_fd = cgi_fd->get_fd();
 
 	if (!_server_event.register_event(SERVER_EVENT_CLIENT_EVENTS, cgi_fd->get_fd(),
 									  cgi_event_context)) {
 		std::cout << "TODO vpadlu\n";
 		std::exit(127);
 	}
+
+	_client_context.cgi_event_context = cgi_event_context;
+	_client_context.cgi_started = true;
+	_client_context.cgi_fd = cgi_fd->get_fd();
 }
 
 void IOClientHandler::log_error(const std::string& failed_component, const std::string& error) {
