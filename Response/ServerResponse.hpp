@@ -29,8 +29,8 @@
 #include "ServerResponse.hpp"
 
 #define PAGE_INITIAL "Pages/index.html"
-#define PAGE_404 "Pages/404.html"
-#define STYLESHEET "Pages/styles.css"
+#define PAGE_404 "/Pages/404.html"
+#define STYLESHEET "/Pages/styles.css"
 
 class JsonResponse;
 class ErrorResponse;

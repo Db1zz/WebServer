@@ -192,21 +192,28 @@ const std::string& ServerResponse::get_content_type() const {
 }
 
 void ServerResponse::handle_directory(const t_location& location) {
-	if (location.common.auto_index &&
-		(_req_data->mime_type == ".json" || _req_data->accept == "*/*" || _req_data->accept.find("*/*") != std::string::npos)) {
-		_json_handler->create_json_response(_resolved_file_path, _body, _headers);
-		return;
-	}
 	if (!_resolved_file_path.empty() &&
 		_resolved_file_path[_resolved_file_path.size() - 1] != '/') {
 		_resolved_file_path += "/";
 	}
-	_resolved_file_path += location.common.index.empty() ? "index.html" : location.common.index[0];
+	std::string index_file_path = _resolved_file_path + (location.common.index.empty() ? "index.html" : location.common.index[0]);
 
-	_req_data->mime_type = ".html";
-	_resp_content_type = _file_utils->identify_mime_type();
-	header("content-type", _resp_content_type);
-	serve_file(_resolved_file_path, false);
+	bool index_exists = FileUtils::is_file_exists(index_file_path);
+
+	bool json_requested = (_req_data->mime_type == ".json");
+	
+	if (index_exists && !json_requested) {
+		_resolved_file_path = index_file_path;
+		_req_data->mime_type = ".html";
+		_resp_content_type = _file_utils->identify_mime_type();
+		header("content-type", _resp_content_type);
+		serve_file(_resolved_file_path, false);
+	} else if (location.common.auto_index && (!index_exists || json_requested)) {
+		_json_handler->create_json_response(_resolved_file_path, _body, _headers);
+	} else {
+		status = Status::Forbidden();
+		_error_handler->send_error_page(403, "Forbidden", _body, _headers);
+	}
 }
 
 void ServerResponse::set_binary_headers() {
@@ -245,6 +252,27 @@ void ServerResponse::handle_file_upload() {
 			content_data.data.clear();
 			break;
 		}
+	}
+
+	if (_req_data->content_data.empty() && !_req_data->body_chunk.empty()) {
+		std::string upload_dir = _resolved_file_path;
+		FileUtils::ensureTrailingSlash(upload_dir);
+		std::string file_path = upload_dir + "uploaded_text.txt";
+
+		std::ofstream file(file_path.c_str());
+		if (file.is_open()) {
+			file << _req_data->body_chunk;
+			file.close();
+			status = Status::OK();
+			_json_handler->set_success_response("text data uploaded successfully", _body, _headers);
+		} else {
+			status = Status::InternalServerError();
+			_json_handler->set_error_response("failed to save text data", _body, _headers);
+		}
+	}
+	if (_req_data->content_data.empty() && _req_data->body_chunk.empty()) {
+		status = Status::BadRequest();
+		_json_handler->set_error_response("no data to upload", _body, _headers);
 	}
 }
 

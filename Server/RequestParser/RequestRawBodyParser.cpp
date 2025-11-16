@@ -44,6 +44,9 @@ Status RequestRawBodyParser::feed(const std::string& content, size_t start_pos) 
 
 void RequestRawBodyParser::apply(t_request& request) {
 	request.transfered_length += _data_size;
+	if (_type == InBuffer) {
+		request.body_chunk = _data;
+	}
 }
 
 bool RequestRawBodyParser::is_finished() const {
