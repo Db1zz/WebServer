@@ -53,6 +53,12 @@ Status ServerResponse::generate_response() {
 		return generate_error_response();
 	const t_location* best_match = _file_utils->find_best_location_match();
 
+	std::cout << "data len: " << _req_data->content_data.front().data.length() << std::endl;
+	std::cout << "best max max client body: " << best_match->common.max_client_body << std::endl;
+	if ((_req_data->content_data.front().data.length() > best_match->common.max_client_body ) && (best_match->common.max_client_body != 0 )) {
+		status = Status::RequestEntityTooLarge();
+		return generate_error_response();
+	}
 	if (_req_data->uri_path == "/login") {
 		handle_auth_login();
 		construct_response_line();
