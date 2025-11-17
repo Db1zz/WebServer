@@ -128,10 +128,11 @@ Status read_data(int fd, ssize_t read_buff_size, std::string& buff, int& rd_byte
 	char read_buff[read_buff_size];
 
 	rd_bytes = read(fd, read_buff, read_buff_size);
-	//std::cout << "request: " << read_buff << std::endl;
 	if (rd_bytes < 0) {
 		return Status::InternalServerError();
 	}
+	// read_buff[rd_bytes] =0;
+	// std::cout << "request: " << read_buff << std::endl;
 	buff.append(read_buff, rd_bytes);
 	return Status::OK();
 }
