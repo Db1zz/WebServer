@@ -3,6 +3,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include "../Utilities/colors.hpp"
 
 FileUtils::FileUtils(t_request* req_data, const t_config* server_data)
 	: _req_data(req_data), _server_data(server_data) {
@@ -27,7 +28,8 @@ void FileUtils::ensureTrailingSlash(std::string& path) {
 
 bool FileUtils::is_file_exists(const std::string& file_path) {
 	struct stat file_stat;
-	return (stat(file_path.c_str(), &file_stat) == 0);
+	// std::cout << RED500 << file_path << RESET <<"\n";
+	return (stat(file_path.c_str(), &file_stat) == 0 && !S_ISDIR(file_stat.st_mode));
 }
 
 bool FileUtils::read_file_content(std::fstream& file, std::string& body) {

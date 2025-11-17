@@ -1,7 +1,7 @@
 NAME = ./webserv
 INCLUDE_DIR = -I Sockets -I Server -I Response -I Parser -I Utilities -I Logger
 CXX = c++ -std=c++98 -g
-CXXFLAGS = -Wall -Wextra $(INCLUDE_DIR)
+CXXFLAGS = -Wall -Wextra -Werror $(INCLUDE_DIR)
 
 BUILDDIR = Build
 OBJSDIR = $(BUILDDIR)/Objs
@@ -61,7 +61,7 @@ SRCS = \
 
 OBJS = $(patsubst %.cpp, $(OBJSDIR)/%.o, $(SRCS))
 
-all: create_project_dirs $(NAME)
+all: $(NAME)
 
 $(OBJS): $(OBJSDIR)/%.o: %.cpp
 	mkdir -p $(BUILDDIR) $(dir $@)
@@ -77,8 +77,6 @@ $(OBJSDIR)/main.o: main.cpp
 
 $(NAME): $(OBJSDIR)/main.o $(LIBDIR)/$(LIB)
 	$(CXX) $(OBJSDIR)/main.o $(LIBDIR)/$(LIB) -o $@
-
-create_project_dirs:
 	mkdir -p $(PROJECT_DIRS)
 
 clean:
