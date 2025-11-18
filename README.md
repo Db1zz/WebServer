@@ -25,7 +25,7 @@ Despite its intentionally old-school tech stack, the server is efficient, standa
 - `make`
 
 #### For macOS
-- `make run` note: your docker should up, otherwise you'll get an error
+- `make run` note: your docker should be up, otherwise you'll get an error
 - `make` in a docker container
 
 ## Done! Please be carefull with it <3
@@ -34,3 +34,4 @@ Despite its intentionally old-school tech stack, the server is efficient, standa
 https://github.com/Db1zz - Gosha
 https://github.com/fraumarzhuk - Marianna
 https://github.com/tamasandor - Andor
+
