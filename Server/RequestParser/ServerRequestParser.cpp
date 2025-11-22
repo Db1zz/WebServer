@@ -69,7 +69,7 @@ Status ServerRequestParser::parse_header(const std::string& content, size_t& bod
 
 	_header_parsed = true;
 
-	return Status::OK();
+	return status;
 }
 
 Status ServerRequestParser::parse_body(const std::string& content, size_t body_pos_start, t_request& request) {
@@ -92,7 +92,7 @@ Status ServerRequestParser::parse_body(const std::string& content, size_t body_p
 		return Status::BadRequest();
 	}
 
-	return Status::OK();
+	return status;
 }
 
 void ServerRequestParser::reset() {
