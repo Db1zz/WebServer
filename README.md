@@ -32,6 +32,9 @@ Despite its intentionally old-school tech stack, the server is efficient, standa
 
 ## Contributors:
 https://github.com/Db1zz - Gosha
+
 https://github.com/fraumarzhuk - Marianna
+
 https://github.com/tamasandor - Andor
+
 
